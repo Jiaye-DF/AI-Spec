@@ -164,7 +164,7 @@ volumes: {}
 | 服務間無法通訊 | 定義了 networks | 移除 networks 區塊，讓 Coolify 管理 |
 | 環境變數無效 | 使用了 `:?` 語法 | 改用 `${VAR}` |
 | SERVICE_URL 無值 | 冒號後填了內容 | 冒號後保持空白 |
-| DB / Redis 加 SERVICE_URL 無效 | TCP 服務不支援 | 改用 `DATABASE_URL` / `REDIS_URL` |
+| DB / Redis 加 SERVICE_URL 無效 | TCP 服務不支援 | 不要填寫 SERVER_URL |
 | 資料遺失 | Volume 未命名 | 使用命名 Volume |
 | 網站無法存取 | 沒設 expose port | 於該 service 加 `expose` |
 
@@ -242,7 +242,7 @@ volumes:
 
 2. **不要對 Seq 容器設 healthcheck** — `datalust/seq` 鏡像不一定有 `curl` / `wget`，healthcheck 容易永遠失敗卡死整個 compose。用 `depends_on` 簡單串聯即可。
 
-3. **volume 損壞要整個砍掉重建** — 多次部署失敗後 `seq-data` 可能殘留半成品，噴 `Failed to initialize storage`。到 Coolify UI 刪掉 volume 重 deploy。
+3. **volume 損壞要整個砍掉重建** — 多次部署失敗後 `seq-data` 可能殘留半成品，噴 `Failed to initialize storage`。需要將 docker-compose 檔案內的 volumes 部份刪除後 commit 讓 Coolify 處理後，再次把刪掉的部份補回，commit 再次讓 Coolify 自動建立。
 
 4. **compose 網路內走 `http://seq`（port 80）** — 對應 `expose: "80"` 與 Coolify 的 `SERVICE_URL_SEQ_80:` 慣例。SDK 會自動 append `/api/events/raw`，不要自己寫完整路徑。
 
