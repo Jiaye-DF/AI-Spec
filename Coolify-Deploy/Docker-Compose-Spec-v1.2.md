@@ -3,6 +3,8 @@
 > 本文件為 Coolify 平台部署的 Docker Compose 配置規範，給 AI Agent 與開發者實作 compose 檔時參考。
 >
 > **v1.2 更新**：Adminer 從「選配」提升為**標準服務**，正式列入 compose 範例。可從 Coolify 直接分配對外網址，瀏覽器連線即可檢視 / 操作 DB，不需 SSH 或 port forward。
+>
+> Seq 從「選配」提升為**標準監控服務**，所有專案預設包含集中式 log 收集。
 
 ---
 
@@ -11,6 +13,7 @@
 - ✨ **Adminer 納入標準**：取消註解，成為預設包含的服務
 - 📝 **新增 Adminer 完整操作章節**：包含 Coolify 存取步驟、登入欄位對照、安全要求
 - 🔄 **替代工具對照表**：Adminer / pgAdmin / DBGate / CloudBeaver
+- ✨ **Seq 納入標準監控服務**：從選配提升為必備，所有專案預設包含集中式 log 收集
 
 ---
 
@@ -59,7 +62,7 @@ TCP 服務在 compose 內部直接用 service name 當 hostname 互連（例如 
 
 ---
 
-## docker-compose.yml 範例（Frontend + Backend + PostgreSQL + Redis + Adminer）
+## docker-compose.yml 範例（Frontend + Backend + PostgreSQL + Redis + Adminer + Seq）
 
 ```yaml
 services:
@@ -86,11 +89,14 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
       - JWT_SECRET=${JWT_SECRET}
+      - SEQ_INGESTION_URL=http://seq
+      - APP_NAME=backend
     expose:
       - "3000"
     depends_on:
       - postgres
       - redis
+      - seq
     volumes:
       - backend-uploads:/app/uploads
 
@@ -129,6 +135,20 @@ services:
     depends_on:
       - postgres
 
+  # ✨ v1.2：Seq 為標準監控服務，集中式 log 查詢
+  seq:
+    image: datalust/seq:latest
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      SERVICE_URL_SEQ_80:
+      SEQ_FIRSTRUN_ADMINUSERNAME: admin
+      SEQ_FIRSTRUN_ADMINPASSWORD: $SERVICE_PASSWORD_SEQ
+    expose:
+      - "80"
+    volumes:
+      - seq-data:/data
+
 volumes:
   postgres-data:
     name: ${COMPOSE_PROJECT_NAME}-postgres-data
@@ -136,6 +156,8 @@ volumes:
     name: ${COMPOSE_PROJECT_NAME}-redis-data
   backend-uploads:
     name: ${COMPOSE_PROJECT_NAME}-backend-uploads
+  seq-data:
+    name: ${COMPOSE_PROJECT_NAME}-seq-data
 ```
 
 ### 最小範例：純前端（Vite）
@@ -248,9 +270,10 @@ Adminer 本身沒有任何存取限制，任何知道網址的人都能嘗試登
 3. 檢查 Application Log
 4. 實際操作網站驗證功能
 5. 進入 Adminer 的 SERVICE_URL，用 DB 帳密登入確認資料庫連線與資料正確
-6. 確認應用程式的 `DATABASE_URL` 指向正確 DB
+6. 進入 Seq 的 SERVICE_URL，用管理員帳密登入確認 log 正常收集
+7. 確認應用程式的 `DATABASE_URL` 指向正確 DB
 
-正式環境切換：到 Coolify 後台設定 `DATABASE_URL`（指向 RDS 等）、`NODE_ENV=production`，Adminer 若保留必須加 Basic Auth / IP 白名單，或直接停用。
+正式環境切換：到 Coolify 後台設定 `DATABASE_URL`（指向 RDS 等）、`NODE_ENV=production`，Adminer 若保留必須加 Basic Auth / IP 白名單，或直接停用。Seq 建議保留用於線上問題排查，正式環境務必設 API Key 保護 ingestion 端點。
 
 ---
 
@@ -267,12 +290,15 @@ Adminer 本身沒有任何存取限制，任何知道網址的人都能嘗試登
 | Adminer 登入 `could not translate host name "localhost"` | Server 欄位填 localhost | 改填 DB service 名稱（如 `postgres`） |
 | Adminer 登入 `password authentication failed` | 密碼對不上 | 確認 Coolify 的 `DB_PASSWORD` 和 Adminer 登入值一致 |
 | Adminer 打不開（404） | `SERVICE_URL_ADMINER_8080:` 沒寫或冒號後有值 | 檢查冒號後保持空白 |
+| Seq 啟動 crash `No default admin password` | 沒設 `SEQ_FIRSTRUN_ADMINPASSWORD` | 加上 `$SERVICE_PASSWORD_SEQ` |
+| Seq `Failed to initialize storage` | volume 殘留損壞資料 | 砍掉 `seq-data` volume 重建（見 Seq 關鍵規則第 3 點） |
+| 應用程式 log 沒進 Seq | `SEQ_INGESTION_URL` 未設或填錯 | 確認填 `http://seq`（不要加 port 或路徑） |
 
 ---
 
-## Seq Log 收集（選配）
+## Seq Log 收集（標準監控服務）
 
-Seq 是集中式 log 查詢工具。推薦走 **應用程式直接 HTTP 推送 CLEF**（透過語言對應的 SDK），不要用 Docker gelf driver + `seq-input-gelf` sidecar 的舊架構。
+Seq 是集中式 log 查詢工具，為所有專案的**必備監控服務**。推薦走 **應用程式直接 HTTP 推送 CLEF**（透過語言對應的 SDK），不要用 Docker gelf driver + `seq-input-gelf` sidecar 的舊架構。
 
 ### 架構
 
