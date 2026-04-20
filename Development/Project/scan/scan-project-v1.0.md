@@ -131,6 +131,9 @@
 **R-LOG-001 缺 `/health` 🟡** — `GET /health` 回 `{status:"ok"}`
 **R-LOG-002 prod debug log 開 🟠** — log level = debug → info / warn
 **R-LOG-003 未接 Seq 🟡** — 無 `SEQ_INGESTION_URL` → 依 `Docker-Compose-Spec-v1.2.md`
+**R-LOG-004 缺 graceful shutdown 🟠** — 無 `SIGTERM` handler → 重啟丟 in-flight request 與未 flush 的 log;Node `process.on('SIGTERM')` / Python `signal.signal` / 關 HTTP server + DB pool + Seq `close()`
+**R-LOG-005 Log 缺結構化欄位 🟡** — log 無 `app_name` / `request_id` / ISO UTC timestamp → 補欄位,用 message template 而非字串拼接
+**R-LOG-006 缺 `/version` 🔵** — 無端點回 `{sha, builtAt, image}`,故障排除無法對版
 
 ## I. Git [GIT]
 
@@ -153,6 +156,15 @@
 **R-DEP-005 image `latest` 🟡** — 綁版本
 **R-DEP-006 secret 寫 compose 🔴** — `${VAR}` + Coolify 後台
 **R-DEP-007 缺 `.dockerignore` 🔵** — 排除 `node_modules`/`.git`/`.env`/`dist/`
+**R-DEP-008 缺 lock file 🟠** — 無 `package-lock.json` / `pnpm-lock.yaml` / `poetry.lock` / `go.sum` / `Cargo.lock` → build 不可重現
+**R-DEP-009 執行環境版本未 pin 🟡** — 無 `.nvmrc` / `package.json engines` / `python_requires` / `go.mod` Go 版本
+**R-DEP-010 Dockerfile 非 multi-stage 🟡** — production image 仍含 devDeps / build 工具 → 分 build / runtime 兩階段
+**R-DEP-011 Dockerfile cache 層順序錯 🟡** — `COPY . .` 先於 lock file + install,每次改程式都重灌依賴
+**R-DEP-012 base image 未 pin minor 🟡** — `node:20` / `python:3.11` → `node:20.11-alpine` / `python:3.11.8-slim`
+**R-DEP-013 HEALTHCHECK 無工具 🟡** — Dockerfile 宣告 HEALTHCHECK 用 curl/wget 但 image 未安裝 → `RUN apk add --no-cache curl` 或改 node / python 內建
+**R-DEP-014 container 時區非 UTC 🔵** — 無 `ENV TZ=UTC` / compose `TZ: UTC` → 顯示層才轉時區
+**R-DEP-015 build-time env 誤當 runtime 🟠** — `VITE_*` / `NEXT_PUBLIC_*` / `REACT_APP_*` 放 Coolify runtime env 無效(已嵌入 bundle)→ 改 build args
+**R-DEP-016 未做依賴安全掃描 🔵** — CI 無 `npm audit` / `pip-audit` / `trivy image` 步驟
 
 ---
 

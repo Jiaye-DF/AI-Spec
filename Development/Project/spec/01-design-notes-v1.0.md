@@ -2,6 +2,8 @@
 
 > 設計時的思考框架。配合 [`00-overview-v1.0.md`](./00-overview-v1.0.md)(架構)、[`scan-project-v1.0.md`](../scan/scan-project-v1.0.md)(掃描規則)。
 > 不是違規偵測清單,是「做決定時該想到什麼」。
+>
+> **⚠️ 給 scan-project Agent**:本檔規範若有對應 `R-xxx`,違反時報 `R-xxx`,**不要再另開 `AD-xxx`**。AD 保留給規則庫未涵蓋的問題(邏輯、效能、商業邏輯、怪味道)。
 
 ---
 
@@ -109,6 +111,104 @@
 - **時序資料**:追加型 + 查近期 → 按月 / 週分區
 - **Migration**:可回滾;schema 變更與資料搬移拆成兩個 migration
 - **型別保守**:能 `VARCHAR(n)` 別 `TEXT`;能 `INT` 別 `BIGINT`;錢用 `DECIMAL`;時間 UTC
+
+---
+
+## 部署與運維 [DEP]
+
+### Dockerfile 注意事項
+- **Multi-stage**:build 階段含工具(compiler / devDeps),final 只留 runtime 必要
+- **Layer cache 順序**:`COPY lock-file` → `install` → `COPY .`;反序會每次改程式都重灌依賴
+- **Base image pin minor**:`node:20.11-alpine`、`python:3.11.8-slim`,不要只 `node:20`
+- **HEALTHCHECK 工具**:用 curl/wget 前 `RUN apk add --no-cache curl`,或改用語言內建(`node -e`)
+- **TZ=UTC**:`ENV TZ=UTC`,顯示時再轉時區
+- **非 root user**:`RUN adduser app && USER app`(scan R-SEC-008)
+
+### 容器生命週期
+
+**啟動 — migration 策略**(三選一,全專案一致)
+- Init container(K8s 思維)/ entrypoint 腳本 / CI job,不混用
+- 多 replica 必須互斥(advisory lock 或 init container only 一份)
+- 失敗 **crash 停機**,不偷偷跳過
+
+**就緒**
+- `GET /health` 淺檢(回 200)→ Coolify healthcheck 用
+- `GET /health/deep` 檢 DB / Redis 就緒 → 給維運或手動查
+- `GET /version` 回 `{sha, builtAt, image}` → 故障排除對版
+
+**結束 — graceful shutdown**
+- 攔 `SIGTERM` → 10 秒內:停接新 request → 等 in-flight 完成 → flush Seq → 關 DB pool
+- Node:`process.on('SIGTERM', async () => { ... })`
+- Python:`signal.signal(signal.SIGTERM, handler)`
+- Seq SDK:記得 `close()` / `flush()`
+
+### 環境變數三階段
+
+```
+.env.example  → commit,全 key 佔位值(文件用)
+.env          → 本地開發,gitignore
+Coolify 後台  → 線上,覆蓋所有
+```
+
+**Build-time vs Runtime 要分清**
+- `VITE_*` / `NEXT_PUBLIC_*` / `REACT_APP_*` 在 build 時嵌入 bundle → Coolify 用 **build args**,runtime env 無效
+- 後端大多 runtime env,Coolify 後台改值重啟即可
+
+**Fallback**:本地無 `SERVICE_URL_*` 注入時,程式碼要有 fallback(`http://localhost:3000`),不 undefined
+
+### Log 結構化最低欄位
+
+每筆 log 必含:
+- `app_name`(從 env `APP_NAME` 取)
+- `timestamp`(ISO 8601 UTC)
+- `level`(`debug` / `info` / `warn` / `error`)
+- `request_id`(middleware 注入,跨服務 propagate)
+- 登入後額外帶 `user_id`(遮罩或 hash)
+- Error 必帶 `stack` — **只進 Seq,不回前端**(對應錯誤訊息對外最小化)
+
+用 message template(`"user {UserId} logged in"` + `{UserId: 123}`),不要字串拼接(Seq 才能 filter)。
+
+### Pre-deploy checklist
+
+- [ ] `.env.example` 所有 key 已進 Coolify 後台
+- [ ] Migration 在 staging 跑過,`down` 也驗證
+- [ ] Image tag 綁 **git SHA 或 semver**,不用 `latest`
+- [ ] Secret 若可能洩漏 → 已 rotate
+- [ ] 新 image `/health` 回 200
+- [ ] Seq 有新版 log 進來
+
+### 回滾策略
+
+- Image tag 禁 `latest`,否則 Coolify rollback 無目標
+- Migration 必有 `down`
+- 順序:先切回舊 image → 確認服務穩 → 視情況回 schema
+- Schema rollback 若會丟資料,**優先加向前相容的 patch,不要硬 rollback**
+
+### Reverse proxy 與 HTTPS
+
+- Coolify Traefik 自動處理 HTTPS,App 本身跑 HTTP
+- App 要讀正確 client IP:
+  - Express `app.set('trust proxy', 1)`
+  - FastAPI 加 `ProxyHeadersMiddleware`
+- `Strict-Transport-Security` 等 header 見 scan R-SEC-003
+
+### 靜態資源快取
+
+- 前端 build 產物檔名帶 hash(`app.[hash].js`)
+- Hash 檔:`Cache-Control: public, max-age=31536000, immutable`
+- HTML index:`Cache-Control: no-cache`(才能拉到新 hash 對應)
+
+### Build 再現性
+
+- Lock file(`package-lock.json` / `pnpm-lock.yaml` / `poetry.lock` / `go.sum`)必 commit
+- 執行環境版本 pin:`.nvmrc` / `package.json engines` / `python_requires`
+- CI build 用 `npm ci` / `pip install --require-hashes`,不用 `npm install`
+
+### 依賴安全掃描
+
+- CI 跑 `npm audit` / `pip-audit` / `mvn dependency-check`
+- `trivy image <tag>` 掃 base image CVE
+- 高風險漏洞不 merge;base image 定期升 patch 版本
 
 ---
 

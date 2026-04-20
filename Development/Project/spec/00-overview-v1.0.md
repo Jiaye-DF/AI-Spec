@@ -5,12 +5,13 @@
 
 ---
 
-## 四大原則
+## 五大原則
 
 1. **首頁永遠是登入頁** — `/` 未登入顯示登入表單;已登入 302 `/dashboard`
 2. **未通過驗證一律 302 `/?redirect=<原路徑>`** — 頁 / API 一致,無例外
 3. **API 帶版本前綴 `/api/v{n}`**,受保護端點過 auth middleware;未通過 401,無權限 403
 4. **Response 外殼統一** `{ code, responseCode, message, data }`(`responseCode` = 原始 HTTP status 整數)
+5. **環境變數三階段** — `.env.example`(commit 佔位)/ `.env`(本地 gitignore)/ Coolify 後台(線上覆蓋);build-time 變數(`VITE_*` / `NEXT_PUBLIC_*`)走 **build args**,非 runtime env
 
 > 驗證**實作**(token 儲存、session、refresh)以 `sso-init-*` 為準,本檔只規範行為。
 
