@@ -13,6 +13,7 @@
 - 🔧 **Seq 密碼改由後端生成**：移除 `SEQ_FIRSTRUN_ADMINPASSWORD: $SERVICE_PASSWORD_SEQ`（Coolify 不 interpolate）
 - ✅ **改用空值注入寫法 `SEQ_FIRSTRUN_ADMINPASSWORD:`**：對齊 `SERVICE_URL_*:` 風格；後端在部署時產生 10~15 字元隨機密碼並存入 Coolify Env Vars，Coolify 以同名 Env Var 注入 container（`SEQ_FIRSTRUN_ADMINPASSWORD` 即 `datalust/seq` image 預設讀取的變數名）
 - 📖 **使用者登入方式**：部署後到 Coolify UI → Environment Variables 查 `SEQ_FIRSTRUN_ADMINPASSWORD` 的值（is_secret=true）
+- ✨ **新增 Lint 選配服務雙向校驗**（p1.8）：本系統 Lint 依 Wizard 勾選狀態（`selected_services`）雙向驗證 adminer / seq — 勾選未生成 / 未勾選卻生成，皆擋下（見文末「Lint 對選配服務的檢查」章節）
 
 ## v1.2 變更摘要（歷史）
 
@@ -436,6 +437,44 @@ Seq 的 ingestion 是 HTTP API（CLEF 格式 POST 到 `/api/events/raw`），每
 4. 用 **message template**（`"user {UserId} logged in"` + `{ UserId: 123 }`）而非字串拼接，Seq 會把 `UserId` 存成可 filter 的欄位
 5. 註冊 `SIGTERM` / `SIGINT` / `beforeExit` → 呼叫 SDK 的 `close()` / `flush()`，容器停機不丟最後一批 log
 6. 統一把 `Error` 物件序列化進 CLEF 的 `exception` 欄位，Seq UI 才會高亮 stack trace
+
+---
+
+## Lint 對選配服務的檢查（本系統專屬）
+
+本系統在三個時機跑 Lint：AI 生成後（`POST /applications/generate-compose`）、使用者編輯後（`POST /applications/lint-compose`）、真部署前（`POST /applications`）。對選配服務（`adminer` / `seq`）一律做**雙向校驗**：Wizard Step 5 的勾選清單（`selected_services`）即 source of truth，compose 必須與之完全一致。
+
+### Error 對照表（不通過即 `ok=false`）
+
+| 情境 | 錯誤訊息（摘要） |
+| --- | --- |
+| 勾選 adminer 但 compose 無 adminer service | `selected_services 含 "adminer" 但 compose 未定義 adminer service` |
+| 勾選 adminer 但缺 `SERVICE_URL_ADMINER_8080` | `service "adminer": 缺少 SERVICE_URL_ADMINER_8080` |
+| 勾選 seq 但 compose 無 seq service | `selected_services 含 "seq" 但 compose 未定義 seq service` |
+| 勾選 seq 但缺 `SERVICE_URL_SEQ_80` | `service "seq": 缺少 SERVICE_URL_SEQ_80` |
+| 勾選 seq 但缺 `ACCEPT_EULA` | `service "seq": 必須設定 ACCEPT_EULA: "Y"` |
+| 勾選 seq 但缺 `SEQ_FIRSTRUN_ADMINPASSWORD` | `service "seq": 必須設定 SEQ_FIRSTRUN_ADMINPASSWORD` |
+| 未勾選 adminer 但 compose 有 adminer service | `compose 定義了 adminer service，但 selected_services 未勾選 "adminer"` |
+| 未勾選 seq 但 compose 有 seq service | `compose 定義了 seq service，但 selected_services 未勾選 "seq"` |
+
+### Warning 對照表（不影響 `ok`，僅提示）
+
+| 情境 | 警告訊息（摘要） |
+| --- | --- |
+| adminer 缺 `ADMINER_DEFAULT_SERVER` | 建議設定，登入畫面預設 server |
+| adminer 缺 `ADMINER_DEFAULT_DB_DRIVER` | 建議設定，例如 `pgsql` |
+| seq 缺 `SEQ_FIRSTRUN_ADMINUSERNAME` | 建議設定，預設 `admin` |
+
+### 反向排查的語意
+
+Wizard Step 5 勾選會連動「Application 管理頁顯示的服務清單」、「SSO 白名單範圍」、「Coolify 服務管理成本估算」等後續流程。
+若容忍「compose 有、勾選沒有」，會讓 UI 與實際部署脫鉤；更嚴重的是 adminer 可能在管理員不知情下暴露 DB 管理介面（安全事件）。
+因此反向檢查亦為 error 級，不降為 warning。
+
+### Lint 規則不涵蓋的部分
+
+- 規則僅針對選配服務清單（`adminer` / `seq`）；**app-level service**（frontend / backend / 業務 container）不受反向規則限制。
+- 規則不檢查 image tag、volume 命名等既有規則已覆蓋的部分（見 Coolify 核心規則）。
 
 ---
 
