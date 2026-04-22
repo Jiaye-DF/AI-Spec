@@ -4,14 +4,14 @@
 >
 > **v1.3 更新**：Seq 管理員密碼改由**本系統後端產生 10~15 字元隨機密碼**，取代原本 `$SERVICE_PASSWORD_SEQ`（實測 Coolify 不會展開該 magic env，導致 Seq 啟動 crash）。
 >
-> Compose 中 Seq 服務的 `SEQ_FIRSTRUN_ADMINPASSWORD` 改為標準 docker-compose interpolation 語法 `${SEQ_FIRSTRUN_ADMINPASSWORD}`，由後端於部署時寫入 Coolify Environment Variables。
+> Compose 中 Seq 服務的 `SEQ_FIRSTRUN_ADMINPASSWORD` 寫成**冒號後留空**（`SEQ_FIRSTRUN_ADMINPASSWORD:`），由後端於部署時把隨機密碼寫入 Coolify Environment Variables，Coolify 再以同名 Env Var 注入 container。`SEQ_FIRSTRUN_ADMINPASSWORD` 本身就是 `datalust/seq` image 啟動時預設會讀取的環境變數名稱。
 
 ---
 
 ## v1.3 變更摘要
 
 - 🔧 **Seq 密碼改由後端生成**：移除 `SEQ_FIRSTRUN_ADMINPASSWORD: $SERVICE_PASSWORD_SEQ`（Coolify 不 interpolate）
-- ✅ **改用 `${SEQ_FIRSTRUN_ADMINPASSWORD}`**：走 docker-compose 標準 interpolation；後端在部署時產生 10~15 字元隨機密碼並存入 Coolify Env Vars
+- ✅ **改用空值注入寫法 `SEQ_FIRSTRUN_ADMINPASSWORD:`**：對齊 `SERVICE_URL_*:` 風格；後端在部署時產生 10~15 字元隨機密碼並存入 Coolify Env Vars，Coolify 以同名 Env Var 注入 container（`SEQ_FIRSTRUN_ADMINPASSWORD` 即 `datalust/seq` image 預設讀取的變數名）
 - 📖 **使用者登入方式**：部署後到 Coolify UI → Environment Variables 查 `SEQ_FIRSTRUN_ADMINPASSWORD` 的值（is_secret=true）
 
 ## v1.2 變更摘要（歷史）
@@ -68,7 +68,7 @@ environment:
 
 - 同一個 service 的 `environment` **不可混用**兩種語法。
 - 值若含 `:`、`#`、前後空白，用雙引號包起來：`REDIS_URL: "redis://:password@redis:6379"`。
-- Coolify magic env（例如 `$SERVICE_PASSWORD_SEQ`）在 map 語法下照常運作，寫法不變。
+- Coolify 真正會展開的 magic env 僅限 `SERVICE_URL_*` / `SERVICE_FQDN_*` / `SERVICE_PASSWORD_*` / `COMPOSE_PROJECT_NAME` 幾個特定前綴；一般環境變數（如 `SEQ_FIRSTRUN_ADMINPASSWORD`）請於 Coolify Env Vars 面板填入，compose 寫成冒號後留空即可由 Coolify 注入同名變數。
 
 ---
 
@@ -189,9 +189,9 @@ services:
       ACCEPT_EULA: "Y"
       SERVICE_URL_SEQ_80:
       SEQ_FIRSTRUN_ADMINUSERNAME: admin
-      # v1.3：後端於部署時產生 10~15 字元隨機密碼並寫入 Coolify Env Vars，
-      # docker-compose 透過標準 interpolation 取得
-      SEQ_FIRSTRUN_ADMINPASSWORD: ${SEQ_FIRSTRUN_ADMINPASSWORD}
+      # v1.3：冒號後留空，由 Coolify Env Vars 注入同名變數；
+      # 後端於部署時產生 10~15 字元隨機密碼並寫入該 Env Var
+      SEQ_FIRSTRUN_ADMINPASSWORD:
     expose:
       - "80"
     volumes:
@@ -339,7 +339,7 @@ Adminer 本身沒有任何存取限制，任何知道網址的人都能嘗試登
 | Adminer 登入 `could not translate host name "localhost"` | Server 欄位填 localhost | 改填 DB service 名稱（如 `postgres`） |
 | Adminer 登入 `password authentication failed` | 密碼對不上 | 確認 Coolify 的 `DB_PASSWORD` 和 Adminer 登入值一致 |
 | Adminer 打不開（404） | `SERVICE_URL_ADMINER_8080:` 沒寫或冒號後有值 | 檢查冒號後保持空白 |
-| Seq 啟動 crash `No default admin password` | 沒設 `SEQ_FIRSTRUN_ADMINPASSWORD` | 使用 v1.3 語法 `${SEQ_FIRSTRUN_ADMINPASSWORD}`；後端於部署時會自動產生並寫入 Coolify Env |
+| Seq 啟動 crash `No default admin password` | 沒設 `SEQ_FIRSTRUN_ADMINPASSWORD` | compose 寫成 `SEQ_FIRSTRUN_ADMINPASSWORD:`（冒號後留空）；後端於部署時會自動產生密碼並寫入 Coolify Env Vars，Coolify 以同名變數注入 container |
 | Seq `Failed to initialize storage` | volume 殘留損壞資料 | 砍掉 `seq-data` volume 重建（見 Seq 關鍵規則第 3 點） |
 | 應用程式 log 沒進 Seq | `SEQ_INGESTION_URL` 未設或填錯 | 確認填 `http://seq`（不要加 port 或路徑） |
 
@@ -378,9 +378,9 @@ services:
       ACCEPT_EULA: "Y"
       SERVICE_URL_SEQ_80:
       SEQ_FIRSTRUN_ADMINUSERNAME: admin
-      # v1.3：後端於部署時產生 10~15 字元隨機密碼並寫入 Coolify Env Vars，
-      # docker-compose 透過標準 interpolation 取得
-      SEQ_FIRSTRUN_ADMINPASSWORD: ${SEQ_FIRSTRUN_ADMINPASSWORD}
+      # v1.3：冒號後留空，由 Coolify Env Vars 注入同名變數；
+      # 後端於部署時產生 10~15 字元隨機密碼並寫入該 Env Var
+      SEQ_FIRSTRUN_ADMINPASSWORD:
     expose:
       - "80"
     volumes:
@@ -406,7 +406,7 @@ volumes:
 
 ### Seq 關鍵規則
 
-1. **必須設 first-run 管理員密碼（v1.3）** — 使用 `${SEQ_FIRSTRUN_ADMINPASSWORD}` 語法，由本系統後端於部署時**產生 10~15 字元隨機密碼**並寫入 Coolify Environment Variables（`is_secret: true`）。否則容器 crash 噴 `No default admin password was supplied`。部署後使用者到 Coolify → Environment Variables 查 `SEQ_FIRSTRUN_ADMINPASSWORD` 的值即可登入。密碼只在 volume 初次初始化時寫入，之後改 env 無效（要到 Seq UI 改）。
+1. **必須設 first-run 管理員密碼（v1.3）** — compose 寫成 `SEQ_FIRSTRUN_ADMINPASSWORD:`（冒號後留空），由本系統後端於部署時**產生 10~15 字元隨機密碼**並寫入 Coolify Environment Variables（`is_secret: true`），Coolify 再以同名 Env Var 注入 container。`SEQ_FIRSTRUN_ADMINPASSWORD` 本身即 `datalust/seq` image 啟動預設讀取的變數名稱，不需要 docker-compose interpolation。否則容器 crash 噴 `No default admin password was supplied`。部署後使用者到 Coolify → Environment Variables 查 `SEQ_FIRSTRUN_ADMINPASSWORD` 的值即可登入。密碼只在 volume 初次初始化時寫入，之後改 env 無效（要到 Seq UI 改）。
 
 2. **不要對 Seq 容器設 healthcheck** — `datalust/seq` 鏡像不一定有 `curl` / `wget`，healthcheck 容易永遠失敗卡死整個 compose。用 `depends_on` 簡單串聯即可。
 
