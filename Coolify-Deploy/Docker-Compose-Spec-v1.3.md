@@ -161,7 +161,7 @@ services:
       ACCEPT_EULA: "Y"
       SERVICE_URL_SEQ_80:
       SEQ_FIRSTRUN_ADMINUSERNAME: admin
-      SEQ_FIRSTRUN_ADMINPASSWORD:   # 後端於部署時注入隨機密碼
+      SEQ_FIRSTRUN_ADMINPASSWORD: ${SEQ_FIRSTRUN_ADMINPASSWORD}
     expose:
       - "80"
     volumes:
