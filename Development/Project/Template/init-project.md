@@ -2,7 +2,7 @@
 
 依 Template 規範,在當前目錄(預期空目錄或剛 `git init` 的乾淨狀態)產生 **React + FastAPI 前後端分離**專案的最基本可跑骨架。
 
-> **本模板採本地開發**:後端用 `uvicorn` 直接跑,前端用 dev server(Vite / Next.js),PostgreSQL / Redis 由開發者於本機 install 為服務。**不產生任何容器化或部署相關檔案**;部署方案由各專案自行決定,不在 Template 範圍內。
+> **本模板採本地開發**:後端用 `uvicorn` 直接跑,前端用 dev server(Vite / Next.js),PostgreSQL 由開發者於本機 install 為服務。**不產生任何容器化或部署相關檔案**;部署方案由各專案自行決定,不在 Template 範圍內。
 
 ## 身分
 
@@ -21,12 +21,12 @@ zh-TW
 ## 心法
 
 1. **產出即合規**:骨架本身就遵守 Template 全部硬規則
-2. **版本一律鎖到 patch**:`package.json` / `pyproject.toml` / `.env`(`POSTGRES_VERSION` / `REDIS_VERSION`)全部 `MAJOR.MINOR.PATCH`
+2. **版本一律鎖到 patch**:`package.json` / `pyproject.toml` / `.env`(`POSTGRES_VERSION`)全部 `MAJOR.MINOR.PATCH`
 3. **最小可跑**:
    - 後端:`uv sync && uv run uvicorn app.main:app --reload` 起得來
    - 前端:`npm ci && npm run dev` 起得來
-   - PG / Redis:開發者於本機 install
-   - `localhost:8000/api/docs` 出 Swagger;`localhost:8000/api/v1/health` 回 `{db: ok, redis: ok}`
+   - PG:開發者於本機 install
+   - `localhost:8000/api/docs` 出 Swagger;`localhost:8000/api/v1/health` 回 `{db: ok}`
 4. **不過度設計**:不預先實作 auth / RBAC / dashboard 等業務模組,只產出規範要求的 core 基礎(`Settings` + fail-fast / `BaseModel` 7 欄位 / `ApiResponse` / `lifespan` / `/api/v1/health`)
 5. **本地優先**:**禁止**產生任何容器化 / 部署相關檔案;部署方案由專案自決
 6. git commit 須繁中 + `(AI)` 前綴(若使用者同意提交)
@@ -57,11 +57,9 @@ zh-TW
 | `<python-version>` | `3.14.1` | 鎖到 patch |
 | `<node-version>` | `24.0.0` | 鎖到 patch |
 | `<postgres-version>` | `18` | 本機需安裝對應版本 |
-| `<redis-version>` | `8` | 本機需安裝對應版本 |
 | `<frontend-host-port>` | `3000` | dev server port |
 | `<backend-host-port>` | `8000` | dev server port |
 | `<postgres-port>` | `5432` | 本機 PostgreSQL port |
-| `<redis-port>` | `6379` | 本機 Redis port |
 | `<include-azure-sso>` | `no` | `yes` 時加 `clients/azure_ad/` 與 MSAL 範本 |
 | `<api-version>` | `v1` | API 路徑前綴 |
 
@@ -75,7 +73,7 @@ zh-TW
 ├── CLAUDE.md                   (從 Template 複製,首段加專案名)
 ├── AGENTS.md                   (從 Template 複製,Project Overview 填專案名)
 ├── .gitignore
-├── .env.dev.example            (本機開發用 — DATABASE_URL / REDIS_URL 指向 localhost)
+├── .env.dev.example            (本機開發用 — DATABASE_URL 指向 localhost)
 ├── .env.staging.example        (staging 連線占位,實際部署設定由專案自決)
 ├── .env.prod.example           (prod 連線占位,實際部署設定由專案自決)
 ├── .claude/commands/
@@ -112,13 +110,12 @@ zh-TW
         ├── core/
         │   ├── config.py       (Settings + fail-fast validator)
         │   ├── db.py           (async engine + sessionmaker)
-        │   ├── redis.py
         │   ├── security.py     (hash_password 同步 + async 兩版)
         │   ├── response.py     (ApiResponse + helpers)
         │   ├── exceptions.py   (AppError + 3 handlers)
         │   └── cookies.py      (httpOnly cookie helpers)
         ├── api/
-        │   ├── deps.py         (get_db / get_redis)
+        │   ├── deps.py         (get_db)
         │   └── v1/
         │       ├── __init__.py (router 集合)
         │       └── health.py
@@ -151,15 +148,11 @@ from app.api.v1 import router as v1_router
 from app.core.config import get_settings
 from app.core.db import engine
 from app.core.exceptions import register_exception_handlers
-from app.core.redis import close_redis, init_redis
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    settings = get_settings()
-    app.state.redis = await init_redis(settings.REDIS_URL)
     yield
-    await close_redis(app.state.redis)
     await engine.dispose()
 
 
@@ -198,7 +191,6 @@ class Settings(BaseSettings):
     APP_NAME: str = "<project-name>"
     APP_ENV: Literal["dev", "staging", "prod"] = "dev"
     DATABASE_URL: str  # 例 postgresql+asyncpg://user:pwd@localhost:5432/<project>
-    REDIS_URL: str     # 例 redis://localhost:6379/0
     JWT_SECRET_KEY: str = Field(default=JWT_SECRET_KEY_DEV_DEFAULT)
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
 
@@ -362,29 +354,23 @@ class BaseModel(Base):
 
 ```python
 from fastapi import APIRouter, Depends
-from redis.asyncio import Redis
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, get_redis
+from app.api.deps import get_db
 from app.core.response import ApiResponse, success
 
 router = APIRouter()
 
 
 @router.get("/health", response_model=ApiResponse[dict[str, str]])
-async def health(db: AsyncSession = Depends(get_db), redis: Redis = Depends(get_redis)) -> ApiResponse[dict[str, str]]:
+async def health(db: AsyncSession = Depends(get_db)) -> ApiResponse[dict[str, str]]:
     db_ok = "ok"
     try:
         await db.execute(text("SELECT 1"))
     except Exception:
         db_ok = "fail"
-    redis_ok = "ok"
-    try:
-        await redis.ping()
-    except Exception:
-        redis_ok = "fail"
-    return success(data={"db": db_ok, "redis": redis_ok})
+    return success(data={"db": db_ok})
 ```
 
 ### `backend/pyproject.toml`(版本鎖到 patch)
@@ -402,7 +388,6 @@ dependencies = [
     "pydantic==2.13.3",
     "pydantic-settings==2.14.0",
     "alembic==1.14.0",
-    "redis[hiredis]==7.4.0",
     "httpx==0.28.1",
     "passlib[bcrypt]==1.7.4",
     "pyjwt[crypto]==2.10.1",
@@ -473,9 +458,7 @@ VITE_API_BASE_URL=http://localhost:<backend-host-port>/api/v1
 ```bash
 APP_ENV=dev
 POSTGRES_VERSION=<postgres-version>
-REDIS_VERSION=<redis-version>
 DATABASE_URL=postgresql+asyncpg://<project-name>:changeme-dev@localhost:<postgres-port>/<project-name>
-REDIS_URL=redis://localhost:<redis-port>/0
 JWT_SECRET_KEY=changeme-32-bytes-very-very-secret
 CORS_ORIGINS=["http://localhost:<frontend-host-port>"]
 ```
@@ -529,16 +512,14 @@ Thumbs.db
 - Python <python-version>+
 - Node <node-version>+
 - PostgreSQL <postgres-version>+(請依官方文件本機安裝並啟動)
-- Redis <redis-version>+(請依官方文件本機安裝並啟動)
 
 ## 快速開始(本地開發)
 
 ### 1. 確認本機服務啟動
 
 \`\`\`bash
-# 確認 PostgreSQL 正在 <postgres-port>,Redis 正在 <redis-port>
+# 確認 PostgreSQL 正在 <postgres-port>
 psql -U postgres -c "\\l"      # 列現有 DB
-redis-cli ping                  # 應回 PONG
 \`\`\`
 
 於 PostgreSQL 建立專案 DB 與帳號:
@@ -552,7 +533,7 @@ CREATE DATABASE <project-name> OWNER <project-name>;
 
 \`\`\`bash
 cp .env.dev.example .env
-# 編輯 .env(填入本機 DB / Redis 連線)
+# 編輯 .env(填入本機 DB 連線)
 cd backend
 uv sync --frozen
 uv run alembic upgrade head
@@ -561,7 +542,7 @@ uv run uvicorn app.main:app --reload --host 0.0.0.0 --port <backend-host-port>
 
 驗證:
 - Swagger:http://localhost:<backend-host-port>/api/docs
-- Health:http://localhost:<backend-host-port>/api/v1/health → `{db: ok, redis: ok}`
+- Health:http://localhost:<backend-host-port>/api/v1/health → `{db: ok}`
 
 ### 3. 前端(另一個 terminal)
 
@@ -578,7 +559,7 @@ npm run dev
 
 ## 技術棧
 
-- 前端:React 19 + TypeScript + (Vite | Next.js) + Redux Toolkit + RTK Query + Tailwind v5
+- 前端:React 19 + TypeScript + (Vite | Next.js) + Redux Toolkit + RTK Query + Tailwind v4
 - 後端:FastAPI + SQLAlchemy 2 (async) + Pydantic 2 + Alembic + uv
 - 資料庫:PostgreSQL
 
@@ -617,7 +598,7 @@ npm run dev
 8. **產生 .github/workflows/ci.yml**:含 `frontend-lint`(npm ci + lint + typecheck + audit `continue-on-error: true`)、`backend-lint`(uv sync + ruff + pytest + pip-audit `continue-on-error: true`)、`e2e`(`if: false` 預留)
 9. **`uv lock`**(於 `backend/`)、**`npm install`**(於 `frontend/`,若使用者同意)生成 lock file
 10. **顯示 next steps**(明確列出本機開發流程):
-    1. 本機啟 PostgreSQL / Redis(若尚未安裝,提示官方文件連結)
+    1. 本機啟 PostgreSQL(若尚未安裝,提示官方文件連結)
     2. 在 PostgreSQL 建立專案 DB 與帳號
     3. `cp .env.dev.example .env` 並填空
     4. `cd backend && uv sync && uv run alembic upgrade head && uv run uvicorn app.main:app --reload`

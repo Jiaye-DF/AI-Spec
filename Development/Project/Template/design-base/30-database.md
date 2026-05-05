@@ -101,16 +101,7 @@ class BaseModel(Base):
 - prod 前 `alembic upgrade head` + `alembic downgrade -1` round-trip 驗證
 - 一個 migration 只做一件事
 
-## 11. Redis
-
-- 用途:快取 / Session / Rate limit / SSO state
-- Key 統一:`{module}:{resource}:{id}`(`auth:session:{user_uid}` / `cache:user:{uid}` / `sso:state:{nonce}`)
-- 所有快取 / 暫存 Key **必**設 TTL;**禁**無過期
-- 安全用途(SSO state / nonce)TTL **必**短(5–10 分鐘)
-- 完整 token **不可**作為 Key
-- 連線在 lifespan 建立,shutdown `await redis.aclose()`
-
-## 12. 索引
+## 11. 索引
 
 - 外鍵欄位**必**索引
 - where / order by 高頻欄位**必**索引

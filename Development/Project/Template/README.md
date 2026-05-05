@@ -12,7 +12,7 @@
 
 - **Frontend**:React 19 + TS + (Vite | Next.js) + Redux Toolkit + RTK Query + Tailwind v4
 - **Backend**:Python + FastAPI + SQLAlchemy 2 async + Pydantic 2 + Alembic + uv
-- **Database**:PostgreSQL + Redis(asyncpg + redis-py async)
+- **Database**:PostgreSQL(asyncpg)
 - **Dev**:本地開發(`uvicorn` + frontend dev server,不容器化)
 - **Deploy**:本模板**不規範**部署細節
 
@@ -28,7 +28,6 @@ Vue / Angular / Svelte / Express / NestJS / Spring / Django / Flask / Go / Ruby 
 | --- | --- | --- |
 | `.env` 檔 | `.env.dev` | `.env.staging` / `.env.prod` |
 | `DATABASE_URL` | `postgresql+asyncpg://...@localhost:5432/...` | 實際 host(`db.example.com` / RDS endpoint 等) |
-| `REDIS_URL` | `redis://localhost:6379/0` | 實際 host |
 | `JWT_SECRET_KEY` | 可用 dev 預設值 | **必**改 32+ 字元隨機(否則 fail-fast) |
 | `CORS_ORIGINS` | `["http://localhost:3000"]` | `["https://<frontend-domain>"]` |
 
@@ -53,7 +52,7 @@ Template/
     ├── 00-overview.md    版本鎖定 / 機密 / API 文件 / 時區 / localhost vs 部署
     ├── 10-frontend.md    React 13 條硬規則
     ├── 20-backend.md     FastAPI 15 條硬規則
-    ├── 30-database.md    PostgreSQL + SQLAlchemy 12 條硬規則
+    ├── 30-database.md    PostgreSQL + SQLAlchemy 11 條硬規則
     └── 90-code-review.md fixed.md / dependency audit / commit / PR self-check
 ```
 

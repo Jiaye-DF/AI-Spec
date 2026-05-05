@@ -12,7 +12,7 @@
 
 - **Frontend**:React 19 + TS + Redux Toolkit + RTK Query + Tailwind v4(Vite **或** Next.js)
 - **Backend**:Python + FastAPI + SQLAlchemy 2 async + Pydantic 2 + Alembic + uv + httpx + `pyjwt[crypto]` + `passlib[bcrypt]`
-- **Database**:PostgreSQL(asyncpg)+ Redis(`redis[hiredis]` async)
+- **Database**:PostgreSQL(asyncpg)
 - **Versions pinned to patch**(見 `docs/Design-Base/00-overview.md § 版本鎖定原則`)
 
 ## Build / Test / Lint
@@ -28,7 +28,7 @@ cd backend && uv sync --frozen && uv run ruff check . && uv run mypy . && uv run
 ## Local Dev(僅 localhost)
 
 ```bash
-# 前提:本機 PostgreSQL + Redis 已啟動,`.env` 已從 `.env.dev.example` 複製並填空
+# 前提:本機 PostgreSQL 已啟動,`.env` 已從 `.env.dev.example` 複製並填空
 cd backend && uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000   # backend
 cd frontend && npm run dev                                                       # frontend(另一 terminal)
 ```

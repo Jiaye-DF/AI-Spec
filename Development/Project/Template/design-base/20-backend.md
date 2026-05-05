@@ -27,9 +27,7 @@ api → services → repositories → models
 ```python
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    app.state.redis = await aioredis.from_url(settings.REDIS_URL)
     yield
-    await app.state.redis.aclose()
     await engine.dispose()
 
 app = FastAPI(lifespan=lifespan, docs_url="/api/docs", redoc_url=None)

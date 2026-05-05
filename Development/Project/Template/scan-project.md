@@ -38,7 +38,7 @@ zh-TW
 | `AI` | README / commit 有 `(AI)` / `claude` / `copilot` | 仍套 |
 | `FE` | `package.json` 含 `react`;`.tsx` / `.jsx` | 跳 |
 | `BE` | `pyproject.toml` 含 `fastapi` | 跳 |
-| `DB` | `alembic/`;SQLAlchemy import;`asyncpg` / `redis` | 跳 |
+| `DB` | `alembic/`;SQLAlchemy import;`asyncpg` | 跳 |
 | `SEC` | 有 FE 或 BE | 純文件跳 |
 | `PII` | DB schema 含 email/phone/name/address/id_number/birth | 跳 |
 | `LOG` | 有 BE | 純 SPA 跳 |
@@ -148,10 +148,10 @@ zh-TW
 
 ## H. LOG
 
-- **R-LOG-001 缺 `/api/v1/health` 🟡** — 回 `{db, redis}`
+- **R-LOG-001 缺 `/api/v1/health` 🟡** — 回 `{db}`
 - **R-LOG-002 prod debug log 開 🟠**
 - **R-LOG-003 未接集中式 log 🟡** — Seq / ELK / Loki / Datadog
-- **R-LOG-004 缺 graceful shutdown 🟠** — `lifespan` 須 `await engine.dispose()` + `await redis.aclose()`
+- **R-LOG-004 缺 graceful shutdown 🟠** — `lifespan` 須 `await engine.dispose()`
 - **R-LOG-005 Log 缺結構化欄位 🟡** — `app_name` / `request_id` / ISO UTC
 - **R-LOG-006 缺 `/api/v1/version` 🔵**
 
