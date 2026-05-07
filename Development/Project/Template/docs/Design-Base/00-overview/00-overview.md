@@ -2,6 +2,8 @@
 
 跨專案最頂層規則,鎖定 **React + TypeScript + FastAPI + PostgreSQL**,本地開發優先。
 
+> **任務 → 必讀檔對照**:`docs/Design-Base/README.md`(library API 索引);任何任務先讀該檔知道載哪些。
+
 ---
 
 ## 規範優先順序

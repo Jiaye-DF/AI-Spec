@@ -30,12 +30,15 @@
 
 依任務性質載入必要檔,**不預載**歷史報告(`fixed.md` / `reflect-report-*.md` / `scan-project/*`)。
 
+> **完整任務 → 檔案 對照表 + 檔案 → 用途 索引**:`docs/Design-Base/README.md`(library API reference)。任何任務先讀本檔的「永遠載入」+ 該檔的對照表,即知要載哪些規範,**不必**全資料夾掃描。
+
 ### 永遠載入(任何任務)
 
 - 本檔(`AGENTS.md`)
+- `docs/Design-Base/README.md`(索引)
 - `docs/Design-Base/00-overview/00-overview.md`(規範優先序 + 輸出語言)
 
-### 依子任務載入
+### 依子任務載入(節錄;完整見 `docs/Design-Base/README.md`)
 
 | 子任務 | 永遠載入 + 必讀 |
 | --- | --- |
