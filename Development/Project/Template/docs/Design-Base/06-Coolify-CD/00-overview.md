@@ -49,6 +49,28 @@ services 必含:
 - `postgres`(用 `POSTGRES_VERSION` env)
 - 視專案加 `redis` / `worker` 等
 
+## 採用方 bootstrap(init-project 後**必補**)
+
+`Skills/init-project/` skill **不**產出本資料夾規範的部署檔(skill 明示邊界,見 `Skills/init-project/SKILL.md`)。
+scaffold → push 到 GitHub → Coolify 拉 → 若以下檔未補,**deploy 直接失敗**(找不到 build context)。
+
+採用方在第一次 push 到 Coolify 前必須手動補上:
+
+| 檔案 | 對應規範子章節 | 必要性 |
+| --- | --- | --- |
+| `docker-compose.yml` | `01-compose.md` | 必要 — Coolify 讀此檔判定 services |
+| `backend/Dockerfile` | `02-dockerfile-backend.md` | 必要 — backend service build 來源 |
+| `frontend/Dockerfile` | `03-dockerfile-frontend.md` | 必要 — frontend service build 來源 |
+| Coolify 端 env 注入 | `04-env-and-secrets.md` | 必要 — `DATABASE_URL` / `JWT_SECRET_KEY` / `CORS_ORIGINS` 等 |
+| 部署流程驗收 | `05-deploy-flow.md` | 必跑 — push → webhook → healthcheck → 切流量 |
+
+驗收:
+1. `docker compose -f docker-compose.yml config` 通過(yaml 合法、所有 service / image / env 解析得到)
+2. 連上 Coolify 後,`curl <coolify-host>/api/{api_version}/health` 回 200
+3. Coolify 後台首次 deploy 顯示 healthcheck pass、流量切換成功
+
+未補完 push,Coolify 會在 build 階段 ERR(找不到 Dockerfile)或 healthcheck timeout(service 沒起來)。
+
 ## healthcheck(永遠遵守)
 
 每 service 必有 `healthcheck`(見 `01-compose.md`):

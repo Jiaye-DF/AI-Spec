@@ -85,6 +85,7 @@
 | 改連線設定 / 連線池 | + `04-databases/07-connection.md` |
 | 寫 / 改 migration | + `04-databases/08-alembic.md` |
 | 優化 query / 索引 | + `04-databases/09-indexes-and-perf.md` |
+| 評估要不要加請求 log / register middleware | + `04-databases/10-statistics-log.md`(選用,需 Redis) |
 
 ### CI
 
@@ -206,6 +207,7 @@
 | `07-connection.md` | async_sessionmaker + 連線池 |
 | `08-alembic.md` | migration 命名 + round-trip |
 | `09-indexes-and-perf.md` | 外鍵 / 高頻欄位 / partial index / EXPLAIN ANALYZE |
+| `10-statistics-log.md` | `<project>_statistics_log` 請求 log(**選用**,需 Redis;走共用套件) |
 
 ### `05-CI/` — GitHub Actions
 

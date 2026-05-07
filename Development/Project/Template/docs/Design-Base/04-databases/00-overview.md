@@ -44,7 +44,7 @@ class BaseModel(Base):
 
 - 業務資料**禁**物理刪除;設 `is_deleted = TRUE`
 - SQLAlchemy 查詢**必**預設過濾 `is_deleted == False`
-- 審計 / log 類表(append-only)不適用
+- 審計 / log 類表(append-only)不適用 — 請求 log(選用,需 Redis)見 `10-statistics-log.md`
 
 詳細 Repository 命名規則見 `02-soft-delete.md`。
 
@@ -68,3 +68,4 @@ class BaseModel(Base):
 - `07-connection.md` — 連線池
 - `08-alembic.md` — migration 規範
 - `09-indexes-and-perf.md` — 索引 + query 優化
+- `10-statistics-log.md` — `<project>_statistics_log` 請求 log(**選用**,需 Redis;走共用套件)

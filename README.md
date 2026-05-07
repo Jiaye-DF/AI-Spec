@@ -66,6 +66,14 @@ AI-Spec/
 | --- | --- |
 | 掃描專案找出架構 / 資安 / 部署違規 | [Development/Project/scan/scan-project-v1.0.md](Development/Project/scan/scan-project-v1.0.md) |
 
+### 教育訓練 / 跨部門共識
+
+| 想做的事 | 看哪份文件 |
+| --- | --- |
+| 學「公司資料流」總藍圖(登入 → 開發 → 資料 → 部署 → AI) | [Architecture/20260421-DataFlow-v1.0.md](Architecture/20260421-DataFlow-v1.0.md) |
+| 學 Harness Engineering 架構(分 6 個學習單元 × 角色矩陣 × Coolify 合規) | [Architecture/20260507-Harness-Engineering-BreakDown-v1.0/](Architecture/20260507-Harness-Engineering-BreakDown-v1.0/README.md) |
+| 上 Coolify 前的 6 條合規 checklist | [Architecture/20260507-Harness-Engineering-BreakDown-v1.0/Coolify-Compliance-Mapping.md](Architecture/20260507-Harness-Engineering-BreakDown-v1.0/Coolify-Compliance-Mapping.md) |
+
 ---
 
 ## 五大核心原則(所有專案都適用)

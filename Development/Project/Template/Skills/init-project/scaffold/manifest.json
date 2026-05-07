@@ -34,7 +34,9 @@
       "pyjwt_crypto": "2.10.1",
       "python_multipart": "0.0.20",
       "ruff": "0.22.0",
-      "mypy": "1.21.0"
+      "mypy": "1.21.0",
+      "pytest": "8.4.2",
+      "pip_audit": "2.8.0"
     }
   },
 
@@ -78,6 +80,8 @@
     { "type": "render", "src": "templates/backend/app/schemas/response.py.tmpl",       "dst": "backend/app/schemas/response.py" },
     { "type": "render", "src": "templates/_empty.tmpl",                                "dst": "backend/app/services/__init__.py" },
     { "type": "render", "src": "templates/_empty.tmpl",                                "dst": "backend/app/clients/__init__.py" },
+    { "type": "render", "src": "templates/_empty.tmpl",                                "dst": "backend/tests/__init__.py" },
+    { "type": "render", "src": "templates/backend/tests/test_smoke.py.tmpl",           "dst": "backend/tests/test_smoke.py" },
 
     { "$section": "backend — database (when include_database=true)" },
     { "type": "render", "src": "templates/backend/alembic.ini.tmpl",                   "dst": "backend/alembic.ini",                              "when": { "include_database": true } },
