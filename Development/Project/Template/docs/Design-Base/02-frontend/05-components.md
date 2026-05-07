@@ -10,7 +10,7 @@
 
 | 單元類型 | 抽出位置 | 條件 |
 | --- | --- | --- |
-| **Component**(JSX) | `components/common/<Name>.tsx` | 跨頁 ≥ 2 次使用,或預期會被重用 |
+| **Component**(TSX) | `components/common/<Name>.tsx` | 跨頁 ≥ 2 次使用,或預期會被重用 |
 | **Hook**(`use*`) | `hooks/<useName>.ts` | 跨檔 ≥ 2 次使用,或封裝具獨立語意的副作用 / 狀態 |
 | **純函式 / utility** | `utils/<name>.ts` | 跨檔 ≥ 2 次使用,或為跨領域邏輯(日期 / 格式化 / 計算) |
 | **Type / Interface** | `types/<name>.ts` 或 `<feature>/types.ts` | 跨檔 ≥ 2 次使用 |
