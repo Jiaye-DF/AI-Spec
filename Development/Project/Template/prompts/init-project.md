@@ -101,9 +101,9 @@ zh-TW
 ├── CLAUDE.md                   (從 Template 複製,首段加專案名)
 ├── AGENTS.md                   (從 Template 複製,Project Overview 填專案名)
 ├── .gitignore
-├── .env.dev.example            (本機開發用 — DATABASE_URL 指向 localhost)
+├── .env.development.example    (本機開發用 — DATABASE_URL 指向 localhost)
 ├── .env.staging.example        (staging 連線占位,實際部署設定由專案自決)
-├── .env.prod.example           (prod 連線占位,實際部署設定由專案自決)
+├── .env.production.example     (production 連線占位,實際部署設定由專案自決)
 ├── .claude/commands/
 │   ├── scan-project.md         (從 Template 複製)
 │   └── init-project.md         (本檔自身,留作未來重新跑用)
@@ -119,7 +119,7 @@ zh-TW
 │   ├── package.json
 │   ├── tsconfig.json
 │   ├── (vite or next 配置)
-│   ├── .env.local.example      (前端 dev 用,VITE_API_BASE_URL 等)
+│   ├── .env.local.example      (前端 development 用,VITE_API_BASE_URL 等)
 │   └── src/
 │       ├── (入口)
 │       ├── lib/api/baseApi.ts
@@ -210,26 +210,26 @@ from typing import Literal
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-JWT_SECRET_KEY_DEV_DEFAULT = "changeme-32-bytes-very-very-secret"
+JWT_SECRET_KEY_DEVELOPMENT_DEFAULT = "changeme-32-bytes-very-very-secret"
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     APP_NAME: str = "<project-name>"
-    APP_ENV: Literal["dev", "staging", "prod"] = "dev"
+    APP_ENV: Literal["development", "staging", "production"] = "development"
     DATABASE_URL: str  # 例 postgresql+asyncpg://user:pwd@localhost:5432/<project>
-    JWT_SECRET_KEY: str = Field(default=JWT_SECRET_KEY_DEV_DEFAULT)
+    JWT_SECRET_KEY: str = Field(default=JWT_SECRET_KEY_DEVELOPMENT_DEFAULT)
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
 
     @model_validator(mode="after")
     def _fail_fast_in_prod(self) -> "Settings":
-        if self.APP_ENV in ("staging", "prod"):
-            for name, actual, dev_default in [
-                ("JWT_SECRET_KEY", self.JWT_SECRET_KEY, JWT_SECRET_KEY_DEV_DEFAULT),
+        if self.APP_ENV in ("staging", "production"):
+            for name, actual, development_default in [
+                ("JWT_SECRET_KEY", self.JWT_SECRET_KEY, JWT_SECRET_KEY_DEVELOPMENT_DEFAULT),
             ]:
-                if actual == dev_default:
-                    raise ValueError(f"APP_ENV={self.APP_ENV} 但 {name} 仍為 dev 預設值")
+                if actual == development_default:
+                    raise ValueError(f"APP_ENV={self.APP_ENV} 但 {name} 仍為 development 預設值")
         return self
 
 
@@ -481,12 +481,12 @@ export const baseApi = createApi({
 VITE_API_BASE_URL=http://localhost:<backend-host-port>/api/v1
 ```
 
-### `.env.dev.example`(本機開發,連 localhost)
+### `.env.development.example`(本機開發,連 localhost)
 
 ```bash
-APP_ENV=dev
+APP_ENV=development
 POSTGRES_VERSION=<postgres-version>
-DATABASE_URL=postgresql+asyncpg://<project-name>:changeme-dev@localhost:<postgres-port>/<project-name>
+DATABASE_URL=postgresql+asyncpg://<project-name>:changeme-development@localhost:<postgres-port>/<project-name>
 JWT_SECRET_KEY=changeme-32-bytes-very-very-secret
 CORS_ORIGINS=["http://localhost:<frontend-host-port>"]
 ```
@@ -511,9 +511,9 @@ coverage/
 
 # Env
 .env
-.env.dev
+.env.development
 .env.staging
-.env.prod
+.env.production
 .env.local
 !.env.*.example
 
@@ -553,14 +553,14 @@ psql -U postgres -c "\\l"      # 列現有 DB
 於 PostgreSQL 建立專案 DB 與帳號:
 
 \`\`\`sql
-CREATE USER <project-name> WITH PASSWORD 'changeme-dev';
+CREATE USER <project-name> WITH PASSWORD 'changeme-development';
 CREATE DATABASE <project-name> OWNER <project-name>;
 \`\`\`
 
 ### 2. 後端
 
 \`\`\`bash
-cp .env.dev.example .env
+cp .env.development.example .env
 # 編輯 .env(填入本機 DB 連線)
 cd backend
 uv sync --frozen
@@ -618,7 +618,7 @@ npm run dev
    - 確認當前目錄為空或僅含 `.git/` / `Template/`
    - 確認系統有 `python3 --version` / `node --version` / `uv --version`(可選)
 2. **收集參數**(用 `AskUserQuestion` 或一次性收集)
-3. **產生根目錄檔**:`.gitignore` / `.env.dev.example` / `.env.staging.example` / `.env.prod.example` / `README.md` / `CLAUDE.md`(從 Template 複製,首段加專案名)/ `AGENTS.md`
+3. **產生根目錄檔**:`.gitignore` / `.env.development.example` / `.env.staging.example` / `.env.production.example` / `README.md` / `CLAUDE.md`(從 Template 複製,首段加專案名)/ `AGENTS.md`
 4. **產生 backend/**:`pyproject.toml` / `alembic.ini` / `alembic/env.py` / 全部 `app/core/*` / `app/api/v1/health.py` / `app/api/deps.py` / `app/api/v1/__init__.py` / `app/models/base.py` + `__init__.py` / 空 `repositories/` / `services/` / `clients/` / `app/main.py`
 5. **產生 frontend/**(依 `<frontend-toolchain>` 分歧)
 6. **產生 docs/**:複製 `Template/docs/Design-Base/*` 進 `docs/Design-Base/`;建空 `docs/Tasks/v1.0/tasks-v1.0.md` 骨架 + `docs/Tasks/scan-project/` 空目錄
@@ -628,7 +628,7 @@ npm run dev
 10. **顯示 next steps**(明確列出本機開發流程):
     1. 本機啟 PostgreSQL(若尚未安裝,提示官方文件連結)
     2. 在 PostgreSQL 建立專案 DB 與帳號
-    3. `cp .env.dev.example .env` 並填空
+    3. `cp .env.development.example .env` 並填空
     4. `cd backend && uv sync && uv run alembic upgrade head && uv run uvicorn app.main:app --reload`
     5. `cd frontend && npm ci && npm run dev`
     6. 開 `localhost:<backend>/api/docs` / `localhost:<frontend>` 驗證

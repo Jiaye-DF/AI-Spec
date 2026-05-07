@@ -1,6 +1,6 @@
 # 07-observability — Log / Metric / 錯誤追蹤
 
-> **何時讀**:設定觀測 / 接 Sentry / 看 prod log 才讀。
+> **何時讀**:設定觀測 / 接 Sentry / 看 production log 才讀。
 
 三層:**Log**(Coolify 內建 stdout 收集)、**Metric**(Coolify 內建 + 可選外接)、**錯誤追蹤 / APM**(Sentry 或同等)。
 
@@ -46,7 +46,7 @@ Coolify Application → Resources 頁:CPU / Memory / Network 即時。
 
 ## 錯誤追蹤(Sentry)
 
-預設**啟用**(prod 必接,staging 可接,dev 不接):
+預設**啟用**(production 必接,staging 可接,development 不接):
 
 ```python
 # backend/app/main.py

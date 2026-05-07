@@ -33,12 +33,12 @@
 ## 範例
 
 ```markdown
-## §3 — JWT_SECRET dev 預設值上 staging
+## §3 — JWT_SECRET development 預設值上 staging
 
 - **時間**:2026-05-07T14:23+08:00
 - **commit / PR**:`a93b8a2` / `#42`
 - **影響檔案**:`backend/app/config.py`、`.env.staging`
-- **問題**:staging 部署成功啟動,但所有 token 都用 dev 預設 secret 簽,可被本機偽造
+- **問題**:staging 部署成功啟動,但所有 token 都用 development 預設 secret 簽,可被本機偽造
 - **根因**:`Settings._fail_fast_in_prod` validator 漏列 `JWT_SECRET_KEY`,fail-fast 沒觸發;新增 secret 欄位時未同步加進 validator 清單
 - **修正**:加 `JWT_SECRET_KEY` 進 validator,並補單元測試掃所有 `*_SECRET_*` 欄位都在清單內(`commit b9...`)
 - **規範參照**:`03-backend/04-config.md § 啟動 fail-fast` / `00-overview/02-secrets.md § .env*.example 規則`

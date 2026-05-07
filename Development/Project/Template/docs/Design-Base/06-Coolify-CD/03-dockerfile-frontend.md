@@ -142,5 +142,5 @@ CMD ["node", "server.js"]
 
 - ❌ `npm install`(對齊版本鎖定)
 - ❌ `COPY . .` 在裝依賴前(壞 layer cache)
-- ❌ `dev` mode 跑 prod(`npm run dev` 帶 watcher / sourcemap,效能差且洩 source)
+- ❌ `development` mode 跑 production(`npm run dev` 帶 watcher / sourcemap,效能差且洩 source)
 - ❌ build-time env 帶機密(對齊 `02-frontend/03-env-and-auth.md`,`*_PUBLIC_*` / `VITE_*` 進 bundle)

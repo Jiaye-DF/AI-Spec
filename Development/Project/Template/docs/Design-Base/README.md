@@ -30,7 +30,7 @@
 | --- | --- |
 | 加套件 / 升版 | `00-overview/01-versions.md` |
 | 改 env / secret / `.env*` | `00-overview/02-secrets.md` + `00-overview/03-env-layers.md` |
-| 部署 / 配 staging or prod env | `00-overview/03-env-layers.md` + `06-Coolify-CD/04-env-and-secrets.md` |
+| 部署 / 配 staging or production env | `00-overview/03-env-layers.md` + `06-Coolify-CD/04-env-and-secrets.md` |
 | 寫 FastAPI 入口 / 改 docs URL | `00-overview/04-api-docs.md` |
 | 任何時間 / 日期欄位 | `00-overview/05-timezone.md` + 對應 area 檔 |
 
@@ -54,7 +54,8 @@
 | Data fetching / 狀態管理 | + `02-frontend/02-api-and-state.md` |
 | client config / 登入 / SSO | + `02-frontend/03-env-and-auth.md` + `90-third-party-service/04-sso-azure-ad.md`(若 SSO) |
 | 日期時間顯示 | + `02-frontend/04-datetime.md` + `00-overview/05-timezone.md` |
-| Dialog / 共用 Hook / 列表頁 | + `02-frontend/05-components.md` |
+| Dialog / 共用 Hook / 任何 reuse(component / hook / utility) | + `02-frontend/05-components.md` |
+| RWD / 樣式 / 版面 / 觸控目標 | + `02-frontend/06-rwd.md` |
 
 ### Backend
 
@@ -174,7 +175,8 @@
 | `02-api-and-state.md` | API 集中(RTK Query)+ 狀態三層 |
 | `03-env-and-auth.md` | env 前綴 + httpOnly cookie + SSO state CSRF |
 | `04-datetime.md` | 日期顯示(統一 `utils/datetime.ts`) |
-| `05-components.md` | 共用 Hook / Component / 禁原生 alert |
+| `05-components.md` | 共用 Hook / Component / Utility(任何 reuse 必抽) |
+| `06-rwd.md` | RWD:Mobile-first + Tailwind v4 breakpoints + 觸控目標 + container queries |
 
 ### `03-backend/` — FastAPI + SQLAlchemy 2 async
 

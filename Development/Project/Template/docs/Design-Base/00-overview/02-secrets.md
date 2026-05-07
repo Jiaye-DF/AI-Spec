@@ -39,7 +39,7 @@ credentials*
 ## `.env*.example` 規則
 
 - 每層 `.env.<env>` 必對應一份 `.env.<env>.example`
-- 值一律 placeholder:`<change-me>` / `dev-only-not-for-prod` / 空字串,**禁**真實機密
+- 值一律 placeholder:`<change-me>` / `development-only-not-for-production` / 空字串,**禁**真實機密
 - 新增 secret 欄位 → 同步:`.env*.example`(全層)+ `Settings` 欄位 + `Settings` fail-fast validator 清單
 - 缺欄視為 bug
 
@@ -59,7 +59,7 @@ credentials*
 
 發現機密外洩(commit history / log / 截圖 / 第三方告知 / `gitleaks` 命中):
 
-1. **立即 rotate** 所有環境的該 secret(dev / staging / prod 同步)
+1. **立即 rotate** 所有環境的該 secret(development / staging / production 同步)
 2. **撤銷舊值**:JWT 列入 deny list、API key 從 provider revoke、DB 帳密改密碼
 3. 寫 `docs/Tasks/v*/fixed.md`:外洩源 / 影響範圍 / 修復步驟 / 後續防護
 4. 補 `05-CI/04-secret-scan.md` 規則或 pre-commit hook 防再犯

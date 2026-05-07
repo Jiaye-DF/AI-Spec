@@ -10,17 +10,17 @@
 
 | Branch | 環境 | 部署觸發 |
 | --- | --- | --- |
-| `main` | **prod** | push to `main` → Coolify prod app 自動部署 |
+| `main` | **production** | push to `main` → Coolify production app 自動部署 |
 | `staging` | **staging** | push to `staging` → Coolify staging app 自動部署 |
-| feature 分支 | dev / preview(可選) | 不自動部署;走 PR + 本地 dev |
+| feature 分支 | development / preview(可選) | 不自動部署;走 PR + 本地 development |
 
-- **禁**從 feature 分支直接部署 prod(必走 PR → main)
-- **禁**讓 staging 與 prod 共用同一 Coolify app(必獨立 application,各自 env / DB)
+- **禁**從 feature 分支直接部署 production(必走 PR → main)
+- **禁**讓 staging 與 production 共用同一 Coolify app(必獨立 application,各自 env / DB)
 
 ## End-to-end flow
 
 ```
-1. dev 在 feature 分支寫程式 + 跑 dev server(localhost)
+1. developer 在 feature 分支寫程式 + 跑 dev server(localhost)
        ↓
 2. 開 PR 進 main / staging
        ↓
@@ -79,7 +79,7 @@ GitHub Repo → Settings → Webhooks → Add webhook:
 
 ## 部署視窗
 
-prod 部署視窗:
+production 部署視窗:
 
 - ✅ 正常時段 09:00–17:00(可即時應變)
 - ❌ 非工作時段、週末、長假前一天(沒人 standby)

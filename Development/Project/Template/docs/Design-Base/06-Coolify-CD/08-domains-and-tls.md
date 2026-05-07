@@ -33,7 +33,7 @@ DNS:
 
 ### 規則
 
-- prod 必走 HTTPS;**禁** `http://` 對外
+- production 必走 HTTPS;**禁** `http://` 對外
 - HSTS:Coolify 反代預設啟用(可關但**禁**關)
 - TLS 版本 ≥ 1.2(對齊 `99-code-review/06-security-checklist.md`)
 
@@ -76,7 +76,7 @@ Coolify 支援 preview deployment(若版本支援):
 啟用前評估:
 
 - [ ] 機器資源夠(每 preview 占 1 個 backend + 1 個 frontend container)
-- [ ] preview env 用 sandbox / mock 第三方(**禁**接 prod 第三方)
+- [ ] preview env 用 sandbox / mock 第三方(**禁**接 production 第三方)
 - [ ] DNS wildcard(`*.<company>.com` → Coolify IP)
 - [ ] Let's Encrypt rate limit 不撞牆(wildcard cert 較友善)
 

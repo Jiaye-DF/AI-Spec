@@ -78,10 +78,10 @@ if (import.meta.env.VITE_SENTRY_DSN) {
 
 ## 規則
 
-- `traces_sample_rate ≤ 0.1`(完整 trace 燒錢,1.0 只在 dev)
+- `traces_sample_rate ≤ 0.1`(完整 trace 燒錢,1.0 只在 development)
 - `send_default_pii=False`(預設關;PII 隔離,對齊 `04-databases/03-passwords-and-pii.md`)
 - `before_send` 二次過濾敏感資料(對齊 `00-overview/02-secrets.md § Log / error 過濾`)
-- staging / prod 啟用;dev 關(避免 noise + 燒額度)
+- staging / production 啟用;development 關(避免 noise + 燒額度)
 
 ## Datadog / Loki(可選)
 

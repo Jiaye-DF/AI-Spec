@@ -32,7 +32,7 @@ backend:
   env:
     APP_ENV: development
     DATABASE_URL: postgresql+asyncpg://postgres:ci-only@localhost:5432/ci_test
-    JWT_SECRET_KEY: ci-only-not-for-prod
+    JWT_SECRET_KEY: ci-only-not-for-production
   steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-python@v5
@@ -63,5 +63,5 @@ backend:
 ## services 與 env
 
 - 用 GitHub Actions `services:` 拉 `postgres:17.2`(image tag 對齊 `00-overview/01-versions.md`)
-- env 用 `APP_ENV=development` + `JWT_SECRET_KEY=ci-only-not-for-prod`(避開 fail-fast,對齊 `00-overview/03-env-layers.md` APP_ENV 三值)
+- env 用 `APP_ENV=development` + `JWT_SECRET_KEY=ci-only-not-for-production`(避開 fail-fast,對齊 `00-overview/03-env-layers.md` APP_ENV 三值)
 - 機密 env(若需第三方 sandbox 測)走 GitHub Secrets,見 `08-secrets-and-oidc.md`

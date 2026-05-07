@@ -50,7 +50,7 @@ frontend:
 - `eslint --max-warnings=0` — warning 視同 error
 - `tsc --noEmit` — 純 typecheck,**禁**走 build emit
 - `vitest --run`(**禁** watch 模式跑 CI)
-- `npm run build` 失敗 → 視為 ci 失敗(避免「能跑 dev 但部署掛」)
+- `npm run build` 失敗 → 視為 ci 失敗(避免「能跑 development 但部署掛」)
 
 ## 快取
 

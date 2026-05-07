@@ -21,8 +21,8 @@ Claude Code 在 **React + TypeScript + FastAPI + PostgreSQL** 專案的全局規
 
 ## localhost ≠ 部署環境
 
-- `.env.dev` 出現的 `localhost:*` 是**本地開發專用**;部署時必須改為實際 host
-- **禁止**直接把 `.env.dev` 拿去部署 — 會連不到依賴服務,且機密為 dev 預設值會觸發 fail-fast
+- `.env.development` 出現的 `localhost:*` 是**本地開發專用**;部署時必須改為實際 host
+- **禁止**直接把 `.env.development` 拿去部署 — 會連不到依賴服務,且機密為 development 預設值會觸發 fail-fast
 - 詳細環境分層 / Coolify 部署規範見 `docs/Design-Base/00-overview/03-env-layers.md` 與 `docs/Design-Base/06-Coolify-CD/`
 
 ## 任務前必讀

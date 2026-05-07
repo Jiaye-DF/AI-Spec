@@ -79,7 +79,7 @@ volumes:
 
 ## 資源限制(可選)
 
-prod 視需要加 `deploy.resources.limits`:
+production 視需要加 `deploy.resources.limits`:
 
 ```yaml
 backend:
@@ -90,23 +90,23 @@ backend:
         memory: 1G
 ```
 
-## dev 變體
+## development 變體
 
-本地 dev 用 `docker-compose.dev.yml`,只跑 `postgres`(後端 / 前端走 dev server,對齊 `00-overview/03-env-layers.md § dev = localhost`):
+本地 development 用 `docker-compose.development.yml`,只跑 `postgres`(後端 / 前端走 dev server,對齊 `00-overview/03-env-layers.md § development = localhost`):
 
 ```yaml
-# docker-compose.dev.yml
+# docker-compose.development.yml
 services:
   postgres:
     image: postgres:${POSTGRES_VERSION}
     ports: ["5432:5432"]   # 開給本機 dev server
     environment:
-      POSTGRES_PASSWORD: dev
-      POSTGRES_DB: <project>_dev
+      POSTGRES_PASSWORD: development
+      POSTGRES_DB: <project>_development
       TZ: Asia/Taipei
     volumes:
-      - postgres_dev_data:/var/lib/postgresql/data
+      - postgres_development_data:/var/lib/postgresql/data
 
 volumes:
-  postgres_dev_data:
+  postgres_development_data:
 ```

@@ -58,4 +58,5 @@ UI **禁**暴露內部 ID(`*_uid` / `pid` / UUID / hash)→ 顯示 name / label,
 - `02-api-and-state.md` — API 呼叫集中 + 狀態管理三層
 - `03-env-and-auth.md` — env 前綴 + httpOnly cookie 認證
 - `04-datetime.md` — 日期時間顯示
-- `05-components.md` — 共用 Hook / Component / 禁 alert
+- `05-components.md` — 共用 Hook / Component / Utility(任何 reuse 必抽)
+- `06-rwd.md` — 響應式設計(Mobile-first + Tailwind v4 breakpoints + 觸控目標)

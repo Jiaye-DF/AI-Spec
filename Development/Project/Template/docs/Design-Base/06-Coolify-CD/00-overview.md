@@ -28,7 +28,7 @@ Coolify(自架,自架機器拉 git)
 ```
 
 - Coolify 從 git 拉,**禁** CI 推 image(GitHub Actions 不負責 deploy)
-- 主分支 `main` → prod;`staging` 分支 → staging(見 `05-deploy-flow.md`)
+- 主分支 `main` → production;`staging` 分支 → staging(見 `05-deploy-flow.md`)
 - 機密由 Coolify 注入,**禁** `.env*` 檔放容器內(見 `04-env-and-secrets.md`)
 
 ## 服務組成(典型)

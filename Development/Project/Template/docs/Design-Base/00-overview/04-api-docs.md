@@ -12,12 +12,12 @@
 
 ## 環境暴露
 
-| | dev | staging | prod |
+| | development | staging | production |
 | --- | --- | --- | --- |
 | `/api/docs` | 開 | 開 | 預設開(內網 API);若公網 → 加保護 |
 | `/api/openapi.json` | 同 `/api/docs` | 同 | 同 |
 
-prod 若需保護:於反向代理層(Coolify / nginx)擋 IP / Basic auth,**禁**讓未認證使用者直接打。
+production 若需保護:於反向代理層(Coolify / nginx)擋 IP / Basic auth,**禁**讓未認證使用者直接打。
 
 ## OpenAPI metadata 必填
 

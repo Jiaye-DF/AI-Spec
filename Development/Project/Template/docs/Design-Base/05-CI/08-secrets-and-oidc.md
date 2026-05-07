@@ -23,7 +23,7 @@ env:
 - 命名同 `00-overview/02-secrets.md § env 命名`(SCREAMING_SNAKE)
 - **禁**明文寫進 workflow yml(對齊 `00-overview/02-secrets.md`)
 - **禁**把 secret echo / print(GitHub 自動遮罩,但行為仍記錄,屬 anti-pattern)
-- 環境分層:用 GitHub Environments(`staging` / `prod`)各自綁 secret 集合,workflow 走 `environment: prod` 才取
+- 環境分層:用 GitHub Environments(`staging` / `production`)各自綁 secret 集合,workflow 走 `environment: production` 才取
 - secret rotate → 同步走 `00-overview/02-secrets.md § 外洩 incident 流程`
 
 ## OIDC(雲端短期 token)
@@ -55,8 +55,8 @@ Coolify webhook 觸發部署不在本 ci 範圍,走 Coolify 自身機制(見 `06
 ## 第三方 sandbox key
 
 - 只放 sandbox / test key(對齊 `00-overview/03-env-layers.md § 各層差異`)
-- **禁**把 prod key 放 GitHub Secrets 給 ci 用
-- prod key 只在部署平台(Coolify)注入,ci 不接觸
+- **禁**把 production key 放 GitHub Secrets 給 ci 用
+- production key 只在部署平台(Coolify)注入,ci 不接觸
 
 ## 機密 rotate 時程
 

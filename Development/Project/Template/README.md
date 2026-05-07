@@ -13,7 +13,7 @@
 - **Frontend**:React 19 + TS(`strict: true`)+ (Vite | Next.js) + Redux Toolkit + RTK Query + Tailwind v4
 - **Backend**:Python + FastAPI + SQLAlchemy 2 async + Pydantic 2 + Alembic + uv
 - **Database**:PostgreSQL(asyncpg)
-- **Dev**:本地開發(後端 dev server + 前端 dev server,不容器化)
+- **Development**:本地開發(後端 dev server + 前端 dev server,不容器化)
 - **Deploy**:Coolify + Docker Compose(企業限定;見 `docs/Design-Base/06-Coolify-CD/`)
 
 ### 不適用(若 user 提及下列,告知此 Template 不適用)
@@ -24,18 +24,18 @@ Vue / Angular / Svelte / Express / NestJS / Spring / Django / Flask / Go / Ruby 
 
 ## Critical: localhost ≠ 部署環境
 
-| | localhost(dev) | staging / prod(部署) |
+| | localhost(development) | staging / production(部署) |
 | --- | --- | --- |
-| `.env` 檔 | `.env.dev` | `.env.staging` / `.env.prod` |
+| `.env` 檔 | `.env.development` | `.env.staging` / `.env.production` |
 | `DATABASE_URL` | `postgresql+asyncpg://...@localhost:5432/...` | 實際 host(`db.example.com` / RDS endpoint 等) |
-| `JWT_SECRET_KEY` | 可用 dev 預設值 | **必**改 32+ 字元隨機(否則 fail-fast) |
+| `JWT_SECRET_KEY` | 可用 development 預設值 | **必**改 32+ 字元隨機(否則 fail-fast) |
 | `CORS_ORIGINS` | `["http://localhost:3000"]` | `["https://<frontend-domain>"]` |
 
 詳細環境分層說明見 `docs/Design-Base/00-overview/03-env-layers.md`。
 
 ### Agent 守則
 
-- **禁止**把 `.env.dev` 內容(localhost / dev 預設 secret)用於部署
+- **禁止**把 `.env.development` 內容(localhost / development 預設 secret)用於部署
 - **禁止**在 deploy 文件 / config 用 `localhost:*`
 - user 說「要 deploy」但範例仍 `localhost` → 提醒 user 必須改實際 host
 

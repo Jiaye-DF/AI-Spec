@@ -97,5 +97,5 @@ coverage:
 
 - ❌ 多套同類 bot 併存(reviewdog + super-linter + sonarcloud 重複,reviewer 疲勞)
 - ❌ 把 bot comment 當作 review 通過依據(必須真人 reviewer,對齊 `05-CI/07-branch-protection.md`)
-- ❌ 用 bot push commit 自動 fix(改 lint commit 應由 dev / reviewer 主動觸發,避免靜默改 code)
+- ❌ 用 bot push commit 自動 fix(改 lint commit 應由 developer / reviewer 主動觸發,避免靜默改 code)
 - ❌ codecov 設成必綠 gate 後又調 threshold 到 0(等於沒擋,assess 時誤判)

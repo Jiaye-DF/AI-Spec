@@ -43,11 +43,11 @@ Coolify Runtime Env  >  image 內 ENV  >  app code 預設
 
 ## 部署前 env checklist
 
-新環境(staging / prod)第一次部署前,Coolify env 頁必設(對齊 `00-overview/03-env-layers.md`):
+新環境(staging / production)第一次部署前,Coolify env 頁必設(對齊 `00-overview/03-env-layers.md`):
 
 - [ ] `APP_ENV=staging` 或 `production`(對齊 `00-overview/03-env-layers.md`,**禁**簡寫)
 - [ ] `DATABASE_URL`(指向真實 host)
-- [ ] `JWT_SECRET_KEY`(32+ 字元隨機,**禁** dev 預設值)
+- [ ] `JWT_SECRET_KEY`(32+ 字元隨機,**禁** development 預設值)
 - [ ] `CORS_ORIGINS`(限本網域,**禁** `["*"]`)
 - [ ] `POSTGRES_VERSION` / 其他 `*_VERSION`(對齊 `00-overview/01-versions.md`)
 - [ ] 第三方 API key(SMTP / Stripe / Azure AD,對齊 `90-third-party-service/`)
@@ -74,4 +74,4 @@ Coolify Runtime Env  >  image 內 ENV  >  app code 預設
 - ❌ 把 `.env.<env>` 檔放進 git / image
 - ❌ Coolify env 設 `***` / `xxx` 等假值(`Settings` fail-fast 會擋)
 - ❌ build-time env 帶機密
-- ❌ 同一 secret 多環境共用(staging 與 prod 必獨立生成)
+- ❌ 同一 secret 多環境共用(staging 與 production 必獨立生成)

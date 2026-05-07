@@ -128,7 +128,7 @@ zh-TW
 - **R-BE-017 函式缺型別標註 🔵**
 - **R-BE-018 bcrypt 在 async 裸呼叫 🟠** → `asyncio.to_thread`
 - **R-BE-019 多表寫入無 transaction 🟠** → `async with db.begin():`
-- **R-BE-020 prod 啟動無 fail-fast 🟠** — `Settings._fail_fast_in_prod`
+- **R-BE-020 production 啟動無 fail-fast 🟠** — `Settings._fail_fast_in_prod`
 - **R-BE-021 logger 未用 `exception` 🟡** — 用 `logger.error("...")` 丟 traceback
 - **R-BE-022 測試 mock SQL 🟠** → 真 DB
 
@@ -168,7 +168,7 @@ zh-TW
 ## H. LOG
 
 - **R-LOG-001 缺 `/api/v1/health` 🟡** — 回 `{db}`
-- **R-LOG-002 prod debug log 開 🟠**
+- **R-LOG-002 production debug log 開 🟠**
 - **R-LOG-003 未接集中式 log 🟡** — Seq / ELK / Loki / Datadog
 - **R-LOG-004 缺 graceful shutdown 🟠** — `lifespan` 須 `await engine.dispose()`
 - **R-LOG-005 Log 缺結構化欄位 🟡** — `app_name` / `request_id` / ISO UTC

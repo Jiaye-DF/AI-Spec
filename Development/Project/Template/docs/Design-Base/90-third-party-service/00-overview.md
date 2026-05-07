@@ -72,7 +72,7 @@ class AzureAdClient:
 
 - API key / token / webhook secret 走 env 注入
 - **禁**寫進程式碼 / image
-- staging / prod 機密**獨立**生成
+- staging / production 機密**獨立**生成
 
 ## 子章節
 

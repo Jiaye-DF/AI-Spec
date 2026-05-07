@@ -30,7 +30,7 @@
 | --- | --- | --- | --- |
 | `.env` 檔 | `.env.development`(從 example) | `.env.staging` | `.env.production` |
 | `APP_ENV` | `development` | `staging` | `production` |
-| `DATABASE_URL` | `postgresql+asyncpg://...@localhost:5432/...` | `...@<staging-host>:5432/...`(**獨立** DB)| `...@<prod-host>:5432/...` |
+| `DATABASE_URL` | `postgresql+asyncpg://...@localhost:5432/...` | `...@<staging-host>:5432/...`(**獨立** DB)| `...@<production-host>:5432/...` |
 | `JWT_SECRET_KEY` | development 預設值(可) | **必**改 32+ 字元隨機 | **必**改 32+ 字元隨機 |
 | `CORS_ORIGINS` | `["http://localhost:3000"]` | `["https://staging.<domain>"]` | `["https://<domain>"]`(**禁** `["*"]`) |
 | 第三方 | mock / sandbox | sandbox | live(以 staging 驗收後切) |
@@ -39,7 +39,7 @@
 
 ## development = localhost
 
-- 後端 dev server + 前端 dev server;依賴服務由開發者於本機 install(`docker compose -f docker-compose.dev.yml up postgres`)
+- 後端 dev server + 前端 dev server;依賴服務由開發者於本機 install(`docker compose -f docker-compose.development.yml up postgres`)
 - 連線指向 `localhost:*`
 - 機密為 development 預設值;`.env.development.example` 可直接複製為 `.env.development` 跑通
 

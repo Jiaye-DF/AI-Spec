@@ -37,7 +37,7 @@ paths = [
   '''docs/.*\.md''',               # 範例文件不掃
 ]
 regexes = [
-  '''dev-only-not-for-prod''',     # 預設 dev placeholder
+  '''development-only-not-for-production''',     # 預設 development placeholder
   '''<change-me>''',
 ]
 ```

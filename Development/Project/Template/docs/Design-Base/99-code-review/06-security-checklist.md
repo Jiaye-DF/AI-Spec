@@ -38,7 +38,7 @@
 
 - [ ] `.env` / credentials 不曾 commit(`05-CI/04-secret-scan.md`)
 - [ ] `CORS_ORIGINS` 限本網域,**禁** `["*"]`(`03-backend/02-auth.md`)
-- [ ] `/api/docs` prod 是否該保護(`00-overview/04-api-docs.md`)
+- [ ] `/api/docs` production 是否該保護(`00-overview/04-api-docs.md`)
 - [ ] error 回應不洩內部架構(stack trace 不回前端)
 - [ ] container 非 root(`06-Coolify-CD/02-dockerfile-backend.md`)
 
