@@ -8,8 +8,9 @@
     "dev": "vite --port {{frontend_port}}",
     "build": "tsc -b && vite build",
     "preview": "vite preview --port {{frontend_port}}",
-    "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest"
   },
   "dependencies": {
     "react": "{{react_version}}",
@@ -23,6 +24,7 @@
     "@types/react-dom": "19.0.3",
     "typescript": "{{typescript_version}}",
     "vite": "{{vite_version}}",
+    "vitest": "{{vitest_version}}",
     "tailwindcss": "{{tailwindcss_version}}",
     "@tailwindcss/postcss": "{{tailwindcss_postcss_version}}",
     "postcss": "{{postcss_version}}",

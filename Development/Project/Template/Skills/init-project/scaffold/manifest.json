@@ -19,7 +19,8 @@
       "postcss": "8.5.12",
       "eslint": "9.39.4",
       "eslint_js": "9.39.4",
-      "typescript_eslint": "9.4.0"
+      "typescript_eslint": "9.4.0",
+      "vitest": "2.1.9"
     },
     "backend": {
       "fastapi": "0.136.1",
@@ -59,9 +60,11 @@
     { "type": "render", "src": "templates/root/.env.staging.example.tmpl",      "dst": ".env.staging.example" },
     { "type": "render", "src": "templates/root/.env.production.example.tmpl",   "dst": ".env.production.example" },
     { "type": "render", "src": "templates/root/README.md.tmpl",                 "dst": "README.md" },
+    { "type": "render", "src": "templates/root/.gitleaks.toml.tmpl",            "dst": ".gitleaks.toml" },
 
-    { "$section": "always — .github" },
+    { "$section": "always — .github workflows" },
     { "type": "render",   "src": "templates/.github/workflows/ci.yml.tmpl",     "dst": ".github/workflows/ci.yml" },
+    { "type": "render",   "src": "templates/.github/workflows/e2e.yml.tmpl",    "dst": ".github/workflows/e2e.yml" },
 
     { "$section": "always — backend skeleton" },
     { "type": "render", "src": "templates/backend/pyproject.toml.tmpl",                "dst": "backend/pyproject.toml" },
@@ -107,6 +110,7 @@
     { "type": "render", "src": "templates/frontend-vite/src/store/store.ts.tmpl",      "dst": "frontend/src/store/store.ts",  "when": { "frontend": "vite" } },
     { "type": "render", "src": "templates/frontend-vite/src/store/provider.tsx.tmpl",  "dst": "frontend/src/store/provider.tsx", "when": { "frontend": "vite" } },
     { "type": "render", "src": "templates/frontend-vite/src/utils/datetime.ts.tmpl",   "dst": "frontend/src/utils/datetime.ts", "when": { "frontend": "vite" } },
+    { "type": "render", "src": "templates/frontend-vite/src/smoke.test.ts.tmpl",       "dst": "frontend/src/smoke.test.ts",     "when": { "frontend": "vite" } },
     { "type": "mkdir",  "dst": "frontend/src/components", "when": { "frontend": "vite" } },
 
     { "$section": "frontend — next branch (placeholder, Phase 3)" },

@@ -6,51 +6,113 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
-  frontend-lint:
+  frontend:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: frontend
+        working-directory: ./frontend
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "{{node_version}}"
+          node-version-file: frontend/package.json
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
+      - run: npm run test -- --run
       - run: npm run build
-      - name: npm audit (high)
-        run: npm audit --audit-level=high
-        continue-on-error: true
 
-  backend-lint:
+  backend:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: backend
-    steps:
+        working-directory: ./backend
+{{#if include_database}}    services:
+      postgres:
+        image: postgres:{{postgres_version}}
+        env:
+          POSTGRES_PASSWORD: ci-only
+          POSTGRES_DB: ci_test
+          TZ: Asia/Taipei
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      APP_ENV: development
+      DATABASE_URL: postgresql+asyncpg://postgres:ci-only@localhost:5432/ci_test
+      JWT_SECRET_KEY: ci-only-not-for-production
+{{/if}}{{#if !include_database}}    env:
+      APP_ENV: development
+      JWT_SECRET_KEY: ci-only-not-for-production
+{{/if}}    steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "{{python_version}}"
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
+          python-version-file: backend/pyproject.toml
+      - uses: astral-sh/setup-uv@v4
       - run: uv sync --frozen
       - run: uv run ruff check .
-      - run: uv run mypy . --strict
-      - run: uv run pytest
-        continue-on-error: true
-      - name: pip-audit
-        run: uv run pip-audit
-        continue-on-error: true
+      - run: uv run ruff format --check .
+      - run: uv run mypy app
+{{#if include_database}}      - run: uv run alembic upgrade head
+      - run: uv run alembic downgrade -1
+      - run: uv run alembic upgrade head
+{{/if}}      - run: uv run pytest -q
 
-  e2e:
-    if: false  # 預留;啟用前先補 Playwright(對齊 05-CI/06-e2e.md)
+  dependency-audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: echo "e2e disabled until Playwright wired"
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: frontend/package.json
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: npm audit
+        working-directory: ./frontend
+        run: npm audit --audit-level=high
+        continue-on-error: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: backend/pyproject.toml
+      - uses: astral-sh/setup-uv@v4
+      - name: pip-audit
+        working-directory: ./backend
+        run: |
+          uv sync --frozen
+          uv run pip-audit
+        continue-on-error: true
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+        with:
+          config-path: .gitleaks.toml
+
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/owasp-top-ten
+            p/python
+            p/typescript
+            p/react
+            p/security-audit
