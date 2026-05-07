@@ -1,0 +1,33 @@
+{
+  "name": "{{project_name}}-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": "{{node_version}}" },
+  "scripts": {
+    "dev": "vite --port {{frontend_port}}",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --port {{frontend_port}}",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "{{react_version}}",
+    "react-dom": "{{react_dom_version}}",
+    "@reduxjs/toolkit": "{{redux_toolkit_version}}",
+    "react-redux": "{{react_redux_version}}"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "{{vite_plugin_react_version}}",
+    "@types/react": "19.0.7",
+    "@types/react-dom": "19.0.3",
+    "typescript": "{{typescript_version}}",
+    "vite": "{{vite_version}}",
+    "tailwindcss": "{{tailwindcss_version}}",
+    "@tailwindcss/postcss": "{{tailwindcss_postcss_version}}",
+    "postcss": "{{postcss_version}}",
+    "eslint": "{{eslint_version}}",
+    "@eslint/js": "{{eslint_js_version}}",
+    "typescript-eslint": "{{typescript_eslint_version}}"
+  }
+}

@@ -1,0 +1,22 @@
+from app.core.exceptions import AppError
+
+
+class AzureAdError(AppError):
+    def __init__(self, detail: str) -> None:
+        super().__init__(detail=detail, response_code=502, status_code=502, error_code="AZURE_AD")
+
+
+class AzureAdAuthError(AzureAdError):
+    def __init__(self, detail: str = "Azure AD 認證失敗") -> None:
+        super().__init__(detail=detail)
+        self.response_code = 401
+        self.status_code = 401
+        self.error_code = "AZURE_AD_AUTH"
+
+
+class AzureAdTimeoutError(AzureAdError):
+    def __init__(self, detail: str = "Azure AD 逾時") -> None:
+        super().__init__(detail=detail)
+        self.response_code = 504
+        self.status_code = 504
+        self.error_code = "AZURE_AD_TIMEOUT"

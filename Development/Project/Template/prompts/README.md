@@ -10,10 +10,11 @@
 
 | 檔 | type | 何時觸發 | 用途 |
 | --- | --- | --- | --- |
-| `init-project.md` | workflow | user 說「初始化 / scaffold / 建專案」 | 在空目錄產 React + FastAPI + PostgreSQL 骨架 |
 | `propose-to-tasks.md` | agent | user 寫完 `propose-v{X.Y.Z}.md` | Orchestrator 拆 multi-agent 可並行 tasks |
 | `scan-project.md` | agent | user 說「掃描 / scan / code review / 找問題」 | 累積式問題清單(R-xxx / AD-xxx) |
 | `reflect-rules.md` | agent | 版本結束 / 月度週期 | 讀全版本 `fixed.md` 找 pattern → 候選升規 |
+
+> `init-project` 已遷移為 Claude Code 原生 skill,獨立分發於 `Template/Skills/init-project/`(自包含,可 push 到 GitHub 給其他 user 安裝)。本資料夾不再放 init-project。
 
 完整流程:`/init-project` → user 寫 propose → `/propose-to-tasks` 拆 task → workers 跑 task → `/scan-project` 收口 → `/reflect-rules` 升規。
 
@@ -86,5 +87,5 @@ frontmatter 後接內容區塊(順序固定):
    - frontmatter(完整 schema 全欄)
    - `## Acceptance`(可機械驗證,**禁**「跑得起來」「沒 bug」)
    - 在本檔索引表加一列
-4. commit message:`(AI?) Add: prompts/<name>.md skill`(對齊 `99-code-review/02-commit-message.md`)
+4. commit message:`(AI) Add: prompts/<name>.md skill`(對齊 `99-code-review/02-commit-message.md`)
 5. 棄用 skill → 該檔頭加 `> 狀態:已棄用,見 fixed.md vX.Y.Z §N`,索引表對應條目劃 `~~刪線~~`(不直接移除,留歷史)

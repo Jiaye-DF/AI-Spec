@@ -1,0 +1,10 @@
+from pydantic import BaseModel, EmailStr, Field
+
+
+class AzureAdUser(BaseModel):
+    id: str = Field(..., description="Azure AD object ID")
+    display_name: str | None = Field(None, alias="displayName")
+    mail: EmailStr | None = None
+    user_principal_name: str = Field(..., alias="userPrincipalName")
+
+    model_config = {"populate_by_name": True}

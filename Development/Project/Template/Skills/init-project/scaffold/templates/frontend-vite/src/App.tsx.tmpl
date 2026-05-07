@@ -1,0 +1,12 @@
+export function App(): JSX.Element {
+  return (
+    <main className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold">{{project_name}}</h1>
+        <p className="mt-2 text-sm text-gray-600">
+          後端:<code>http://localhost:{{backend_port}}/api/docs</code>
+        </p>
+      </div>
+    </main>
+  );
+}

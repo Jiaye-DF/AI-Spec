@@ -3,7 +3,7 @@
 **用途**:React + TypeScript + FastAPI + PostgreSQL 專案規範模板。AI agent 在下列情境讀此檔:
 
 - user 要求 fork / 套用此 Template 至新專案 → 依〈使用協議〉操作
-- user 跑 `/init-project` skill → skill 內部引用此 Template 各檔
+- user 跑 `/init-project` skill(獨立發佈於 `Skills/init-project/`)→ skill 為自包含,內部已 mirror 此 Template 各檔
 - 需查詢 Template 內檔案位置 / 用途 → 看〈內容〉
 
 ---
@@ -53,10 +53,11 @@ Template/
 │   └── report.md            詳細優化建議
 ├── prompts/                 跨 agent skill(YAML frontmatter)
 │   ├── README.md
-│   ├── init-project.md      workflow — scaffold 新專案
 │   ├── propose-to-tasks.md  agent — orchestrator(從 propose 拆 tasks)
 │   ├── scan-project.md      agent — 問題清單
 │   └── reflect-rules.md     agent — 自適應學習
+├── Skills/                  Claude Code 原生 skill(可發佈到 GitHub 獨立分發)
+│   └── init-project/        scaffold 新專案 skill(自包含)
 └── docs/Design-Base/
     ├── 00-overview/         跨領域共通底線(版本鎖定 / 機密 / 環境分層 / 時區 / API docs)
     ├── 01-propose/          版本演進 + Multi-agent 協議
@@ -86,7 +87,7 @@ Template/
 
 ### 情境 B:user 跑 `/init-project`
 
-依 `prompts/init-project.md` 執行(包含參數收集、骨架產出、本地啟動指引、Acceptance 驗證)。
+skill 為獨立分發單元,由 `Skills/init-project/` 提供;裝法見 `Skills/init-project/README.md`。skill 邏輯本身在 `Skills/init-project/SKILL.md`(包含參數收集、骨架產出、本地啟動指引、Acceptance 驗證)。
 
 ### 情境 C:user 跑 `/scan-project`
 
