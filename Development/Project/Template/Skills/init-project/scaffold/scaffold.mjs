@@ -6,6 +6,8 @@
 //
 // options:
 //   --frontend vite|next            (預設 vite)
+//   --include-database              啟用,加上 alembic / SQLAlchemy / asyncpg / DB ping(預設 on)
+//   --no-database                   停用 DB 相關檔案與依賴
 //   --include-azure-sso             啟用,加上 backend/app/clients/azure_ad/
 //   --frontend-port <n>             (預設 3000)
 //   --backend-port <n>              (預設 8000)
@@ -24,7 +26,11 @@ import { spawn, spawnSync } from 'node:child_process';
 
 const SCAFFOLD_ROOT = path.dirname(fileURLToPath(import.meta.url));
 const KEBAB = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
-const FLAGS = new Set(['dry-run', 'no-install', 'force', 'include-azure-sso', 'help']);
+const FLAGS = new Set([
+  'dry-run', 'no-install', 'force',
+  'include-azure-sso', 'include-database', 'no-database',
+  'help',
+]);
 
 // ─── arg parsing ────────────────────────────────────────────────
 
@@ -68,6 +74,8 @@ function flattenVersions(node, out = {}) {
 }
 
 function buildPlaceholders(manifest, args) {
+  // include_database:預設 on;`--no-database` 顯式關閉,`--include-database` 顯式開啟
+  const includeDb = args['no-database'] ? false : true;
   return {
     project_name: args.name,
     project_name_underscore: args.name.replace(/-/g, '_'),
@@ -76,12 +84,22 @@ function buildPlaceholders(manifest, args) {
     backend_port: args['backend-port'] ?? '8000',
     postgres_port: args['postgres-port'] ?? '5432',
     api_version: args['api-version'] ?? 'v1',
+    include_database: includeDb ? 'true' : 'false',
     include_azure_sso: args['include-azure-sso'] ? 'true' : 'false',
     ...flattenVersions(manifest.versions),
   };
 }
 
 function render(text, vars) {
+  // 條件區塊:{{#if KEY}}...{{/if}} 或 {{#if !KEY}}...{{/if}}(否定)
+  text = text.replace(/\{\{#if (!?)(\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g, (_, neg, key, body) => {
+    if (!(key in vars)) throw new Error(`未定義的 conditional:{{#if ${neg}${key}}}`);
+    const v = vars[key];
+    const truthy = v === true || v === 'true';
+    const matched = neg === '!' ? !truthy : truthy;
+    return matched ? body : '';
+  });
+  // 變數替換:{{var}}
   return text.replace(/\{\{(\w+)\}\}/g, (_, key) => {
     if (!(key in vars)) throw new Error(`未定義的 placeholder:{{${key}}}`);
     return String(vars[key]);
@@ -90,10 +108,12 @@ function render(text, vars) {
 
 // ─── action filtering ───────────────────────────────────────────
 
+const BOOL_KEYS = new Set(['include_database', 'include_azure_sso']);
+
 function matchesWhen(action, vars) {
   if (!action.when) return true;
   for (const [k, v] of Object.entries(action.when)) {
-    const lhs = k === 'include_azure_sso' ? vars.include_azure_sso === 'true' : vars[k];
+    const lhs = BOOL_KEYS.has(k) ? vars[k] === 'true' : vars[k];
     if (lhs !== v) return false;
   }
   return true;
@@ -107,16 +127,6 @@ async function isEmpty(dir) {
     return entries.filter((e) => e !== '.git').length === 0;
   } catch {
     return true;
-  }
-}
-
-async function copyDirRecursive(src, dst) {
-  await fsp.mkdir(dst, { recursive: true });
-  for (const e of await fsp.readdir(src, { withFileTypes: true })) {
-    const s = path.join(src, e.name);
-    const d = path.join(dst, e.name);
-    if (e.isDirectory()) await copyDirRecursive(s, d);
-    else await fsp.copyFile(s, d);
   }
 }
 
@@ -135,19 +145,6 @@ async function runAction(action, vars, target, dryRun) {
       const out = render(await fsp.readFile(src, 'utf8'), vars);
       await fsp.mkdir(path.dirname(dst), { recursive: true });
       await fsp.writeFile(dst, out, 'utf8');
-      return;
-    }
-    case 'copy': {
-      console.log(tag('copy'));
-      if (dryRun) return;
-      await fsp.mkdir(path.dirname(dst), { recursive: true });
-      await fsp.copyFile(src, dst);
-      return;
-    }
-    case 'copy_dir': {
-      console.log(tag('copydir'));
-      if (dryRun) return;
-      await copyDirRecursive(src, dst);
       return;
     }
     case 'mkdir': {
@@ -221,6 +218,7 @@ async function main() {
 → target:           ${target}
   project_name:     ${vars.project_name}
   frontend:         ${vars.frontend}
+  include_database: ${vars.include_database}
   include_azure_sso:${vars.include_azure_sso}
   api_version:      ${vars.api_version}
   python:           ${vars.python_version}
@@ -243,13 +241,18 @@ async function main() {
     }
   }
 
+  const hasDb = vars.include_database === 'true';
+  const dbSteps = hasDb
+    ? `  1. 確認本機 PostgreSQL 在 :${vars.postgres_port}
+  2. cp .env.development.example .env  # 編輯填入 DB 連線
+  3. cd backend && uv run alembic upgrade head && uv run uvicorn app.main:app --reload`
+    : `  1. cp .env.development.example .env  # 編輯填入機密
+  2. cd backend && uv run uvicorn app.main:app --reload`;
   console.log(`
 ✓ scaffold 完成。下一步:
-  1. 確認本機 PostgreSQL 在 :${vars.postgres_port}
-  2. cp .env.development.example .env  # 編輯填入 DB 連線
-  3. cd backend && uv run alembic upgrade head && uv run uvicorn app.main:app --reload
-  4. cd frontend && npm run dev
-  5. open http://localhost:${vars.backend_port}/api/docs`);
+${dbSteps}
+  ${hasDb ? '4' : '3'}. cd frontend && npm run dev
+  ${hasDb ? '5' : '4'}. open http://localhost:${vars.backend_port}/api/docs`);
 }
 
 main().catch((e) => {

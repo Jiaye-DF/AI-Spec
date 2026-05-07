@@ -6,11 +6,11 @@
 
 - Python {{python_version}}+
 - Node {{node_version}}+
-- PostgreSQL {{postgres_version}}+(請依官方文件本機安裝並啟動)
-
+{{#if include_database}}- PostgreSQL {{postgres_version}}+(請依官方文件本機安裝並啟動)
+{{/if}}
 ## 快速開始(本地開發)
 
-### 1. 確認本機 PostgreSQL 啟動
+{{#if include_database}}### 1. 確認本機 PostgreSQL 啟動
 
 於 PostgreSQL 建立專案 DB 與帳號:
 
@@ -35,7 +35,22 @@ uv run uvicorn app.main:app --reload --host 0.0.0.0 --port {{backend_port}}
 - Health:http://localhost:{{backend_port}}/api/{{api_version}}/health → `{db: ok}`
 
 ### 3. 前端(另一個 terminal)
+{{/if}}{{#if !include_database}}### 1. 後端
 
+```bash
+cp .env.development.example .env
+# 編輯 .env(填入機密)
+cd backend
+uv sync --frozen
+uv run uvicorn app.main:app --reload --host 0.0.0.0 --port {{backend_port}}
+```
+
+驗證:
+- Swagger:http://localhost:{{backend_port}}/api/docs
+- Health:http://localhost:{{backend_port}}/api/{{api_version}}/health
+
+### 2. 前端(另一個 terminal)
+{{/if}}
 ```bash
 cd frontend
 cp .env.local.example .env.local
@@ -50,23 +65,14 @@ npm run dev
 ## 技術棧
 
 - 前端:React {{react_version}} + TypeScript {{typescript_version}} + Vite {{vite_version}} + Redux Toolkit + RTK Query + Tailwind v4
-- 後端:FastAPI {{fastapi_version}} + SQLAlchemy 2 (async) + Pydantic 2 + Alembic + uv
-- 資料庫:PostgreSQL {{postgres_version}}
-
-## 文件導覽
-
-- 規範:`docs/Design-Base/`(library API reference 見 `docs/Design-Base/README.md`)
-- 任務:`docs/Tasks/v*/`
-- 修正紀錄:`docs/Tasks/v*/fixed.md`
-- 掃描問題追蹤:`docs/Tasks/scan-project/`
-
+- 後端:FastAPI {{fastapi_version}} + Pydantic 2 + uv{{#if include_database}} + SQLAlchemy 2 (async) + Alembic{{/if}}
+{{#if include_database}}- 資料庫:PostgreSQL {{postgres_version}}
+{{/if}}
 ## 工作流程
 
 - 主分支 `main`,功能分支從 `main` 切出
 - Commit message 繁體中文 `<類型>: <描述>`(類型:Add / Modify / Fix / Refactor / Docs)
-- AI 產生的 commit 加 `(AI)` 前綴
-- 詳見 `CLAUDE.md` / `AGENTS.md`
 
 ## 部署
 
-部署方案由本專案維護者依採用平台另行設計,**不在 Template 範圍內**。Template 僅保證程式骨架可被部署。
+部署方案由本專案維護者依採用平台另行設計。本骨架為基本可跑的 React + FastAPI{{#if include_database}} + PostgreSQL{{/if}} 環境。

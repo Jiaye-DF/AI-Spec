@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+{{#if include_database}}from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,3 +21,19 @@ async def health(db: AsyncSession = Depends(get_db)) -> ApiResponse[dict[str, st
     except Exception:
         db_ok = "fail"
     return success(data={"db": db_ok})
+{{/if}}{{#if !include_database}}from fastapi import APIRouter
+
+from app.core.response import success
+from app.schemas.response import ApiResponse
+
+router = APIRouter()
+
+
+@router.get(
+    "/health",
+    response_model=ApiResponse[dict[str, str]],
+    summary="健康檢查",
+)
+async def health() -> ApiResponse[dict[str, str]]:
+    return success(data={"status": "ok"})
+{{/if}}

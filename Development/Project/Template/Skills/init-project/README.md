@@ -1,14 +1,12 @@
 # init-project — Claude Code Skill
 
-在空目錄產生 **React + TypeScript + FastAPI + PostgreSQL** 專案最小可跑骨架的 Claude Code skill。本地開發優先,不含容器化 / 部署檔。
+在空目錄產生 **React + TypeScript + FastAPI**(可選 PostgreSQL)專案最小可跑骨架的 Claude Code skill。本地開發優先,單純幫使用者起一個基本可跑環境,**不**內含 docs/Design-Base、CLAUDE.md、AGENTS.md 等 Template repo 的規範文件。
 
 > 對應觸發詞:「初始化專案」「scaffold」「建專案」「new project」「開新專案」
 
 ---
 
 ## 安裝
-
-### Claude Code(目前唯一支援)
 
 把整個 `init-project/` 資料夾複製到 user-level skills 目錄:
 
@@ -41,7 +39,7 @@ cp -r <repo>/init-project <your-project>/.claude/skills/
 - **Node.js** ≥ 22(scaffold.mjs 為 zero-dep ESM)
 - **uv** ≥ 0.5(Python 套件管理;`--no-install` 可跳過)
 - **npm** ≥ 10(`--no-install` 可跳過)
-- **PostgreSQL** 18(本機 install,scaffold 不負責安裝)
+- **PostgreSQL** 18(僅 `include_database=true` 時需要;本機 install,scaffold 不負責安裝)
 
 ---
 
@@ -51,15 +49,22 @@ cp -r <repo>/init-project <your-project>/.claude/skills/
 
 1. `cd <空目錄>`
 2. 在 Claude Code 內說「初始化專案」/ 輸入 `/init-project`
-3. Claude 會用 `AskUserQuestion` 問參數(專案名、port、是否啟用 Azure SSO 等)
+3. Claude 會用 `AskUserQuestion` 問參數(專案名、port、是否啟用資料庫 / Azure SSO 等)
 4. Claude 先跑 `--dry-run` 預覽,確認後實際產出
 5. 跑完依 next-steps 提示啟動 backend / frontend dev server
 
 也可繞過 Claude 直接 CLI:
 
 ```bash
+# 含資料庫(預設)
 node ~/.claude/skills/init-project/scaffold/scaffold.mjs \
   --name my-app \
+  --target ./my-app
+
+# 不含資料庫
+node ~/.claude/skills/init-project/scaffold/scaffold.mjs \
+  --name my-app \
+  --no-database \
   --target ./my-app
 ```
 
@@ -69,22 +74,23 @@ node ~/.claude/skills/init-project/scaffold/scaffold.mjs \
 
 ## 包含什麼
 
-- **Backend**:FastAPI 0.136 / SQLAlchemy 2.0 / Alembic / asyncpg / Pydantic v2
-  - `app/{api,core,models,schemas,services,repositories,clients}/` 骨架
-  - `/api/v1/health` endpoint(回 DB ping 結果)
+- **Backend**:FastAPI / Pydantic v2 / uv
+  - `app/{api,core,schemas,services,clients}/` 骨架
+  - `/api/v1/health` endpoint
   - 統一 response 格式 / exception handler / cookie helper
+  - 可選 SQLAlchemy 2 + asyncpg + Alembic(`include_database=true`,預設)
   - 可選 Azure AD SSO module(`--include-azure-sso`)
 - **Frontend**(Vite branch):React 19 / TypeScript 5.9 strict / Redux Toolkit / Tailwind 4
   - `src/{lib,store,utils,components}/` 骨架
   - baseApi.ts 串後端 `/api/<version>/`
   - ESLint 9 flat config
 - **Project root**:`.gitignore`、`.env.{development,staging,production}.example`、`README.md`
-- **`docs/`**:`Design-Base/`(實作規範)+ `Arch/`(架構記錄)+ `Tasks/`(版本實作目錄)
 - **`.github/workflows/ci.yml`**:GitHub Actions backend + frontend job
-- **`CLAUDE.md` / `AGENTS.md`**:agent 規則,複製後產出於目標專案
 
 ## 不包含什麼
 
+- **docs/Design-Base / docs/Arch / docs/Tasks** — 規範文件屬 Template repo,需要時由使用者另行引入
+- **CLAUDE.md / AGENTS.md** — agent 規則同上,本 skill 不複製
 - **Dockerfile / docker-compose** — 本 skill 為本地開發優先,容器化請另外處理
 - **Coolify / K8s 部署檔** — 同上
 - **`.env` 實際值** — 只生 `.example`,實際值由開發者自填
@@ -99,14 +105,6 @@ node ~/.claude/skills/init-project/scaffold/scaffold.mjs \
 init-project/
 ├── SKILL.md              ← Claude Code skill entry(必要)
 ├── README.md             ← 本檔
-├── CLAUDE.md             ← agent 全局規則(scaffold 會 copy 進產出專案)
-├── AGENTS.md             ← agent capabilities baseline(同上)
-├── prompts/
-│   └── scan-project.md   ← scaffold 會 copy 到產出專案的 .claude/commands/
-├── docs/
-│   ├── Design-Base/      ← 實作規範(scaffold copy_dir 進產出專案)
-│   ├── Arch/             ← 架構記錄(同上)
-│   └── Tasks/README.md   ← 版本實作目錄索引(同上)
 └── scaffold/
     ├── scaffold.mjs      ← Node executor(zero-dep)
     ├── manifest.json     ← 版本 / 檔案地圖 / 條件分支(唯一真相)
@@ -115,9 +113,10 @@ init-project/
         ├── root/
         ├── backend/
         ├── frontend-vite/
-        ├── docs/
         └── .github/
 ```
+
+> 不再有 `docs/`、`CLAUDE.md`、`AGENTS.md`、`prompts/` — 那些是 Template repo 的內容,init-project 只是輕量 scaffold,不重複。
 
 ---
 

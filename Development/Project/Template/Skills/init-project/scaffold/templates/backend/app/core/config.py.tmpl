@@ -11,8 +11,8 @@ class Settings(BaseSettings):
 
     APP_NAME: str = "{{project_name}}"
     APP_ENV: Literal["development", "staging", "production"] = "development"
-    DATABASE_URL: str
-    JWT_SECRET_KEY: str = Field(default=JWT_SECRET_KEY_DEVELOPMENT_DEFAULT)
+{{#if include_database}}    DATABASE_URL: str
+{{/if}}    JWT_SECRET_KEY: str = Field(default=JWT_SECRET_KEY_DEVELOPMENT_DEFAULT)
     CORS_ORIGINS: list[str] = ["http://localhost:{{frontend_port}}"]
 
     @model_validator(mode="after")

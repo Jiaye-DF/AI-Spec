@@ -26,10 +26,11 @@ node scaffold/scaffold.mjs --name my-app --target ./my-app
 | --- | --- | --- |
 | `--name <kebab>` | 專案名(必填,kebab-case) | — |
 | `--frontend vite\|next` | 前端 toolchain | `vite` |
+| `--no-database` | 停用 SQLAlchemy / asyncpg / Alembic / DB ping(預設含 DB) | (含 DB) |
 | `--include-azure-sso` | 啟用 → 加 `backend/app/clients/azure_ad/` | off |
 | `--frontend-port <n>` | dev server port | `3000` |
 | `--backend-port <n>` | dev server port | `8000` |
-| `--postgres-port <n>` | 本機 PG port | `5432` |
+| `--postgres-port <n>` | 本機 PG port(僅 `include_database=true` 用) | `5432` |
 | `--api-version <v>` | API 路徑前綴 | `v1` |
 | `--target <dir>` | 產出根目錄 | cwd |
 | `--dry-run` | 只列動作不寫檔 | off |
@@ -60,12 +61,11 @@ scaffold/
 | type | 說明 |
 | --- | --- |
 | `render` | 讀 `.tmpl`,做 `{{var}}` 替換,寫到 `dst` |
-| `copy` | Verbatim 複製單檔(用於 `CLAUDE.md` / `AGENTS.md` 等 Template 自身檔) |
-| `copy_dir` | 遞迴複製整個目錄(用於 `docs/Design-Base/`) |
-| `mkdir` | 建立空目錄(`repositories/` / `services/` 等) |
+| `mkdir` | 建立空目錄(`services/` 等) |
 
 `when` 條件式(filter):
 - `{ "frontend": "vite" }` — 僅當 `--frontend=vite`
+- `{ "include_database": true }` — 僅當預設(或顯式 `--include-database`),即未加 `--no-database`
 - `{ "include_azure_sso": true }` — 僅當有 `--include-azure-sso`
 
 ---
@@ -76,11 +76,25 @@ scaffold/
 
 完整 placeholder 清單:
 
-- 參數類:`project_name` / `project_name_underscore` / `frontend` / `frontend_port` / `backend_port` / `postgres_port` / `api_version` / `include_azure_sso`
+- 參數類:`project_name` / `project_name_underscore` / `frontend` / `frontend_port` / `backend_port` / `postgres_port` / `api_version` / `include_database` / `include_azure_sso`
 - 版本類:`manifest.versions` 樹自動展平為 `<key>_version`(例:`versions.frontend.react` → `{{react_version}}`、`versions.python` → `{{python_version}}`)
 - `dst` 路徑也支援 `{{api_version}}` 之類佔位(例:`backend/app/api/{{api_version}}/health.py`)
 
-任何**未定義**的 placeholder 會 throw — 預期行為,避免 silent 漏置換。
+### 條件區塊
+
+```
+{{#if include_database}}
+這段只在 include_database=true 時保留
+{{/if}}
+
+{{#if !include_database}}
+這段只在 include_database=false 時保留(否定式)
+{{/if}}
+```
+
+bool placeholder(`include_database` / `include_azure_sso`)會以字串 `"true"` / `"false"` 注入;render 時會自動把 `"true"` 視為 truthy。
+
+任何**未定義**的 placeholder 或 conditional 會 throw — 預期行為,避免 silent 漏置換。
 
 ---
 
