@@ -1,3 +1,31 @@
+---
+name: init-project
+type: workflow
+description: 在空目錄產生 React + TypeScript + FastAPI + PostgreSQL 骨架。當 user 說「初始化 / scaffold / 建專案 / new project」時觸發。
+when_not_to_use:
+  - 目錄已含 src/ 或 backend/(改用 /scan-project 評估)
+  - 非 React + FastAPI + PostgreSQL 棧 → 用其他 template
+inputs:
+  - name: project_name
+    type: kebab-case string
+    required: true
+  - name: frontend_toolchain
+    type: enum(vite | next)
+    default: vite
+  - name: python_version
+    default: "3.14.1"
+  - name: node_version
+    default: "24.0.0"
+  - name: postgres_version
+    default: "18"
+  - name: include_azure_sso
+    type: yes | no
+    default: no
+capabilities_required:
+  - file_write
+  - shell_exec(可選 — 沒有也能跑,只是 lock file 要 user 自己生)
+---
+
 # /init-project
 
 依 Template 規範,在當前目錄(預期空目錄或剛 `git init` 的乾淨狀態)產生 **React + FastAPI 前後端分離**專案的最基本可跑骨架。
@@ -38,11 +66,11 @@ zh-TW
 執行前讀取(若存在於模板路徑):
 
 1. `Template/CLAUDE.md` / `AGENTS.md` — 專案規則與技術棧鎖定
-2. `Template/design-base/00-overview.md` — 版本鎖定、敏感資訊、環境分層
-3. `Template/design-base/10-frontend.md` — React 13 條硬規則
-4. `Template/design-base/20-backend.md` — FastAPI 15 條硬規則
-5. `Template/design-base/30-database.md` — PostgreSQL + SQLAlchemy 必備欄位、Repository 命名、Alembic
-6. `Template/design-base/90-code-review.md` — fixed.md、commit format、PR 自我檢查
+2. `Template/docs/Design-Base/00-overview.md` — 版本鎖定、敏感資訊、環境分層
+3. `Template/docs/Design-Base/10-frontend.md` — React 13 條硬規則
+4. `Template/docs/Design-Base/20-backend.md` — FastAPI 15 條硬規則
+5. `Template/docs/Design-Base/30-database.md` — PostgreSQL + SQLAlchemy 必備欄位、Repository 命名、Alembic
+6. `Template/docs/Design-Base/90-code-review.md` — fixed.md、commit format、PR 自我檢查
 
 ---
 
@@ -82,7 +110,7 @@ zh-TW
 ├── .github/workflows/
 │   └── ci.yml                  (lint + audit 骨架,e2e 留 if: false)
 ├── docs/
-│   ├── Design-Base/            (從 Template/design-base/ 複製)
+│   ├── Design-Base/            (從 Template/docs/Design-Base/ 複製)
 │   └── Tasks/
 │       ├── v1.0/
 │       │   └── tasks-v1.0.md   (空骨架)
@@ -593,7 +621,7 @@ npm run dev
 3. **產生根目錄檔**:`.gitignore` / `.env.dev.example` / `.env.staging.example` / `.env.prod.example` / `README.md` / `CLAUDE.md`(從 Template 複製,首段加專案名)/ `AGENTS.md`
 4. **產生 backend/**:`pyproject.toml` / `alembic.ini` / `alembic/env.py` / 全部 `app/core/*` / `app/api/v1/health.py` / `app/api/deps.py` / `app/api/v1/__init__.py` / `app/models/base.py` + `__init__.py` / 空 `repositories/` / `services/` / `clients/` / `app/main.py`
 5. **產生 frontend/**(依 `<frontend-toolchain>` 分歧)
-6. **產生 docs/**:複製 `Template/design-base/*` 進 `docs/Design-Base/`;建空 `docs/Tasks/v1.0/tasks-v1.0.md` 骨架 + `docs/Tasks/scan-project/` 空目錄
+6. **產生 docs/**:複製 `Template/docs/Design-Base/*` 進 `docs/Design-Base/`;建空 `docs/Tasks/v1.0/tasks-v1.0.md` 骨架 + `docs/Tasks/scan-project/` 空目錄
 7. **產生 .claude/commands/**:複製 `Template/scan-project.md` + `Template/init-project.md` 進 `.claude/commands/`
 8. **產生 .github/workflows/ci.yml**:含 `frontend-lint`(npm ci + lint + typecheck + audit `continue-on-error: true`)、`backend-lint`(uv sync + ruff + pytest + pip-audit `continue-on-error: true`)、`e2e`(`if: false` 預留)
 9. **`uv lock`**(於 `backend/`)、**`npm install`**(於 `frontend/`,若使用者同意)生成 lock file
@@ -608,9 +636,20 @@ npm run dev
 
 ---
 
+## Acceptance(必跑,任一失敗不報告完成)
+
+1. `cd backend && uv sync --frozen` → exit 0
+2. `cd backend && uv run ruff check .` → exit 0
+3. `cd backend && uv run mypy . --strict` → exit 0
+4. `cd frontend && npm ci && npm run typecheck && npm run lint` → exit 0
+5. 啟 backend 後 `curl -s localhost:<backend-host-port>/api/v1/health | jq -e '.data.db == "ok"'` → exit 0
+6. `git status` → 預期 untracked 為新建檔;**禁** dirty 既有檔
+
+---
+
 ## 自我約束
 
-- **禁止**自由發揮:所有產出必須對齊 `Template/design-base/*` 規範
+- **禁止**自由發揮:所有產出必須對齊 `Template/docs/Design-Base/*` 規範
 - **禁止**產生任何容器化 / 部署相關檔案(部署方案由專案自決)
 - **禁止**直接執行 `git push`;`commit` 也須使用者明示同意
 - **禁止**寫入 `.env` 實際值(只生 `.env.*.example`,讓使用者自填)

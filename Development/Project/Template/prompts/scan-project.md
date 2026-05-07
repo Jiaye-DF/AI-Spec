@@ -1,3 +1,22 @@
+---
+name: scan-project
+type: agent
+description: 掃 React + TypeScript + FastAPI + PostgreSQL 專案輸出累積式問題清單。當 user 說「掃描 / scan / code review / 找問題」時觸發。
+when_not_to_use:
+  - 非 React + FastAPI + PostgreSQL 棧
+  - 想直接修問題(本 skill 只報告;修改另起 skill 或手動)
+inputs:
+  - name: focus
+    type: enum(all | env | backend | frontend | db | sec | pii)
+    default: all
+capabilities_required:
+  - file_read
+  - shell_exec(可選 — 用於 git log 偵測)
+context_strategy:
+  - 預估檔案 > 200 個 / context > 100K tokens → 主 agent 拆分 area(env / be / fe / db / sec)派子 agent,主 agent 彙整
+  - 否則直接掃,不需 sub-agent
+---
+
 # /scan-project
 
 掃描 React + FastAPI 專案,輸出累積式問題清單(時間戳分檔於 `docs/Tasks/scan-project/`)。本模板鎖定**本地開發**,規則範圍涵蓋程式碼與本地服務組態,**不**涵蓋部署規範。
@@ -201,6 +220,16 @@ zh-TW
 5. **已跳過類別**(必列原因)
 6. **AD-xxx**(空可接受,須列已巡視面向)
 7. **規範自身問題** — Design-Base 矛盾 / 缺漏
+
+---
+
+## Acceptance(必跑)
+
+1. 報告檔已寫入 `docs/Tasks/scan-project/Issue-Scan-Project-{YYMMDDHHMMSS}.md`
+2. 報告含全部 7 章節(總覽 / 摘要 / 詳細發現 / 優先序 / 跳過類別 / AD / 規範自身)
+3. 每條 R-xxx / AD-xxx 含「相對路徑:行號」+ 具體修正建議
+4. **禁**:修改任何非報告檔;**禁**:任何 git 操作
+5. 若有舊報告 → 第 0 章「與前次差異」非空(🆕/✅/⏸/🔄)
 
 ---
 
