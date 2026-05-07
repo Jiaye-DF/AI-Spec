@@ -6,6 +6,16 @@
 
 ---
 
+## 適用範圍
+
+> **適用** — 對外正式服務 / 多人協作 / 中長期維護專案。  
+> 規範偏嚴格(`Development/Project/Template/docs/Design-Base/`),目的是讓 AI agent 產出穩定、code review 有依據、debug 有對照基準。重複性 CRUD + AI 為主力的場景反而提速(decision fatigue 下降)。
+
+> **不適用** — POC / spike / 一次性個人工具。  
+> 嚴格規則在「明天就要丟」的程式碼上是純拖慢;這類專案改用 [`Development/Project/replit/`](Development/Project/replit/replit-spec-latest.md) 或不套規範。
+
+---
+
 ## 目錄結構
 
 ```
