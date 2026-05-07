@@ -9,13 +9,15 @@
 ## 工作流關係
 
 ```
-propose-v{X.Y}.md            tasks-v{X.Y}.md           fixed.md                 reflect-report-*.md
+propose-v{X.Y.Z}.md          tasks-v{X.Y.Z}.md         fixed.md                 reflect-report-*.md
 (User 寫 — 版本目標)    →    (Agent 拆 — 執行單元)  →   (執行中累積根因)   →    (版本結束 / 月度回流)
                                   ↓
                                 tasks/<task-N>.md(細節)
                                   ↓
                                 CHANGELOG.md(release 前彙整 user-facing)
 ```
+
+> 版本檔名一律 **3-digit semver** `vX.Y.Z`(例 `propose-v1.0.0.md` / `tasks-v1.1.0.md`);資料夾同樣 `docs/Tasks/v1.0.0/`。判準見 `05-version-bump.md`。
 
 ## 角色分工
 

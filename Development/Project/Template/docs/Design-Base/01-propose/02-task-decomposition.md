@@ -18,12 +18,12 @@
 
 ## 產出
 
-`tasks-v{X.Y}.md`(總清單)+ `tasks/task-NNN-<slug>.md`(細節)。
+`tasks-v{X.Y.Z}.md`(總清單)+ `tasks/task-NNN-<slug>.md`(細節)。
 
-### tasks-v{X.Y}.md(總清單)
+### tasks-v{X.Y.Z}.md(總清單)
 
 ```markdown
-# Tasks v{X.Y}
+# Tasks v{X.Y.Z}
 
 > 狀態:進行中(已完成 N/M)
 

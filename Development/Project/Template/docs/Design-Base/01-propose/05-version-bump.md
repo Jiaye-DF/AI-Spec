@@ -2,7 +2,7 @@
 
 > **何時讀**:決定 propose 用哪個版號 / API 是否要 bump major 才讀。
 
-採用 SemVer 變體:`major.minor`;patch 隨小修跟著上,**不**獨立 propose。
+採用 **SemVer 3-digit**:`major.minor.patch`(`X.Y.Z`)。檔案 / 資料夾命名統一 `v{X.Y.Z}`(例 `propose-v1.0.0.md` / `tasks-v1.1.0.md` / `docs/Tasks/v1.0.0/`)。
 
 ---
 
@@ -10,15 +10,15 @@
 
 | 變更性質 | bump | 例 |
 | --- | --- | --- |
-| **breaking change** — API 路徑 / 回應 schema 不相容 / DB schema 不可逆 | **major**(`v1.0 → v2.0`) | `/api/v1/users` → `/api/v2/users` 並改回應 schema |
-| 新功能 / 新 endpoint / 新表 / 向下相容的欄位新增 | **minor**(`v1.0 → v1.1`) | 加 `/api/v1/user-groups`;`/users` response 加 `groups` 欄位 |
-| bug fix / 非 user-facing 重構 / lint 修正 | patch | 修 N+1 / 改命名 / 補測試 |
+| **breaking change** — API 路徑 / 回應 schema 不相容 / DB schema 不可逆 | **major**(`v1.0.0 → v2.0.0`) | `/api/v1/users` → `/api/v2/users` 並改回應 schema |
+| 新功能 / 新 endpoint / 新表 / 向下相容的欄位新增 | **minor**(`v1.0.0 → v1.1.0`) | 加 `/api/v1/user-groups`;`/users` response 加 `groups` 欄位 |
+| bug fix / 非 user-facing 重構 / lint 修正 | **patch**(`v1.0.0 → v1.0.1`) | 修 N+1 / 改命名 / 補測試 |
 | **規範升級**(`docs/Design-Base/*`) | 走 Template tag(見 `plan-v1.0.md § 升級協議`),**不** bump 應用版號 | — |
 
 ## propose 與版號
 
-- `propose-v1.0.md` / `propose-v1.1.md` / `propose-v2.0.md`(對應 minor / major)
-- patch **不**寫 propose,直接 commit + `fixed.md`
+- `propose-v1.0.0.md` / `propose-v1.1.0.md` / `propose-v2.0.0.md`(對應 minor / major,patch 槽位 `0`)
+- patch **不**寫 propose,直接 commit + `fixed.md`;patch 的 fixed 寫進**該 minor 的 anchor 資料夾**(例:`v1.0.1` 的 fix → `docs/Tasks/v1.0.0/fixed.md`)
 - 同一 minor 內 patch 累積 ≥ 5 → 考慮升 minor 包裝對外
 
 ## breaking change 判定
@@ -43,8 +43,8 @@
 ## 對外宣告
 
 minor / major bump → 同步:
-- `CHANGELOG.md`(`06-changelog.md`)
-- API `/api/v{N}/...` 路徑(僅 major)
+- `CHANGELOG.md`(`06-changelog.md`),版本標 `[v1.1.0]`
+- API `/api/v{N}/...` 路徑(僅 major;路徑用 v1 / v2 整數,**不**帶 minor / patch)
 - 第三方文件 / SDK 通知(僅 major,需附遷移指引)
 - 部署 PR description 標 `⚠️ Breaking`
 

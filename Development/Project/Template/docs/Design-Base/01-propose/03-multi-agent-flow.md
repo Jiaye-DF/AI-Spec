@@ -8,10 +8,10 @@
 
 ```
 User
-  │ 寫 propose-v{X.Y}.md
+  │ 寫 propose-v{X.Y.Z}.md
   ▼
 Orchestrator(/propose-to-tasks)
-  │ 拆 tasks-v{X.Y}.md + tasks/*.md
+  │ 拆 tasks-v{X.Y.Z}.md + tasks/*.md
   ▼
 Worker A    Worker B    Worker C    ← 並行認領 task
   │           │           │
@@ -32,8 +32,8 @@ PR → review → merge
 
 ## Worker 認領協議
 
-1. 讀 `tasks-v{X.Y}.md`,挑 `status: pending` + `affected_files` **不**衝突的 task
-2. 改該 task 檔 `status: in_progress` + 在 `tasks-v{X.Y}.md` 註記 worker id(例 `worker: claude-A`)
+1. 讀 `tasks-v{X.Y.Z}.md`,挑 `status: pending` + `affected_files` **不**衝突的 task
+2. 改該 task 檔 `status: in_progress` + 在 `tasks-v{X.Y.Z}.md` 註記 worker id(例 `worker: claude-A`)
 3. 依 task 檔 `## 必讀檔(Just-in-time)` 載入規範檔
 4. 執行 → 跑 Acceptance → **全綠**才標 `status: done`
 5. 違規 / bug → 寫 `fixed.md`(`04-fixed-format.md`)
@@ -56,7 +56,7 @@ PR → review → merge
 
 | 層級 | 真相位置 |
 | --- | --- |
-| 版本進度 | `tasks-v{X.Y}.md` 頂部狀態行 |
+| 版本進度 | `tasks-v{X.Y.Z}.md` 頂部狀態行 |
 | Task 狀態 | `tasks/task-NNN-*.md` frontmatter `status:` |
 | commit 對應 | commit message `[task-NNN]` tag |
 

@@ -2,7 +2,7 @@
 
 > **何時讀**:寫 / 改 fixed.md 才讀。
 
-`docs/Tasks/v{X.Y}/fixed.md`:當版本內**所有**規範違反 / bug 根因的累積。Agent 寫,user **不**主動寫。
+`docs/Tasks/v{X.Y.Z}/fixed.md`(3-digit semver,例 `v1.0.0` / `v1.1.0`):當版本內**所有**規範違反 / bug 根因的累積。Agent 寫,user **不**主動寫。
 
 ---
 
@@ -55,7 +55,7 @@
   - ❌ 「JWT_SECRET 上錯」
   - ✅ 「fail-fast validator 漏列 `JWT_SECRET_KEY`,新增欄位時未同步」
 - 同類條目跨版本 ≥ 3 → reflect 候選升規(見 `07-rule-evolution.md`)
-- **禁**刪除舊條目(歷史不可竄改);過時條目加 `> 後續:已棄用,見 vX.Y §M`
+- **禁**刪除舊條目(歷史不可竄改);過時條目加 `> 後續:已棄用,見 vX.Y.Z §M`
 
 ## 跨版本
 
