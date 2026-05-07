@@ -1,0 +1,20 @@
+[project]
+name = "{{project_name}}-backend"
+version = "0.1.0"
+requires-python = "=={{python_version}}.*"
+dependencies = [
+    "fastapi=={{fastapi_version}}",
+    "uvicorn[standard]=={{uvicorn_version}}",
+    "sqlalchemy[asyncio]=={{sqlalchemy_version}}",
+    "asyncpg=={{asyncpg_version}}",
+    "pydantic=={{pydantic_version}}",
+    "pydantic-settings=={{pydantic_settings_version}}",
+    "alembic=={{alembic_version}}",
+    "httpx=={{httpx_version}}",
+    "passlib[bcrypt]=={{passlib_bcrypt_version}}",
+    "pyjwt[crypto]=={{pyjwt_crypto_version}}",
+    "python-multipart=={{python_multipart_version}}",
+]
+
+[tool.uv]
+package = false

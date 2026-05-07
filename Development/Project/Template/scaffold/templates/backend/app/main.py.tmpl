@@ -1,0 +1,40 @@
+from contextlib import asynccontextmanager
+from collections.abc import AsyncIterator
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.api.{{api_version}} import router as api_router
+from app.core.config import get_settings
+from app.core.db import engine
+from app.core.exceptions import register_exception_handlers
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    yield
+    await engine.dispose()
+
+
+def create_app() -> FastAPI:
+    settings = get_settings()
+    app = FastAPI(
+        title=settings.APP_NAME,
+        lifespan=lifespan,
+        docs_url="/api/docs",
+        redoc_url=None,
+        openapi_url="/api/openapi.json",
+    )
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.CORS_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    register_exception_handlers(app)
+    app.include_router(api_router, prefix="/api/{{api_version}}")
+    return app
+
+
+app = create_app()
