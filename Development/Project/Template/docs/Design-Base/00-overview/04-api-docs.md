@@ -8,7 +8,7 @@
 
 - FastAPI **必**:`docs_url="/api/docs"`、`redoc_url=None`、`openapi_url="/api/openapi.json"`
 - **禁用**:`/swagger`、`/docs`、`/openapi`(避開常見掃描路徑 + path collision)
-- 路由前綴 `/api/v1/...`;bump major 才開 `/api/v2/...`,**禁**版本混塞於同一前綴
+- 路由前綴 `/api/v1/...`;向下相容功能 → 視情況開 `/api/v1.1/...`(minor),breaking → 開 `/api/v2/...`(major),**禁**版本混塞於同一前綴(細節見 `03-backend/01-routing.md § 版本化`)
 
 ## 環境暴露
 
@@ -35,7 +35,7 @@ production 若需保護:於反向代理層(Coolify / nginx)擋 IP / Basic auth,*
 - `response_model=` 必為 Pydantic schema(**禁** `dict` / 無 type / `Any`,細節見 `03-backend/01-routing.md`)
 - `summary=` 一句話中文描述
 - `tags=` 用 kebab-case 資源名,**與路徑對齊**(`/api/v1/user-groups` → `tags=["user-groups"]`)
-- HTTP 狀態:GET=200、POST 建立=201、DELETE 軟刪=200、無內容=204
+- OpenAPI 標的 `status_code=` 必跟路由實際回傳對齊;狀態碼對照表(2xx / 4xx / 5xx)見 `03-backend/01-routing.md § 狀態碼`
 
 ## Pydantic schema 欄位 metadata
 

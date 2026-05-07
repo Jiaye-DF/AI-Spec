@@ -44,7 +44,7 @@
 
 minor / major bump → 同步:
 - `CHANGELOG.md`(`06-changelog.md`),版本標 `[v1.1.0]`
-- API `/api/v{N}/...` 路徑(僅 major;路徑用 v1 / v2 整數,**不**帶 minor / patch)
+- API `/api/v{X}` 或 `/api/v{X.Y}` 路徑(major 必開、minor 視情況開;**禁** patch;細節見 `03-backend/01-routing.md § 版本化`)
 - 第三方文件 / SDK 通知(僅 major,需附遷移指引)
 - 部署 PR description 標 `⚠️ Breaking`
 
