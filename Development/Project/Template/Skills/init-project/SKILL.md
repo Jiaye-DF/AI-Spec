@@ -81,26 +81,56 @@ description: 一鍵套用 Template + 產生 React + TypeScript + FastAPI(可選 
 
 ### 1. 環境檢查
 
-#### 1a. 工具檢查(node / uv / npm)
+#### 1a. 工具檢查(node / npm / uv / python via uv)— 嚴格三層
 
-依序檢:`node --version` / `uv --version` / `npm --version`(`exit 0` 視為已裝)。`node` 必裝(scaffold.mjs 是 node script);`uv` / `npm` 在 `--no-install` 模式可跳過。
+> **設計目的**:避免「`--version` 過了就算 OK」的偽陽性 — 後續 `uv sync` / `npm install` / `uv run uvicorn` 失敗時 stderr 通常難解讀,提早 fail-fast 比較好除錯。
+>
+> **重要觀念**:本專案**不需要 system Python** — Python 由 uv 管理(`uv python install` 裝在 uv 沙箱內,不污染系統)。所謂「檢查 python」= 檢查 **uv 內有沒有 3.14.x**,而非 `python --version`。
 
-**全部已裝** → 進 1b。
+讀 `scaffold/manifest.json § versions` 取得目標版本(node / python),依下表檢:
 
-**有缺** → 列出缺的工具 + 依平台給安裝指令,**用 `AskUserQuestion`** 詢問處理方式:
+| 檢查項 | Layer 1:存在 | Layer 2:版本 | Layer 3:實際可用 |
+| --- | --- | --- | --- |
+| **node** | `node --version` exit 0 | 解析輸出,major == manifest `node_version` major | `node -e "console.log(1)"` 輸出 `1` |
+| **npm** | `npm --version` exit 0 | major >= 10(對應 Node 24 同捆版) | (略)|
+| **uv** | `uv --version` exit 0 | uv >= 0.4(能跑 `uv python`) | `uv --help` 含 `python` 子指令 |
+| **python(via uv)** | (略,由 uv 提供)| (略)| `uv python find <X.Y>` exit 0(`<X.Y>` = manifest.versions.python 的前兩段,例如 `3.14.1` → `3.14`)|
 
-| 平台 | node / npm | uv |
-| --- | --- | --- |
-| Windows | `winget install OpenJS.NodeJS` | `winget install astral-sh.uv` |
-| macOS | `brew install node` | `brew install uv` |
-| Linux(Debian/Ubuntu) | `sudo apt install nodejs npm`(版本可能舊;Phase 1 不強制 nvm) | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+**輸出格式**(列給使用者看,別吞):
+
+```
+→ 工具檢查(嚴格)
+  [✓] node       v24.0.0       要求 v24       OK
+  [✗] npm        ─             找不到指令
+  [⚠] uv         0.1.5         要求 >= 0.4    版本太舊
+  [✗] python     uv 內無 3.14   執行 `uv python install 3.14` 修復
+```
+
+#### 1a-1. 通過(全部 ✓)→ 進 § 1b
+
+#### 1a-2. 有任一項 ✗ / ⚠ → 用 `AskUserQuestion` 詢問處理
 
 選項:
-- **代為安裝**:LLM 跑上述指令(每個工具裝完後再 `--version` 驗;失敗則停下來給使用者看 stderr)
-- **使用者自裝**:中止 skill,等使用者自己裝完重跑 `/init-project`
-- **跳過(`--no-install`)**:僅當使用者明確只要落檔、不要 `uv sync` / `npm install`
 
-> **禁**:不問就跑 install、改 PATH、開 admin 權限、安裝非上表所列的替代工具(nvm / fnm / pyenv / pip 等)。
+- **代為處理**(推薦)— LLM 依下表跑 install / fix 指令;每跑完一條再回到 Layer 1–3 重驗,任一仍不通過 → 停下來貼 stderr,**禁**繼續往 § 2
+- **使用者自裝** — 列出修復指令給使用者,中止 skill
+- **跳過(`--no-install`)** — 僅當使用者明示只要落檔、後續 `uv sync` / `npm install` 自己跑
+
+#### 1a-3. 修復指令對照表
+
+| 失敗項 | Windows | macOS | Linux(Debian/Ubuntu)|
+| --- | --- | --- | --- |
+| node 缺 / 版本不符 | `winget install OpenJS.NodeJS.LTS`(若要鎖 v24)或 `winget install OpenJS.NodeJS` | `brew install node` | `sudo apt install nodejs npm`(版本可能舊,必要時用 [NodeSource](https://github.com/nodesource/distributions))|
+| npm 缺 | 通常與 node 同捆 — 重開 shell 讓 PATH 生效;仍缺則重裝 node | 同左 | 同左 |
+| uv 缺 / 版本太舊 | `winget install astral-sh.uv` 或 `winget upgrade astral-sh.uv` | `brew install uv` 或 `brew upgrade uv` | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| python 缺(uv 內)| `uv python install <X.Y>`(同上,例如 `uv python install 3.14`)| 同左 | 同左 |
+
+> **禁止事項**:
+> - 不問就跑 install / upgrade / 改 PATH / 開 admin
+> - 不安裝替代工具(nvm / fnm / pyenv / pip / poetry / conda)— 鎖死 uv 一條路
+> - 不調 system Python(`brew install python` / `apt install python3` / Windows 官方 installer)— Python 永遠由 uv 管理
+> - 不修 `.bashrc` / `.zshrc` / 環境變數 — 安裝指令的副作用由 package manager 自己處理
+> - 安裝完**必重驗**(再跑一次 Layer 1–3),不可假設 install 必成功
 
 #### 1b. target 目錄狀態
 
