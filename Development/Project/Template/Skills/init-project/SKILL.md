@@ -254,7 +254,23 @@ scaffold.mjs 結束後會自動印出。LLM 不需重述。
 
 ### 4. (可選)git commit
 
-詢問使用者後執行(commit message 依本次有沒有走 § 0 而異):
+#### 4a. 前置判斷:cwd 有沒有 `.git/`
+
+先檢查 `<cwd>/.git/` 是否存在(`Test-Path .git` / `[ -d .git ]`):
+
+- **不存在** → **完全跳過本節**,不詢問使用者、不建議 `git init`(尊重使用者刻意不用 git 的決定);skill 至此結束
+- **存在** → 進 § 4b
+
+#### 4b. 詢問使用者是否 commit
+
+用 `AskUserQuestion`(對齊心法 § 7 雙條件;commit 是可逆動作 — 即使誤點也能 `git reset HEAD~1`,故 Recommended 可命中典型意圖):
+
+- **建立 commit (Recommended)** — 走下面 commit 流程
+- **先不 commit** — 由使用者後續手動 `git add` / `git commit`(scaffold 出來的檔案保留,只是不入 commit)
+
+#### 4c. 執行 commit(若使用者選了「建立 commit」)
+
+commit message 依本次有沒有走 § 0 而異:
 
 - 含 § 0(套過 Template):`(AI) Add: 套用 Template 規範 + 初始化 React + FastAPI 專案骨架`
 - 不含 § 0:`(AI) Add: 初始化 React + FastAPI 專案骨架`
@@ -276,7 +292,7 @@ git add -A && git commit -m "<上述 message>"
    - `include_database=false` → `curl -s localhost:<backend_port>/api/v1/health | jq -e '.data.status == "ok"'` exit 0
    - `include_database=true && § 2b 選「完整輸入」或「用預設值」` → **HARD**:`curl -s localhost:<backend_port>/api/v1/health | jq -e '.data.db == "ok"'` exit 0(連不上 DB → fail)
    - `include_database=true && § 2b 選「暫時跳過(SKIP)」` → **SOFT**:`curl -s -o /dev/null -w "%{http_code}" localhost:<backend_port>/api/v1/health` 為 `200`(backend 起得來)即可;`.data.db` 允許 `"error"` 或 `"unknown"`;**警告但不 fail**,並提醒使用者「PG 連線跳過驗證,等你裝好 PG 後重跑 `/start-dev` + 手動 curl /health 確認」
-7. `git status` untracked 為新建檔;**禁** dirty 既有檔;**禁** `.env` 出現在 untracked / staged 清單(被 `.gitignore` 擋住才對,出現代表 .gitignore 沒生效)
+7. **僅當 cwd 有 `.git/`**:`git status` untracked 為新建檔;**禁** dirty 既有檔;**禁** `.env` 出現在 untracked / staged 清單(被 `.gitignore` 擋住才對,出現代表 .gitignore 沒生效)。無 `.git/` → 跳過本條(對齊 § 4a)
 8. 確認 `~/.claude/skills/start-dev/` 與 `~/.claude/skills/stop-dev/` 已就位(§ 0b 步驟 6 cp 過去)— `ls ~/.claude/skills/` 含這兩個目錄
 9. (可選)實際跑一次 `/start-dev` → backend + frontend 兩個 dev server 起得來;再跑 `/stop-dev` → 正常清掉
 
