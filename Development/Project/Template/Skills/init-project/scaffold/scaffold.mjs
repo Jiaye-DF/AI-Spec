@@ -145,10 +145,6 @@ async function runAction(action, vars, target, dryRun) {
       const out = render(await fsp.readFile(src, 'utf8'), vars);
       await fsp.mkdir(path.dirname(dst), { recursive: true });
       await fsp.writeFile(dst, out, 'utf8');
-      // chmod:manifest 顯式指定(如 dev.sh / stop.sh 用 "0755");Windows 略過(沒 +x 概念)
-      if (action.chmod && process.platform !== 'win32') {
-        await fsp.chmod(dst, parseInt(action.chmod, 8));
-      }
       return;
     }
     case 'mkdir': {
@@ -262,8 +258,6 @@ async function main() {
   }
 
   const hasDb = vars.include_database === 'true';
-  const launchCmd = process.platform === 'win32' ? '.\\dev.ps1' : './dev.sh';
-  const stopCmd  = process.platform === 'win32' ? '.\\stop.ps1' : './stop.sh';
   const prepSteps = hasDb
     ? `  1. 確認本機 PostgreSQL 在 :${vars.postgres_port}
   2. cp .env.development.example .env  # 編輯填入 DB 連線
@@ -275,10 +269,10 @@ async function main() {
   console.log(`
 ✓ scaffold 完成。下一步:
 ${prepSteps}
-  ${launchStep}. ${launchCmd}                   # 一鍵啟動 backend + frontend(自動 kill 舊 process)
+  ${launchStep}. 在 Claude Code 跑 /start-dev    # 自動 kill 占用 port 的舊 process,啟動 backend + frontend
   ${openStep}. open http://localhost:${vars.backend_port}/api/docs(後端 Swagger)
      open http://localhost:${vars.frontend_port}(前端首頁)
-  ${stopStep}. ${stopCmd}                   # 停止全部
+  ${stopStep}. 在 Claude Code 跑 /stop-dev     # 停止全部
 `);
 }
 

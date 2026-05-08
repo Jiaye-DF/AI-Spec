@@ -48,13 +48,14 @@ description: 一鍵套用 Template + 產生 React + TypeScript + FastAPI(可選 
 3. cp -r `Template/docs/Design-Base/` → `<cwd>/docs/Design-Base/`
 4. cp -r `Template/prompts/` → `<cwd>/docs/Prompts/`(注意:目錄改名 `prompts` → `Prompts`)
 5. 為 `<cwd>/docs/Prompts/*.md`(略過 `README.md`)產 `<cwd>/.claude/commands/<name>.md`,內容單行 `@docs/Prompts/<name>.md`
-6. **刪除整個 `<cwd>/Template/`**(✱ 不可逆)
+6. cp 其餘 `Template/skills/*`(除 `init-project` 之外的子目錄,例如 `start-dev` / `stop-dev`)→ `~/.claude/skills/<name>/`(全域,使用者其他專案也用得到)
+7. **刪除整個 `<cwd>/Template/`**(✱ 不可逆)
 
-> 不 cp 的東西:`Template/skills/`(使用者已手動裝過)、`Template/plan/`(模板自身演進史)、`Template/README.md`(模板索引,不是專案 README)。
+> 不 cp 的東西:`Template/skills/init-project/`(使用者步驟 3 已自行裝過,不重蓋)、`Template/plan/`(模板自身演進史)、`Template/README.md`(模板索引,不是專案 README)。
 
 #### 0c. 衝突處理
 
-若 `<cwd>/CLAUDE.md` / `AGENTS.md` / `docs/Design-Base/` / `docs/Prompts/` **任一已存在**:
+若 `<cwd>/CLAUDE.md` / `AGENTS.md` / `docs/Design-Base/` / `docs/Prompts/` 或 `~/.claude/skills/<name>/` **任一已存在**:
 
 - **禁**直接覆寫
 - 列出衝突清單,用 `AskUserQuestion` 詢問:
@@ -62,9 +63,11 @@ description: 一鍵套用 Template + 產生 React + TypeScript + FastAPI(可選 
   - 略過已存在的(只 cp 不衝突的;其他保留現狀)
   - 中止(使用者要先自行處理)
 
+> 對全域 skill(`~/.claude/skills/<name>/`)的衝突要特別審慎 — 可能是使用者手改過的版本,預設**略過**比覆寫安全。
+
 #### 0d. 執行
 
-依使用者選擇執行步驟 1–5;最後一步「刪除 `Template/`」**獨立再確認一次**(因不可逆),確認後才刪。刪除前先確認 cwd 不在 `Template/` 子樹內(否則 PowerShell 會拒絕)。
+依使用者選擇執行步驟 1–6;最後一步「刪除 `Template/`」**獨立再確認一次**(因不可逆),確認後才刪。刪除前先確認 cwd 不在 `Template/` 子樹內(否則 PowerShell 會拒絕)。
 
 刪除策略:
 - Windows / PowerShell:`Remove-Item -Recurse -Force ./Template`
@@ -72,7 +75,7 @@ description: 一鍵套用 Template + 產生 React + TypeScript + FastAPI(可選 
 
 #### 0e. 完成 → 進 § 1
 
-回報「Template/ 已展開並移除,規範檔已就位」,接著進環境檢查。
+回報「Template/ 已展開並移除,規範檔 + 額外 skills(start-dev / stop-dev / ...)已就位」,接著進環境檢查。
 
 ---
 
@@ -175,8 +178,8 @@ git add -A && git commit -m "<上述 message>"
    - `include_database=true` → `curl -s localhost:<backend_port>/api/v1/health | jq -e '.data.db == "ok"'` exit 0
    - `include_database=false` → `curl -s localhost:<backend_port>/api/v1/health | jq -e '.data.status == "ok"'` exit 0
 7. `git status` untracked 為新建檔;**禁** dirty 既有檔
-8. 確認根層產出 `dev.ps1` / `dev.sh` / `stop.ps1` / `stop.sh`;`.sh` 在非 Windows 平台 `[ -x dev.sh ]` 應為 true(scaffold.mjs 有 chmod 0755)
-9. (可選)實際跑一次:`.\dev.ps1`(或 `./dev.sh`)→ 兩個視窗 / 背景 process 起得來,kill 後 `.\stop.ps1`(或 `./stop.sh`)正常清掉
+8. 確認 `~/.claude/skills/start-dev/` 與 `~/.claude/skills/stop-dev/` 已就位(§ 0b 步驟 6 cp 過去)— `ls ~/.claude/skills/` 含這兩個目錄
+9. (可選)實際跑一次 `/start-dev` → backend + frontend 兩個 dev server 起得來;再跑 `/stop-dev` → 正常清掉
 
 ## 自我約束
 

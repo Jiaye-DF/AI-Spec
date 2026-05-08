@@ -57,7 +57,9 @@ Template/
 │   ├── scan-project.md      agent — 問題清單
 │   └── reflect-rules.md     agent — 自適應學習
 ├── skills/                  Claude Code 原生 skill(可發佈到 GitHub 獨立分發)
-│   └── init-project/        scaffold 新專案 skill(自包含,只產代碼骨架)
+│   ├── init-project/        scaffold 新專案 skill(自包含,規範 cp + 代碼骨架)
+│   ├── start-dev/           啟動 backend + frontend dev server(自動 kill 舊 process)
+│   └── stop-dev/            停止 dev server
 └── docs/Design-Base/
     ├── 00-overview/         跨領域共通底線(版本鎖定 / 機密 / 環境分層 / 時區 / API docs)
     ├── 01-propose/          版本演進 + Multi-agent 協議
@@ -84,10 +86,11 @@ Template/
 | 2 | 使用者 | 把 Template 整個 cp 進專案目錄(結果是 `<project>/Template/...`) |
 | 3 | 使用者 | 把 `<project>/Template/skills/init-project/` cp 到 `~/.claude/skills/init-project/`(全域,推薦)或 `<project>/.claude/skills/init-project/`(專案 local)|
 | 4 | 使用者 | 在專案根目錄跑 `/init-project` |
-| 4a | skill | 偵測 `<project>/Template/` → 用 `AskUserQuestion` 徵詢同意 → cp `CLAUDE.md` / `AGENTS.md` / `docs/Design-Base/` / `prompts/`(改名 `docs/Prompts/`)→ 產 `.claude/commands/<name>.md` → **刪除整個 `<project>/Template/`** |
+| 4a | skill | 偵測 `<project>/Template/` → 用 `AskUserQuestion` 徵詢同意 → cp `CLAUDE.md` / `AGENTS.md` / `docs/Design-Base/` / `prompts/`(改名 `docs/Prompts/`)→ 產 `.claude/commands/<name>.md` → cp `Template/skills/*`(除 `init-project`,如 `start-dev` / `stop-dev`)到 `~/.claude/skills/` → **刪除整個 `<project>/Template/`** |
 | 4b | skill | 工具檢查(node / uv / npm),缺則詢問是否代為 `winget install` / `brew install` |
 | 4c | skill | 收參(`project_name` / `frontend` / `include_database` 等)→ 跑 `scaffold.mjs` 產 `backend/` + `frontend/` |
 | 4d | skill | 跑 acceptance(`uv sync` / `ruff` / `mypy` / `npm ci` / `typecheck` / `lint` / `/api/v1/health`)|
+| 5 | 使用者 | 跑 `/start-dev` 啟動 dev server(自動 kill 舊 process);停止用 `/stop-dev`(額外 skill 由 § 4a 安裝)|
 
 > **詳細邏輯**見 `skills/init-project/SKILL.md`。本協議不重述。
 
