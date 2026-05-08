@@ -173,6 +173,17 @@ function whichSync(cmd) {
   return spawnSync(probe, { shell: true, stdio: 'ignore' }).status === 0;
 }
 
+const INSTALL_HINTS = {
+  win32:  { uv: 'winget install astral-sh.uv',                          npm: 'winget install OpenJS.NodeJS' },
+  darwin: { uv: 'brew install uv',                                       npm: 'brew install node' },
+  linux:  { uv: 'curl -LsSf https://astral.sh/uv/install.sh | sh',       npm: 'sudo apt install nodejs npm  # 或依發行版調整' },
+};
+
+function installHint(cmd) {
+  const platform = INSTALL_HINTS[process.platform] ?? INSTALL_HINTS.linux;
+  return platform[cmd] ?? `(請依平台自行安裝 ${cmd})`;
+}
+
 async function preflight(noInstall) {
   // node 已經在跑 ⇒ 必有
   const missing = [];
@@ -182,7 +193,12 @@ async function preflight(noInstall) {
     }
   }
   if (missing.length) {
-    throw new Error(`PATH 缺少 ${missing.join(', ')};加 --no-install 可跳過 uv/npm 檢查`);
+    const hints = missing.map((c) => `    ${c}: ${installHint(c)}`).join('\n');
+    throw new Error(
+      `PATH 缺少 ${missing.join(', ')}\n` +
+      `  安裝建議(${process.platform}):\n${hints}\n` +
+      `  或加 --no-install 跳過 uv/npm 檢查(scaffold 仍會落檔,但 uv sync / npm install 由你之後手動跑)`,
+    );
   }
 }
 

@@ -2,8 +2,8 @@
 
 **用途**:React + TypeScript + FastAPI + PostgreSQL 專案規範模板。AI agent 在下列情境讀此檔:
 
-- user 要求 fork / 套用此 Template 至新專案 → 依〈使用協議〉操作
-- user 跑 `/init-project` skill(獨立發佈於 `Skills/init-project/`)→ skill 為自包含,內部已 mirror 此 Template 各檔
+- user 要求 fork / 套用此 Template 至新專案 → 依〈使用協議〉情境 A(3 個手動動作 + 跑 `/init-project`)
+- user 跑 `/init-project` skill → 自動處理 Template/ 展開 + 工具檢查 + scaffold,使用者只要回答 `AskUserQuestion`
 - 需查詢 Template 內檔案位置 / 用途 → 看〈內容〉
 
 ---
@@ -56,8 +56,8 @@ Template/
 │   ├── propose-to-tasks.md  agent — orchestrator(從 propose 拆 tasks)
 │   ├── scan-project.md      agent — 問題清單
 │   └── reflect-rules.md     agent — 自適應學習
-├── Skills/                  Claude Code 原生 skill(可發佈到 GitHub 獨立分發)
-│   └── init-project/        scaffold 新專案 skill(自包含)
+├── skills/                  Claude Code 原生 skill(可發佈到 GitHub 獨立分發)
+│   └── init-project/        scaffold 新專案 skill(自包含,只產代碼骨架)
 └── docs/Design-Base/
     ├── 00-overview/         跨領域共通底線(版本鎖定 / 機密 / 環境分層 / 時區 / API docs)
     ├── 01-propose/          版本演進 + Multi-agent 協議
@@ -74,20 +74,38 @@ Template/
 
 ## 使用協議(AI agent 操作步驟)
 
-### 情境 A:user 要求「複製 Template 到新專案」/「套用此 Template」
+### 情境 A:user 從零套用 Template 到新專案(統一入口)
 
-1. 確認當前目錄為空或剛 `git init`(若不空,告知 user 並暫停)
-2. 複製檔案到新專案:
-   - `CLAUDE.md` / `AGENTS.md` → `<project>/`
-   - `prompts/*` → `<project>/docs/Prompts/*`
-   - `docs/Design-Base/*` → `<project>/docs/Design-Base/*`
-3. 建立 `<project>/.claude/commands/<name>.md`,每檔單行 `@docs/Prompts/<name>.md`
-4. 建議 user 跑 `/init-project` 產生 frontend / backend 骨架
-5. 部署規範以 `06-Coolify-CD/` 為地板;業務內容由各專案在 `<project>/docs/Tasks/v*/` 自決
+整體流程 = **使用者 3 個手動動作 + 1 個自動觸發**,其餘全由 `/init-project` skill 接手:
 
-### 情境 B:user 跑 `/init-project`
+| # | 誰 | 動作 |
+| --- | --- | --- |
+| 1 | 使用者 | 下載 Template 整個資料夾 |
+| 2 | 使用者 | 把 Template 整個 cp 進專案目錄(結果是 `<project>/Template/...`) |
+| 3 | 使用者 | 把 `<project>/Template/skills/init-project/` cp 到 `~/.claude/skills/init-project/`(全域,推薦)或 `<project>/.claude/skills/init-project/`(專案 local)|
+| 4 | 使用者 | 在專案根目錄跑 `/init-project` |
+| 4a | skill | 偵測 `<project>/Template/` → 用 `AskUserQuestion` 徵詢同意 → cp `CLAUDE.md` / `AGENTS.md` / `docs/Design-Base/` / `prompts/`(改名 `docs/Prompts/`)→ 產 `.claude/commands/<name>.md` → **刪除整個 `<project>/Template/`** |
+| 4b | skill | 工具檢查(node / uv / npm),缺則詢問是否代為 `winget install` / `brew install` |
+| 4c | skill | 收參(`project_name` / `frontend` / `include_database` 等)→ 跑 `scaffold.mjs` 產 `backend/` + `frontend/` |
+| 4d | skill | 跑 acceptance(`uv sync` / `ruff` / `mypy` / `npm ci` / `typecheck` / `lint` / `/api/v1/health`)|
 
-skill 為獨立分發單元,由 `Skills/init-project/` 提供;裝法見 `Skills/init-project/README.md`。skill 邏輯本身在 `Skills/init-project/SKILL.md`(包含參數收集、骨架產出、本地啟動指引、Acceptance 驗證)。
+> **詳細邏輯**見 `skills/init-project/SKILL.md`。本協議不重述。
+
+#### 不 cp 的東西(屬 Template 自身發行物,不進專案)
+
+- `skills/`(自包含 skill;由使用者步驟 3 拷貝到 `.claude/skills/` 後即不需要再進專案)
+- `plan/`(Template 自身演進史)
+- 本檔(`README.md`;專案的 README.md 由 `/init-project` 產)
+
+> 使用者步驟 3 之後,`<project>/Template/skills/` 仍留在專案內;skill 步驟 4a 會把整個 `Template/` 刪掉,所以這個重複副本最終不會留在專案裡。
+
+#### 部署規範
+
+部署規範以 `06-Coolify-CD/` 為地板;業務內容由各專案在 `<project>/docs/Tasks/v*/` 自決。
+
+### 情境 B:user 在已套過 Template 的專案重跑 `/init-project`
+
+若 `<project>/Template/` 已不在(被前次 § 4a 刪了),`/init-project` 跳過 § 0 直接進環境檢查 + scaffold。**禁**重複 scaffold 既存 `backend/` / `frontend/`(scaffold.mjs 預檢會擋,除非 `--force`)。
 
 ### 情境 C:user 跑 `/scan-project`
 
