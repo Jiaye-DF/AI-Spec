@@ -145,6 +145,10 @@ async function runAction(action, vars, target, dryRun) {
       const out = render(await fsp.readFile(src, 'utf8'), vars);
       await fsp.mkdir(path.dirname(dst), { recursive: true });
       await fsp.writeFile(dst, out, 'utf8');
+      // chmod:manifest 顯式指定(如 dev.sh / stop.sh 用 "0755");Windows 略過(沒 +x 概念)
+      if (action.chmod && process.platform !== 'win32') {
+        await fsp.chmod(dst, parseInt(action.chmod, 8));
+      }
       return;
     }
     case 'mkdir': {
@@ -258,17 +262,24 @@ async function main() {
   }
 
   const hasDb = vars.include_database === 'true';
-  const dbSteps = hasDb
+  const launchCmd = process.platform === 'win32' ? '.\\dev.ps1' : './dev.sh';
+  const stopCmd  = process.platform === 'win32' ? '.\\stop.ps1' : './stop.sh';
+  const prepSteps = hasDb
     ? `  1. 確認本機 PostgreSQL 在 :${vars.postgres_port}
   2. cp .env.development.example .env  # 編輯填入 DB 連線
-  3. cd backend && uv run alembic upgrade head && uv run uvicorn app.main:app --reload`
-    : `  1. cp .env.development.example .env  # 編輯填入機密
-  2. cd backend && uv run uvicorn app.main:app --reload`;
+  3. cd backend && uv run alembic upgrade head && cd ..`
+    : `  1. cp .env.development.example .env  # 編輯填入機密`;
+  const launchStep = hasDb ? '4' : '2';
+  const openStep   = hasDb ? '5' : '3';
+  const stopStep   = hasDb ? '6' : '4';
   console.log(`
 ✓ scaffold 完成。下一步:
-${dbSteps}
-  ${hasDb ? '4' : '3'}. cd frontend && npm run dev
-  ${hasDb ? '5' : '4'}. open http://localhost:${vars.backend_port}/api/docs`);
+${prepSteps}
+  ${launchStep}. ${launchCmd}                   # 一鍵啟動 backend + frontend(自動 kill 舊 process)
+  ${openStep}. open http://localhost:${vars.backend_port}/api/docs(後端 Swagger)
+     open http://localhost:${vars.frontend_port}(前端首頁)
+  ${stopStep}. ${stopCmd}                   # 停止全部
+`);
 }
 
 main().catch((e) => {

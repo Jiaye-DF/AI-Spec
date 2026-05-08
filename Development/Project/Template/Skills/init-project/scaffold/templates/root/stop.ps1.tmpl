@@ -1,0 +1,31 @@
+# stop.ps1 — 停止 backend + frontend dev server(Windows / PowerShell)
+#
+# 用法:.\stop.ps1
+# 行為:kill 占用 :{{backend_port}} 與 :{{frontend_port}} 的 process
+
+$ErrorActionPreference = 'Stop'
+
+$BackendPort  = {{backend_port}}
+$FrontendPort = {{frontend_port}}
+
+function Stop-PortListener {
+    param([int]$Port, [string]$Label)
+    $conns = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
+    if (-not $conns) {
+        Write-Host "  · :$Port($Label)沒有 process 在跑" -ForegroundColor DarkGray
+        return
+    }
+    $pids = $conns | Select-Object -ExpandProperty OwningProcess -Unique
+    foreach ($procId in $pids) {
+        $proc = Get-Process -Id $procId -ErrorAction SilentlyContinue
+        if ($proc) {
+            Write-Host "  → kill PID $procId($($proc.ProcessName))占用 :$Port($Label)" -ForegroundColor Yellow
+            Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+Write-Host '→ 停止 dev server'
+Stop-PortListener -Port $BackendPort  -Label 'backend'
+Stop-PortListener -Port $FrontendPort -Label 'frontend'
+Write-Host '✓ 完成' -ForegroundColor Green

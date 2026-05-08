@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# stop.sh — 停止 backend + frontend dev server(macOS / Linux)
+#
+# 用法:./stop.sh
+# 行為:kill 占用 :{{backend_port}} 與 :{{frontend_port}} 的 process
+
+set -e
+
+BACKEND_PORT={{backend_port}}
+FRONTEND_PORT={{frontend_port}}
+
+kill_port_listener() {
+    local port=$1
+    local label=$2
+    local pids
+    if command -v lsof >/dev/null 2>&1; then
+        pids=$(lsof -ti tcp:"$port" -sTCP:LISTEN 2>/dev/null || true)
+    elif command -v fuser >/dev/null 2>&1; then
+        pids=$(fuser -n tcp "$port" 2>/dev/null | tr -d ':/tcp' || true)
+    else
+        echo "  ! 系統無 lsof / fuser,無法偵測 :$port 占用"
+        return
+    fi
+    if [ -z "$pids" ]; then
+        echo "  · :$port($label)沒有 process 在跑"
+        return
+    fi
+    for pid in $pids; do
+        local pname
+        pname=$(ps -p "$pid" -o comm= 2>/dev/null || echo unknown)
+        echo "  → kill PID $pid($pname)占用 :$port($label)"
+        kill -9 "$pid" 2>/dev/null || true
+    done
+}
+
+echo "→ 停止 dev server"
+kill_port_listener "$BACKEND_PORT" backend
+kill_port_listener "$FRONTEND_PORT" frontend
+echo "✓ 完成"

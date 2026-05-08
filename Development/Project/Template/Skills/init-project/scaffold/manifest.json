@@ -61,6 +61,10 @@
     { "type": "render", "src": "templates/root/.env.production.example.tmpl",   "dst": ".env.production.example" },
     { "type": "render", "src": "templates/root/README.md.tmpl",                 "dst": "README.md" },
     { "type": "render", "src": "templates/root/.gitleaks.toml.tmpl",            "dst": ".gitleaks.toml" },
+    { "type": "render", "src": "templates/root/dev.ps1.tmpl",                   "dst": "dev.ps1" },
+    { "type": "render", "src": "templates/root/dev.sh.tmpl",                    "dst": "dev.sh",   "chmod": "0755" },
+    { "type": "render", "src": "templates/root/stop.ps1.tmpl",                  "dst": "stop.ps1" },
+    { "type": "render", "src": "templates/root/stop.sh.tmpl",                   "dst": "stop.sh",  "chmod": "0755" },
 
     { "$section": "always — .github workflows" },
     { "type": "render",   "src": "templates/.github/workflows/ci.yml.tmpl",     "dst": ".github/workflows/ci.yml" },

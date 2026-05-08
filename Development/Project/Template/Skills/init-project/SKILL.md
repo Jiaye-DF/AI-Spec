@@ -175,6 +175,8 @@ git add -A && git commit -m "<上述 message>"
    - `include_database=true` → `curl -s localhost:<backend_port>/api/v1/health | jq -e '.data.db == "ok"'` exit 0
    - `include_database=false` → `curl -s localhost:<backend_port>/api/v1/health | jq -e '.data.status == "ok"'` exit 0
 7. `git status` untracked 為新建檔;**禁** dirty 既有檔
+8. 確認根層產出 `dev.ps1` / `dev.sh` / `stop.ps1` / `stop.sh`;`.sh` 在非 Windows 平台 `[ -x dev.sh ]` 應為 true(scaffold.mjs 有 chmod 0755)
+9. (可選)實際跑一次:`.\dev.ps1`(或 `./dev.sh`)→ 兩個視窗 / 背景 process 起得來,kill 後 `.\stop.ps1`(或 `./stop.sh`)正常清掉
 
 ## 自我約束
 

@@ -10,55 +10,56 @@
 {{/if}}
 ## 快速開始(本地開發)
 
-{{#if include_database}}### 1. 確認本機 PostgreSQL 啟動
+### 一鍵啟動(推薦)
 
-於 PostgreSQL 建立專案 DB 與帳號:
-
-```sql
-CREATE USER {{project_name}} WITH PASSWORD 'changeme-development';
-CREATE DATABASE {{project_name_underscore}} OWNER {{project_name}};
+```powershell
+# Windows
+.\dev.ps1
 ```
-
-### 2. 後端
 
 ```bash
-cp .env.development.example .env
-# 編輯 .env(填入本機 DB 連線)
-cd backend
-uv sync --frozen
-uv run alembic upgrade head
-uv run uvicorn app.main:app --reload --host 0.0.0.0 --port {{backend_port}}
+# macOS / Linux
+./dev.sh
 ```
 
-驗證:
-- Swagger:http://localhost:{{backend_port}}/api/docs
-- Health:http://localhost:{{backend_port}}/api/{{api_version}}/health → `{db: ok}`
+`dev` 腳本會偵測 `:{{backend_port}}` / `:{{frontend_port}}` 是否已被舊 process 占用,占用就先 kill 再啟動。
 
-### 3. 前端(另一個 terminal)
-{{/if}}{{#if !include_database}}### 1. 後端
+停止:跑 `.\stop.ps1`(Windows)/ `./stop.sh`(macOS / Linux),或重跑 `dev` 腳本(自動 kill 舊的)。
 
-```bash
-cp .env.development.example .env
-# 編輯 .env(填入機密)
-cd backend
-uv sync --frozen
-uv run uvicorn app.main:app --reload --host 0.0.0.0 --port {{backend_port}}
-```
+### 首次跑前要做的準備
 
-驗證:
-- Swagger:http://localhost:{{backend_port}}/api/docs
-- Health:http://localhost:{{backend_port}}/api/{{api_version}}/health
-
-### 2. 前端(另一個 terminal)
+{{#if include_database}}1. **本機 PostgreSQL** 啟動,並建立專案 DB 與帳號:
+    ```sql
+    CREATE USER {{project_name}} WITH PASSWORD 'changeme-development';
+    CREATE DATABASE {{project_name_underscore}} OWNER {{project_name}};
+    ```
+2. `cp .env.development.example .env`,編輯 `.env` 填入本機 DB 連線
+3. `cd backend && uv sync --frozen && uv run alembic upgrade head && cd ..`
+4. `cd frontend && cp .env.local.example .env.local && npm ci && cd ..`
+5. 跑 `dev` 腳本(上一段)
+{{/if}}{{#if !include_database}}1. `cp .env.development.example .env`,編輯 `.env` 填入機密
+2. `cd backend && uv sync --frozen && cd ..`
+3. `cd frontend && cp .env.local.example .env.local && npm ci && cd ..`
+4. 跑 `dev` 腳本(上一段)
 {{/if}}
-```bash
-cd frontend
-cp .env.local.example .env.local
-npm ci
-npm run dev
-```
 
-驗證:http://localhost:{{frontend_port}}
+### 驗證
+
+- Backend Swagger:http://localhost:{{backend_port}}/api/docs
+- Backend Health :http://localhost:{{backend_port}}/api/{{api_version}}/health{{#if include_database}} → `{data: {db: "ok"}}`{{/if}}
+- Frontend       :http://localhost:{{frontend_port}}
+
+### 手動啟動(不用 `dev` 腳本)
+
+若要拆兩個 terminal 各自看 log:
+
+```bash
+# Terminal 1:後端
+cd backend && uv run uvicorn app.main:app --reload --host 0.0.0.0 --port {{backend_port}}
+
+# Terminal 2:前端
+cd frontend && npm run dev
+```
 
 ---
 
