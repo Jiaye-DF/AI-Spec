@@ -25,7 +25,15 @@ description: 一鍵套用 Template + 產生 React + TypeScript + FastAPI(可選 
 4. **輸出語言**:繁體中文(回應 / 註解 / 文件 / commit message)
 5. **範圍邊界**:本 skill 含「規範檔展開」與「程式碼骨架產出」兩段 — 但**僅限 cp Template/ 已存在的內容**,LLM 不得自寫 docs/Design-Base / CLAUDE.md / AGENTS.md 任何字句
 6. **不可逆動作要明示**:刪除 `Template/` 前必須再次徵詢確認
-7. **AskUserQuestion 必有「推薦」選項**:本 skill 每次呼叫 `AskUserQuestion`,**選項列表中必須有一項標記 `(Recommended)`**(放在第一個位置),減輕使用者選擇成本。例外:中性二選一(例如「同意 / 取消」這種沒有客觀偏好者)可省;但若有任何客觀預設值或最常見路徑,**禁止**讓使用者面對「全部都沒推薦」的選單
+7. **AskUserQuestion 必有「推薦」選項**:每次呼叫 `AskUserQuestion`,**選項列表必須有一項標 `(Recommended)`** 放第一位。**選 Recommended 的雙條件**(同時滿足):
+   - **(a) 命中典型意圖**:該選項是使用者觸發此 skill 時 80% 場景想要的結果(讓沒看清楚直接點的人也能落到對的位置)
+   - **(b) 不會造成不可逆 / 高破壞性後果**:若典型意圖含「刪檔 / 覆寫客製內容 / 不可逆系統變更」,**Recommended 退一階**,選次安全(可逆 / 不毀資料)的選項;讓「危險但常見」的動作由使用者主動選
+
+   例外:中性二選一(無客觀偏好,例如純「同意 / 取消」)可省標記。
+
+   反例(別這樣設計):
+   - ✗ Recommended = 「同意刪除全部既存檔案」(高破壞性,即使最常見也不能標 Recommended)
+   - ✗ Recommended = 「中止」(典型意圖是執行,標中止會讓不看的人原地 stuck)
 
 ## 執行步驟
 
@@ -52,11 +60,13 @@ description: 一鍵套用 Template + 產生 React + TypeScript + FastAPI(可選 
 6. cp 其餘 `Template/skills/*`(除 `init-project` 之外的子目錄,例如 `start-dev` / `stop-dev`)→ `~/.claude/skills/<name>/`(全域,使用者其他專案也用得到)
 7. **刪除整個 `<cwd>/Template/`**(✱ 不可逆)
 
-選項(對齊心法 § 7,**首項標 Recommended**):
+選項(對齊心法 § 7,Recommended = 不看也不會出事的選項):
 
-- **同意全部執行 (Recommended)** — 走完整 1–7
-- **只 cp 不刪 Template/** — 1–6 都執行,跳過 7;Template/ 留在專案內(使用者之後自己刪)
+- **只 cp 不刪 Template/ (Recommended)** — 1–6 都做、跳過 7;Template/ 留在專案內,使用者之後想清再清(沒誤刪風險)
+- **同意全部執行** — 走完整 1–7,含**不可逆刪除 Template/**(使用者讀過再選)
 - **中止** — 什麼都不做,離開 skill
+
+> 雖然 § 0d 對 Template/ 刪除還會獨立再確認一次,但 Recommended 仍走最安全路徑 — fail-safe 防呆。
 
 > 不 cp 的東西:`Template/skills/init-project/`(使用者步驟 3 已自行裝過,不重蓋)、`Template/plan/`(模板自身演進史)、`Template/README.md`(模板索引,不是專案 README)。
 
