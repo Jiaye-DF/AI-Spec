@@ -132,6 +132,34 @@ description: 一鍵套用 Template + 產生 React + TypeScript + FastAPI(可選 
 > - 不修 `.bashrc` / `.zshrc` / 環境變數 — 安裝指令的副作用由 package manager 自己處理
 > - 安裝完**必重驗**(再跑一次 Layer 1–3),不可假設 install 必成功
 
+#### 1a-4. 安裝後 PATH 沒生效(Windows winget 常見)
+
+`winget install` / `brew install` 完成後,**當前 shell session 的 PATH 仍是舊的** — `<tool> --version` 會繼續報 `not found`。處理流程:
+
+1. 第一次重驗失敗 → **不要**自行猜安裝路徑去調用工具
+2. 改成告知使用者:「`<tool>` 已安裝完成,但本 shell 的 PATH 尚未更新。請**關閉並重新開啟** Claude Code(或新開一個 PowerShell / Terminal 視窗),然後重跑 `/init-project`。」
+3. **中止本次 skill**,等使用者重來
+
+> **禁止語法**(PowerShell parse error 來源):
+>
+> ```powershell
+> # ✗ 錯 — $env:VAR 後面直接接 \,parser 會把 \xxx 當下個 token,丟 UnexpectedToken
+> $env:LOCALAPPDATA\Microsoft\WinGet\Packages\<...>\uv.exe --version
+> ```
+>
+> 真有需要直接調用絕對路徑工具(極少見),用下列任一:
+>
+> ```powershell
+> # ✓ A. call operator + 整段雙引號
+> & "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\<...>\uv.exe" --version
+>
+> # ✓ B. Join-Path 乾淨組路徑
+> $uv = Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Packages\<...>\uv.exe'
+> & $uv --version
+> ```
+>
+> 但**正解仍是「重開 shell 讓 PATH 刷新」** — 直接 `uv --version`,不要拼絕對路徑。
+
 #### 1b. target 目錄狀態
 
 target 目錄允許三種狀態:
