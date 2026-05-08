@@ -145,7 +145,9 @@ target 目錄允許三種狀態:
 > - `.github/workflows/ci.yml` / `.github/workflows/e2e.yml`
 > - `backend/**` / `frontend/**`(整個子樹)
 
-### 2. 收集參數(用 `AskUserQuestion`)
+### 2. 收集參數
+
+#### 2a. 一般參數(用 `AskUserQuestion`)
 
 對應 `scaffold/manifest.json § params`:
 
@@ -163,9 +165,29 @@ target 目錄允許三種狀態:
 
 > `include_database` 必須**主動詢問**使用者(不可預設替使用者決定),其他參數可用預設值
 
-### 3. 呼叫 scaffold.mjs
+#### 2b. PostgreSQL 連線(僅 `include_database=true` 進此節)
 
-skill 安裝後路徑通常為 `~/.claude/skills/init-project/`。從該位置呼叫:
+向使用者收 PG 帳密,寫到 `<target>/.env`(該檔已 `.gitignore`,不會進 git)。**禁**:寫到任何 git 追蹤的檔案、寫到終端 transcript 後不抹去、預設高熵密碼。
+
+**先用 `AskUserQuestion` 問處理方式**:
+
+| 選項 | 行為 |
+| --- | --- |
+| **完整輸入**(推薦) | LLM 接續詢問 user 與 password,寫入 `.env`;acceptance § 6 跑 DB 連線 hard check |
+| **用預設值** | `postgres_user=<project_name_underscore>`、`postgres_password=changeme-development`,寫入 `.env`;acceptance § 6 仍跑 hard check(預設值在本機 PG 也得有對應 role)|
+| **暫時跳過(SKIP)** | 適用「忘記 / 沒有本機 PG / 連不上」— 仍寫 `.env` 用預設值(讓 backend 起得來),但 acceptance § 6 改 SOFT(下節說明)|
+
+**完整輸入**子流程(plain text Q&A,不用 `AskUserQuestion`):
+
+1. `LLM 問`:「DB user 名稱?(預設 `<project_name_underscore>`)」
+2. `LLM 問`:「DB password?(本地 dev 用,任意字串即可)」
+3. 收完 → 確認一次:「將寫入 `<target>/.env`,內容(已馬賽克部分):`DATABASE_URL=postgresql+asyncpg://<user>:****@localhost:<postgres_port>/<db>` — 確認?」
+
+> **注意**:`AskUserQuestion` 的 "Other" 選項在 transcript 留下使用者輸入痕跡;對 dev-only 弱密碼可以接受,但**務必告知**使用者該值會出現在對話中。若使用者要用真實高熵密碼,建議他們**選 SKIP 後手動編輯 `.env`**。
+
+#### 2c. 把參數帶給 scaffold.mjs
+
+skill 安裝後路徑通常為 `~/.claude/skills/init-project/`。呼叫:
 
 ```bash
 node <skill-root>/scaffold/scaffold.mjs \
@@ -174,19 +196,20 @@ node <skill-root>/scaffold/scaffold.mjs \
   [--no-database] \
   [--include-azure-sso] \
   --frontend-port <n> --backend-port <n> --postgres-port <n> \
+  [--postgres-user <name>] [--postgres-password <pw>] \
   --api-version <v> \
   --target <當前目錄或使用者指定>
 ```
 
-`include_database` 預設 on;使用者選不要 DB 時加 `--no-database`。
+`include_database` 預設 on;使用者選不要 DB 時加 `--no-database`。`--postgres-user` / `--postgres-password` 不傳則 scaffold 用預設(`<project_name_underscore>` / `changeme-development`)。
 
 **先 `--dry-run` 預覽**;確認無誤後再實際執行。
 
-### 4. 顯示 next steps
+### 3. 顯示 next steps
 
 scaffold.mjs 結束後會自動印出。LLM 不需重述。
 
-### 5. (可選)git commit
+### 4. (可選)git commit
 
 詢問使用者後執行(commit message 依本次有沒有走 § 0 而異):
 
@@ -197,6 +220,8 @@ scaffold.mjs 結束後會自動印出。LLM 不需重述。
 git add -A && git commit -m "<上述 message>"
 ```
 
+> **注意**:`.env`(若 § 2b 有寫入)已在 `.gitignore` 內,`git add -A` 不會誤 commit。但仍要 `git status` 二次目視確認 — **禁**讓 `.env` 進 git。
+
 ## Acceptance(必跑,任一失敗不報告完成)
 
 1. `node <skill>/scaffold/scaffold.mjs --name ... --dry-run` exit 0(scaffold 邏輯本身合法)
@@ -204,10 +229,11 @@ git add -A && git commit -m "<上述 message>"
 3. `cd backend && uv run ruff check .` exit 0
 4. `cd backend && uv run mypy . --strict` exit 0
 5. `cd frontend && npm ci && npm run typecheck && npm run lint` exit 0
-6. 啟 backend 後驗 `/api/{api_version}/health`:
-   - `include_database=true` → `curl -s localhost:<backend_port>/api/v1/health | jq -e '.data.db == "ok"'` exit 0
+6. 啟 backend 後驗 `/api/{api_version}/health`,**模式**依 § 2b 使用者選擇分歧:
    - `include_database=false` → `curl -s localhost:<backend_port>/api/v1/health | jq -e '.data.status == "ok"'` exit 0
-7. `git status` untracked 為新建檔;**禁** dirty 既有檔
+   - `include_database=true && § 2b 選「完整輸入」或「用預設值」` → **HARD**:`curl -s localhost:<backend_port>/api/v1/health | jq -e '.data.db == "ok"'` exit 0(連不上 DB → fail)
+   - `include_database=true && § 2b 選「暫時跳過(SKIP)」` → **SOFT**:`curl -s -o /dev/null -w "%{http_code}" localhost:<backend_port>/api/v1/health` 為 `200`(backend 起得來)即可;`.data.db` 允許 `"error"` 或 `"unknown"`;**警告但不 fail**,並提醒使用者「PG 連線跳過驗證,等你裝好 PG 後重跑 `/start-dev` + 手動 curl /health 確認」
+7. `git status` untracked 為新建檔;**禁** dirty 既有檔;**禁** `.env` 出現在 untracked / staged 清單(被 `.gitignore` 擋住才對,出現代表 .gitignore 沒生效)
 8. 確認 `~/.claude/skills/start-dev/` 與 `~/.claude/skills/stop-dev/` 已就位(§ 0b 步驟 6 cp 過去)— `ls ~/.claude/skills/` 含這兩個目錄
 9. (可選)實際跑一次 `/start-dev` → backend + frontend 兩個 dev server 起得來;再跑 `/stop-dev` → 正常清掉
 
@@ -217,7 +243,8 @@ git add -A && git commit -m "<上述 message>"
 - **禁止**自行**撰寫**規範檔內容(CLAUDE.md / AGENTS.md / docs/Design-Base / docs/Prompts)— § 0 只 cp 既有 `Template/` 內檔案,不可生成新文字
 - **禁止**自行指定版本號 — 一律由 `scaffold/manifest.json` 決定
 - **禁止**直接執行 `git push`;`git commit` 須使用者明示同意
-- **禁止**寫入 `.env` 實際值(只生 `.env.*.example`)
+- **禁止**把使用者輸入的機密值寫入會被 git 追蹤的檔案(`.env.*.example` / `README.md` / `pyproject.toml` 等);**允許**寫到 `.env`(已 `.gitignore`),且僅限本機 dev 用值(`changeme-development` 級弱密碼或使用者明示輸入)
+- **禁止**寫 `.env.staging` / `.env.production` 實際值(永遠由部署環境注入)
 - **禁止**刪除 `Template/` 之外的任何使用者既有目錄
 - **禁止**在使用者拒絕 § 0 的 cp 動作後仍執行 § 1 之後的 scaffold(整個流程中止,不部分執行)
 - 產出後簡述「本次套了什麼規範 / 骨架包含什麼 / 不包含什麼 / 下一步是什麼」,引用 `scaffold.mjs` 的 next-steps 輸出即可

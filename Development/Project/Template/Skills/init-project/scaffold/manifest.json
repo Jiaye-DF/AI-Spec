@@ -42,7 +42,7 @@
   },
 
   "params": {
-    "$comment": "param 預設值;CLI 可覆蓋",
+    "$comment": "param 預設值;CLI 可覆蓋。postgres_user / postgres_password 預設值由 scaffold.mjs buildPlaceholders() 計算(user=project_name_underscore;password=changeme-development);只在 include_database=true 時用",
     "project_name": { "required": true, "validate": "kebab-case" },
     "frontend": { "default": "vite", "enum": ["vite", "next"] },
     "include_database": { "default": true, "type": "boolean" },
@@ -50,6 +50,8 @@
     "frontend_port": { "default": 3000, "type": "number" },
     "backend_port": { "default": 8000, "type": "number" },
     "postgres_port": { "default": 5432, "type": "number" },
+    "postgres_user": { "default": null, "type": "string", "$note": "null = 由 scaffold.mjs 用 project_name_underscore 填入" },
+    "postgres_password": { "default": "changeme-development", "type": "string" },
     "api_version": { "default": "v1" }
   },
 
@@ -85,6 +87,9 @@
     { "type": "render", "src": "templates/_empty.tmpl",                                "dst": "backend/app/clients/__init__.py" },
     { "type": "render", "src": "templates/_empty.tmpl",                                "dst": "backend/tests/__init__.py" },
     { "type": "render", "src": "templates/backend/tests/test_smoke.py.tmpl",           "dst": "backend/tests/test_smoke.py" },
+
+    { "$section": "database — .env (when include_database=true; gitignored)" },
+    { "type": "render", "src": "templates/root/.env.tmpl",                             "dst": ".env",                                             "when": { "include_database": true } },
 
     { "$section": "backend — database (when include_database=true)" },
     { "type": "render", "src": "templates/backend/alembic.ini.tmpl",                   "dst": "backend/alembic.ini",                              "when": { "include_database": true } },

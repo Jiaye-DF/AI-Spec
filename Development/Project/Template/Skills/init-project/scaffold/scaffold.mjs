@@ -12,6 +12,8 @@
 //   --frontend-port <n>             (預設 3000)
 //   --backend-port <n>              (預設 8000)
 //   --postgres-port <n>             (預設 5432)
+//   --postgres-user <name>          PG 使用者(僅 include-database=true 用;預設 <project_name_underscore>)
+//   --postgres-password <pw>        PG 密碼(僅 include-database=true 用;預設 changeme-development)
 //   --api-version <v>               (預設 v1)
 //   --target <dir>                  (預設 cwd;產出根目錄)
 //   --dry-run                       不寫檔,只列出將執行動作
@@ -50,6 +52,7 @@ const HELP = `scaffold.mjs — React + FastAPI + PostgreSQL 骨架產生器
 用法:
   node scaffold.mjs --name <kebab-case> [--frontend vite|next] [--include-azure-sso]
                     [--frontend-port 3000] [--backend-port 8000] [--postgres-port 5432]
+                    [--postgres-user <name>] [--postgres-password <pw>]
                     [--api-version v1] [--target ./my-app] [--dry-run] [--no-install] [--force]
 
 範例:
@@ -76,13 +79,17 @@ function flattenVersions(node, out = {}) {
 function buildPlaceholders(manifest, args) {
   // include_database:預設 on;`--no-database` 顯式關閉,`--include-database` 顯式開啟
   const includeDb = args['no-database'] ? false : true;
+  const projectNameUnderscore = args.name.replace(/-/g, '_');
   return {
     project_name: args.name,
-    project_name_underscore: args.name.replace(/-/g, '_'),
+    project_name_underscore: projectNameUnderscore,
     frontend: args.frontend ?? 'vite',
     frontend_port: args['frontend-port'] ?? '3000',
     backend_port: args['backend-port'] ?? '8000',
     postgres_port: args['postgres-port'] ?? '5432',
+    // postgres user 預設為 project_name_underscore(kebab 含 `-`,PG 需引號;underscore 版省事)
+    postgres_user: args['postgres-user'] ?? projectNameUnderscore,
+    postgres_password: args['postgres-password'] ?? 'changeme-development',
     api_version: args['api-version'] ?? 'v1',
     include_database: includeDb ? 'true' : 'false',
     include_azure_sso: args['include-azure-sso'] ? 'true' : 'false',
@@ -230,6 +237,9 @@ async function main() {
     }
   }
 
+  const dbReport = vars.include_database === 'true'
+    ? `\n  postgres_user:    ${vars.postgres_user}\n  postgres_password:${vars.postgres_password === 'changeme-development' ? '(預設)changeme-development' : '(使用者輸入,寫入 .env)'}`
+    : '';
   console.log(`
 → target:           ${target}
   project_name:     ${vars.project_name}
@@ -239,7 +249,7 @@ async function main() {
   api_version:      ${vars.api_version}
   python:           ${vars.python_version}
   node:             ${vars.node_version}
-  postgres:         ${vars.postgres_version}
+  postgres:         ${vars.postgres_version}${dbReport}
   dry_run:          ${dryRun}
   no_install:       ${noInstall}
 `);
