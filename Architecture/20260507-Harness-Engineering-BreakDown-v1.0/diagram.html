@@ -135,12 +135,16 @@
       justify-content: center;
     }
     .preview.zoomed { justify-content: flex-start; }
+    .preview.draggable { cursor: grab; user-select: none; }
+    .preview.draggable.dragging { cursor: grabbing; }
+    .preview.draggable.dragging * { pointer-events: none; }
     .preview svg { display: block; margin: 0 auto; }
     .preview .svg-wrap {
       display: inline-block;
       transform-origin: top left;
       transition: transform 0.12s ease;
     }
+    .preview.dragging .svg-wrap { transition: none; }
     .zoom-label {
       font-size: 12px; color: var(--muted); font-weight: 600;
       font-variant-numeric: tabular-nums;
@@ -388,37 +392,37 @@ flowchart LR
 </ul>
 <strong>Demo 補充:</strong>讀 6.5.7 學習路徑(README §五)會更清楚每個角色該深讀哪幾單元。">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
-flowchart LR
-  subgraph U1 ["U1 業務情境"]
-    direction TB
-    U1U["🟢 業務<br>寫 3 大痛點<br>+ 落地優先序"]
+flowchart TB
+  subgraph U1 ["U1 — 業務情境"]
+    direction LR
+    U1U["🟢 業務<br>寫 3 大痛點 + 落地優先序"]
     U1I["🔵 IT<br>翻為可量測 SLA"]
   end
-  subgraph U2 ["U2 Engineer"]
-    direction TB
-    U2I["🔵 IT 主導<br>4 大職責<br>跨 L1-L4"]
+  subgraph U2 ["U2 — Agentic Engineer"]
+    direction LR
+    U2I["🔵 IT 主導(跨 L1-L4)<br>4 大職責:定目標 / 設計工作流 / 審查 / 改 Harness"]
   end
-  subgraph U3 ["U3 上層工作流"]
-    direction TB
-    U3U["🟢 需求 + 主管報告"]
+  subgraph U3 ["U3 — 上層工作流"]
+    direction LR
+    U3U["🟢 需求 +<br>主管報告"]
     U3I["🔵 Control Plane<br>+ Review + 測試"]
     U3S["🟣 品質 / NPI"]
     U3C["🔴 ★ 維運告警"]
   end
-  subgraph U4 ["U4 Harness ★"]
-    direction TB
-    U4I["🔵 IT — 5 元件<br>Prompts/Tools/Mem<br>Tests/Hooks"]
-    U4C["🔴 ★ 3 元件<br>Sandbox / Logs<br>/ Audit"]
+  subgraph U4 ["U4 — Harness ★"]
+    direction LR
+    U4I["🔵 IT — 5 元件<br>Prompts / Tools / Memory / Tests / Hooks"]
+    U4C["🔴 ★ 3 元件<br>Sandbox / Logs / Audit"]
   end
-  subgraph U45 ["U4.5 Flywheel"]
-    direction TB
-    U45I["🔵 IT<br>Evals/Trajectory<br>/Fine-tune"]
-    U45S["🟣 Reward 標記<br>(業務確認<br>ground truth)"]
+  subgraph U45 ["U4.5 — Flywheel"]
+    direction LR
+    U45I["🔵 IT<br>Evals / Trajectory / Fine-tune"]
+    U45S["🟣 Reward 標記<br>(業務確認 ground truth)"]
   end
-  subgraph U5 ["U5 基礎資源"]
-    direction TB
-    U5I["🔵 IT 平台<br>LLM/Repo★/Dashboard★"]
-    U5S["🟣 共同維護<br>PLM/SOP/TestLog<br>/DataHub"]
+  subgraph U5 ["U5 — 基礎資源"]
+    direction LR
+    U5I["🔵 IT 平台<br>LLM / Repo ★ / Dashboard ★"]
+    U5S["🟣 共同維護<br>PLM / SOP / TestLog / DataHub"]
   end
 
   U1 --> U2 --> U3 --> U4 --> U45 --> U5
@@ -1096,7 +1100,7 @@ flowchart LR
         if (slide.format === 'html') {
           initMermaid(); // 仍套用 theme
           preview.innerHTML = code;
-          preview.classList.remove('zoomed');
+          preview.classList.remove('zoomed', 'draggable', 'dragging');
           zoomLabel.textContent = '100%';
         } else {
           initMermaid();
@@ -1104,6 +1108,7 @@ flowchart LR
           if (token !== renderToken) return;
           // 用 wrapper div 包 SVG,用 transform 做 zoom
           preview.innerHTML = '<div class="svg-wrap">' + svg + '</div>';
+          preview.classList.add('draggable');
           const svgEl = preview.querySelector('svg');
           if (svgEl) {
             const vb = svgEl.viewBox && svgEl.viewBox.baseVal;
@@ -1267,6 +1272,42 @@ flowchart LR
       e.preventDefault();
       zoomStep(e.deltaY < 0 ? 1 : -1);
     }, { passive: false });
+
+    // 拖曳平移(只在 SVG slide 上啟用,封面保留文字選取)
+    let drag = null;
+    preview.addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
+      if (!preview.classList.contains('draggable')) return;
+      drag = {
+        startX: e.clientX, startY: e.clientY,
+        scrollX: preview.scrollLeft, scrollY: preview.scrollTop,
+        moved: false,
+      };
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', e => {
+      if (!drag) return;
+      const dx = e.clientX - drag.startX;
+      const dy = e.clientY - drag.startY;
+      if (!drag.moved && Math.abs(dx) + Math.abs(dy) > 3) {
+        drag.moved = true;
+        preview.classList.add('dragging');
+      }
+      if (drag.moved) {
+        preview.scrollLeft = drag.scrollX - dx;
+        preview.scrollTop = drag.scrollY - dy;
+      }
+    });
+    document.addEventListener('mouseup', () => {
+      if (!drag) return;
+      drag = null;
+      preview.classList.remove('dragging');
+    });
+    document.addEventListener('mouseleave', () => {
+      if (!drag) return;
+      drag = null;
+      preview.classList.remove('dragging');
+    });
 
     document.addEventListener('keydown', e => {
       const tag = e.target.tagName;
