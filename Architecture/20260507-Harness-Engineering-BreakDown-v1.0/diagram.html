@@ -188,6 +188,72 @@
       background: var(--bg-soft);
     }
     .slide-cover .hero .caption strong { color: var(--fg); }
+
+    /* ---- RACI 3x2 grid (HTML slide) ---- */
+    .raci-wrap {
+      max-width: 1200px; width: 100%;
+    }
+    .raci-head {
+      margin-bottom: 12px;
+      font-size: 13px; color: var(--muted);
+      display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center;
+    }
+    .raci-head strong { color: var(--accent); font-size: 14px; }
+    .raci-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      gap: 14px;
+    }
+    .raci-cell {
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+    }
+    .raci-cell.has-star { border-color: var(--critical); border-width: 2px; }
+    .raci-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--fg);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 7px;
+      margin-bottom: 10px;
+      letter-spacing: 0.01em;
+    }
+    .raci-items {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .raci-item {
+      font-size: 12.5px;
+      padding: 7px 11px;
+      border-radius: 6px;
+      line-height: 1.5;
+      border: 1px solid transparent;
+    }
+    .raci-item.user { background: #dcfce7; color: #14532d; border-color: #16a34a; }
+    .raci-item.it { background: #dbeafe; color: #1e3a8a; border-color: #2563eb; }
+    .raci-item.shared { background: #f3e8ff; color: #581c87; border-color: #9333ea; }
+    .raci-item.critical { background: #fee2e2; color: #7f1d1d; border-color: #dc2626; }
+    [data-theme="dark"] .raci-item.user { background: rgba(34, 197, 94, 0.18); color: #86efac; }
+    [data-theme="dark"] .raci-item.it { background: rgba(96, 165, 250, 0.18); color: #93c5fd; }
+    [data-theme="dark"] .raci-item.shared { background: rgba(168, 85, 247, 0.18); color: #d8b4fe; }
+    [data-theme="dark"] .raci-item.critical { background: rgba(248, 113, 113, 0.18); color: #fca5a5; }
+    .raci-foot {
+      margin-top: 16px;
+      padding: 10px 14px;
+      background: var(--bg-soft);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 6px 6px 0;
+      font-size: 13px;
+      color: var(--fg); line-height: 1.55;
+    }
+    .raci-foot strong { color: var(--accent); }
     .slide-cover .tag {
       display: inline-block;
       padding: 4px 12px;
@@ -403,74 +469,68 @@ flowchart LR
   class L2,L3,L4,L45,L5 it
   </script>
 
-  <!-- ================== 1.1 RACI 三角色責任分布 ================== -->
+  <!-- ================== 1.1 RACI 三角色責任分布(HTML CSS Grid) ================== -->
   <script type="text/plain" id="arch-raci"
           data-label="1.1 三角色責任分布(6 單元 × 三色)"
           data-order="1.1"
           data-kind="architecture"
-          data-desc="<strong>這是整份文件最重要的「責任地圖」</strong> — 把『6 學習單元 × 三角色』一次攤平,讓每個角色一眼看到「我該管哪幾格」。
-<ul>
-<li><strong>使用者(🟢)只主導兩格</strong>:U1 痛點清單 + U3 需求/主管報告 Agent。其餘是 IT 或共同。</li>
-<li><strong>IT(🔵)是主軸</strong>:U2-U4.5 主要工程化都在 IT 手上(對應 Vibe Coding 定位)。</li>
-<li><strong>共同(🟣)三大區</strong>:U3 品質/NPI Agent + U4.5 Reward 標記 + U5 業務主檔。</li>
-<li><strong>★ Critical(🔴)5 個點</strong>:U3 維運告警 + U4 Sandbox/Logs/Audit + U5 Repo/Dashboard。Coolify 上線前每條必過。</li>
-</ul>
-<strong>Demo 補充:</strong>讀 6.5.7 學習路徑(README §五)會更清楚每個角色該深讀哪幾單元。">
-%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
-flowchart TB
-
-  subgraph Row1 [" "]
-    direction LR
-    subgraph U1 ["U1 — 業務情境"]
-      direction LR
-      U1U["🟢 業務<br>寫 3 大痛點<br>+ 落地優先序"]
-      U1I["🔵 IT<br>翻為可量測 SLA"]
-    end
-    subgraph U2 ["U2 — Agentic Engineer"]
-      direction LR
-      U2I["🔵 IT 主導(跨 L1-L4)<br>定目標 / 設計工作流<br>審查 / 改 Harness"]
-    end
-    subgraph U3 ["U3 — 上層工作流"]
-      direction LR
-      U3U["🟢 需求 +<br>主管報告"]
-      U3I["🔵 Control Plane<br>+ Review + 測試"]
-      U3S["🟣 品質<br>/ NPI"]
-      U3C["🔴 ★ 維運<br>告警"]
-    end
-  end
-
-  subgraph Row2 [" "]
-    direction LR
-    subgraph U4 ["U4 — Harness ★"]
-      direction LR
-      U4I["🔵 IT — 5 元件<br>Prompts / Tools / Mem<br>Tests / Hooks"]
-      U4C["🔴 ★ 3 元件<br>Sandbox / Logs<br>/ Audit"]
-    end
-    subgraph U45 ["U4.5 — Flywheel"]
-      direction LR
-      U45I["🔵 IT<br>Evals / Trajectory<br>/ Fine-tune"]
-      U45S["🟣 Reward 標記<br>(業務確認<br>ground truth)"]
-    end
-    subgraph U5 ["U5 — 基礎資源"]
-      direction LR
-      U5I["🔵 IT 平台<br>LLM / Repo ★<br>/ Dashboard ★"]
-      U5S["🟣 共同維護<br>PLM / SOP / TestLog<br>/ DataHub"]
-    end
-  end
-
-  Row1 ~~~ Row2
-
-  style Row1 fill:transparent,stroke:transparent
-  style Row2 fill:transparent,stroke:transparent
-
-  classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
-  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
-  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
-  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
-  class U1U,U3U user
-  class U1I,U2I,U3I,U4I,U45I,U5I it
-  class U3S,U45S,U5S shared
-  class U3C,U4C critical
+          data-format="html"
+          data-desc="">
+<div class="raci-wrap">
+  <div class="raci-head">
+    <strong>三角色責任分布</strong>
+    <span>· 6 學習單元 × 三色 ·</span>
+    <span>順序:U1 → U2 → U3 → U4 → U4.5 → U5</span>
+  </div>
+  <div class="raci-grid">
+    <div class="raci-cell">
+      <div class="raci-title">U1 — 業務情境</div>
+      <div class="raci-items">
+        <div class="raci-item user">🟢 業務:寫 3 大痛點 + 落地優先序</div>
+        <div class="raci-item it">🔵 IT:翻為可量測 SLA</div>
+      </div>
+    </div>
+    <div class="raci-cell">
+      <div class="raci-title">U2 — Agentic Engineer</div>
+      <div class="raci-items">
+        <div class="raci-item it">🔵 IT 主導(跨 L1-L4)<br>4 大職責:定目標 / 設計工作流 / 審查 / 改 Harness</div>
+      </div>
+    </div>
+    <div class="raci-cell has-star">
+      <div class="raci-title">U3 — 上層工作流</div>
+      <div class="raci-items">
+        <div class="raci-item user">🟢 需求 + 主管報告 Agent</div>
+        <div class="raci-item it">🔵 Control Plane + Review + 測試</div>
+        <div class="raci-item shared">🟣 品質 / NPI Agent</div>
+        <div class="raci-item critical">🔴 ★ 維運告警(Coolify)</div>
+      </div>
+    </div>
+    <div class="raci-cell has-star">
+      <div class="raci-title">U4 — Harness ★</div>
+      <div class="raci-items">
+        <div class="raci-item it">🔵 IT — 5 元件<br>Prompts / Tools / Memory / Tests / Hooks</div>
+        <div class="raci-item critical">🔴 ★ 3 元件<br>Sandbox / Logs / Audit</div>
+      </div>
+    </div>
+    <div class="raci-cell">
+      <div class="raci-title">U4.5 — Flywheel</div>
+      <div class="raci-items">
+        <div class="raci-item it">🔵 IT<br>Evals / Trajectory / Fine-tune</div>
+        <div class="raci-item shared">🟣 Reward 標記<br>(業務確認 ground truth)</div>
+      </div>
+    </div>
+    <div class="raci-cell has-star">
+      <div class="raci-title">U5 — 基礎資源</div>
+      <div class="raci-items">
+        <div class="raci-item it">🔵 IT 平台<br>LLM / Repo ★ / Dashboard ★</div>
+        <div class="raci-item shared">🟣 共同維護<br>PLM / SOP / TestLog / DataHub</div>
+      </div>
+    </div>
+  </div>
+  <div class="raci-foot">
+    <strong>讀法:</strong>使用者(🟢)只主導 2 格(U1 痛點 + U3 需求/主管報告)· IT(🔵)是主軸覆蓋 U2-U4.5 全程 · 共同(🟣)三區(U3 品質/NPI + U4.5 Reward + U5 業務主檔)· <strong style="color:#dc2626">★ Critical(🔴)5 點</strong>(U3 維運告警 + U4 Sandbox/Logs/Audit + U5 Repo/Dashboard),Coolify 上線前每條必過。
+  </div>
+</div>
   </script>
 
   <!-- ================== U2 — Agentic Engineer 4 大職責 ================== -->
