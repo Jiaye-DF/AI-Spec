@@ -128,16 +128,16 @@
       data-desc = 右下小字說明(對應架構節點 / 為什麼這條流程存在)
   -->
 
-  <script type="text/plain" id="arch" data-label="① 5 層架構總覽" data-kind="architecture"
+  <script type="text/plain" id="arch" data-label="1. 整體架構總覽" data-kind="architecture"
           data-desc="<strong>Vibe Coding 公司架構:</strong>L1 業務發起(使用者)→ L2/L3/L4 工程化(IT,Agentic Engineer 屬 IT)→ L4.5 / L5 業務+IT 共同產物。<strong>★ Harness</strong> 是 Coolify 合規主層。">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
-flowchart TB
-  L1["① 公司 / 業務情境<br><i>提升交付效率 / 知識複用 / 跨部門協作</i>"]
-  L2["② Agentic Engineer<br><i>定義目標 / 設計工作流 / 審查 / 持續改善</i>"]
-  L3["③ Agentic Engineering(上層工作流)<br><i>Control Plane + 6 種 Agent</i>"]
-  L4["④ Harness Engineering ★<br><i>執行底座:8 元件 / Coolify 主合規層</i>"]
-  L45["④.5 Domain Model Flywheel<br><i>Evals → Reward → Trajectory → Fine-tune → Domain Model</i>"]
-  L5["⑤ 基礎資源 / 系統<br><i>LLM / Repo / PLM / Test Logs / SOP / Dashboard / Data Hub</i>"]
+flowchart LR
+  L1["1 公司 / 業務情境<br><i>提升交付效率 / 知識複用 / 跨部門協作</i>"]
+  L2["2 Agentic Engineer<br><i>定義目標 / 設計工作流 / 審查 / 持續改善</i>"]
+  L3["3 Agentic Engineering(上層工作流)<br><i>Control Plane + 6 種 Agent</i>"]
+  L4["4 Harness Engineering ★<br><i>執行底座:8 元件 / Coolify 主合規層</i>"]
+  L45["4.5 Domain Model Flywheel<br><i>Evals → Reward → Trajectory → Fine-tune → Domain Model</i>"]
+  L5["5 基礎資源 / 系統<br><i>LLM / Repo / PLM / Test Logs / SOP / Dashboard / Data Hub</i>"]
 
   L1 --> L2 --> L3 --> L4
   L4 --> L45
@@ -154,42 +154,44 @@ flowchart TB
   class L45,L5 shared
   </script>
 
-  <script type="text/plain" id="arch-u3" data-label="② U3 — Agentic Engineering 上層工作流" data-kind="architecture"
-          data-desc="<strong>Control Plane</strong>(IT)統籌 <strong>6 種 Agent</strong>。Agent 角色依輸入 / 輸出端區分:接業務需求 / 給主管看報告 = 使用者面;接 PLM / 品質 = 共同;純技術測試 / 設計 / 維運 = IT。">
+  <script type="text/plain" id="arch-u3" data-label="2. U3 — Agentic Engineering 上層工作流" data-kind="architecture"
+          data-desc="<strong>Control Plane</strong>(IT)統籌 <strong>6 種 Agent</strong>(單列水平)。Agent 染色:🟢 業務面 / 🔵 IT / 🟣 共同 / 🔴 ★ Critical。詳細 Breakdown 見 U3-Agentic-Engineering.md。">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
-flowchart TB
+flowchart LR
   subgraph CP ["Control Plane / Leader Agent"]
     direction LR
-    Task[任務分派<br><i>切子任務 / 派 Agent</i>]
-    Mem[Shared Memory<br><i>跨 Agent 上下文</i>]
-    Gate[Tool Gateway<br><i>白名單 / 配額</i>]
+    Task["<b>任務分派</b><br>切子任務"]
+    Mem["<b>Shared Memory</b><br>跨 Agent 上下文"]
+    Gate["<b>Tool Gateway</b><br>白名單 + 配額"]
   end
 
   subgraph AG ["6 種 Agent 分工"]
     direction LR
-    A1["① 需求業務<br>Agent<br><i>口語 → 結構化規格</i>"]
-    A2["② 設計 Review<br>Agent<br><i>對齊 Spec / 排除衝突</i>"]
-    A3["③ 測試 / 驗證<br>Agent<br><i>跑 Evals + 回 Trajectory</i>"]
-    A4["④ 品質 / NPI<br>Agent<br><i>對 PLM / BOM 把關</i>"]
-    A5["⑤ 維運 / 告警<br>Agent<br><i>接 Coolify 告警</i>"]
-    A6["⑥ 主管報告<br>Agent<br><i>產進度 / 摘要</i>"]
+    A1["<b>1. 需求業務</b> 🟢<br>口語 → 結構化規格"]
+    A2["<b>2. 設計 Review</b> 🔵<br>對齊 Spec"]
+    A3["<b>3. 測試 / 驗證</b> 🔵<br>Test Log Triage"]
+    A4["<b>4. 品質 / NPI</b> 🟣<br>PLM/BOM 良率"]
+    A5["<b>5. 維運 / 告警 ★</b> 🔴<br>Coolify 告警鏈"]
+    A6["<b>6. 主管報告</b> 🟢<br>彙整 5 Agent 摘要"]
   end
 
-  CP -->|分派 + Memory 仲裁| AG
+  CP --> AG
 
   classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
   classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
   classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
+  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
   class Task,Mem,Gate it
   class A1,A6 user
-  class A2,A3,A5 it
+  class A2,A3 it
   class A4 shared
+  class A5 critical
   </script>
 
-  <script type="text/plain" id="arch-u3-s1" data-label="②.1 U3 — Control Plane 內部運作" data-kind="architecture"
+  <script type="text/plain" id="arch-u3-s1" data-label="2.1. U3 — Control Plane 內部運作" data-kind="architecture"
           data-desc="<strong>Leader 三大職責:</strong>任務分派(切子任務)/ Memory 仲裁(讀寫衝突)/ Tool Gateway(白名單 + 配額)。Agent 不直接呼工具,所有 IO 經 Leader 收口。">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
-flowchart TB
+flowchart LR
   In([業務目標 / 需求進入]) --> Lead[Leader Agent<br><i>接收 + 解析</i>]
 
   subgraph CP3 ["Control Plane 三職責"]
@@ -213,42 +215,37 @@ flowchart TB
   class Done user
   </script>
 
-  <script type="text/plain" id="arch-u4" data-label="③ U4 — Harness Engineering 8 元件 ★" data-kind="architecture"
-          data-desc="<strong>Agent = Model + Harness</strong>。8 元件分管理面(Prompts/Tools/Memory/Sandbox)+ 運維面(Tests/Logs/Hooks/Audit)。Sandbox 是 Coolify 6 條合規中最易踩雷的一條。">
+  <script type="text/plain" id="arch-u4" data-label="3. U4 — Harness Engineering 8 元件 ★" data-kind="architecture"
+          data-desc="<strong>Agent = Model + Harness</strong>。8 元件分管理面(設計時)+ 運維面(執行時)。🔴 ★ = Coolify 合規鑑定關鍵點(Sandbox / Logs / Audit)。詳細 Breakdown 見 U4-Harness-Engineering.md。">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
-flowchart TB
-  subgraph H ["Harness Engineering — 共通 Agent 可控 / 可觀察 / 可治理"]
-    subgraph Manage ["管理面(設計時 / Spec)"]
-      direction TB
-      C1["Prompts / Spec<br><i>Git PR / 禁熱改</i>"]
-      C2["Tools / MCP / API<br><i>Tool Gateway 收口</i>"]
-      C3["文件 / 知識 / Memory<br><i>Redis 短期 + RAG 長期</i>"]
-      C4["Sandbox / 權限授權 ★<br><i>non-root / read-only / tmpfs</i>"]
-    end
-    subgraph Operate ["運維面(執行時 / Runtime)"]
-      direction TB
-      C5["Verification / Tests / CI<br><i>Prompt 改 = CI 跑</i>"]
-      C6["Logs / Traces / Observability<br><i>Trace ID 串聯</i>"]
-      C7["Middleware / Hooks / Guard<br><i>運行中安全 / 風控</i>"]
-      C8["風險 / 落為 / Audit Trail<br><i>誰部署 / 誰核准</i>"]
-    end
+flowchart LR
+  subgraph Manage ["管理面(設計時)"]
+    direction LR
+    C1["<b>4.1 Prompts / Spec</b><br>Git PR / 禁熱改"]
+    C2["<b>4.2 Tools / MCP / API</b><br>Gateway 收口"]
+    C3["<b>4.3 Memory</b><br>Redis + RAG"]
+    C4["<b>4.4 Sandbox ★</b><br>non-root / RO / tmpfs"]
+  end
+  subgraph Operate ["運維面(執行時)"]
+    direction LR
+    C5["<b>4.5 Tests / CI</b><br>Prompt 改 = CI 跑"]
+    C6["<b>4.6 Logs / Traces ★</b><br>stdout / Trace ID"]
+    C7["<b>4.7 Hooks / Guardrails</b><br>PII / Token 過濾"]
+    C8["<b>4.8 Audit Trail ★</b><br>合規必過"]
   end
 
-  Eq["Agent = Model + Harness<br><i>Harness 是承載 Agent 的 runtime / control substrate</i>"]
-  H --- Eq
+  Manage --> Operate
 
   classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
   classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
-  classDef hint fill:#f3f4f6,stroke:#6b7280,color:#374151,font-style:italic
-  class C1,C2,C3,C5,C6,C7,C8 it
-  class C4 critical
-  class Eq hint
+  class C1,C2,C3,C5,C7 it
+  class C4,C6,C8 critical
   </script>
 
-  <script type="text/plain" id="arch-u4-s1" data-label="③.1 U4 — Sandbox ★ 三層隔離" data-kind="architecture"
+  <script type="text/plain" id="arch-u4-s1" data-label="3.1. U4 — Sandbox ★ 三層隔離" data-kind="architecture"
           data-desc="<strong>Coolify 6 條合規中最易踩雷的一條(第 3 條)。</strong>三層由內而外:User Namespace(non-root)→ Filesystem(read-only + tmpfs)→ Network(內網限定)。三層任一缺,Sandbox 不成立。">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
-flowchart TB
+flowchart LR
   Proc[Agent process<br><i>跑 LLM 推論 / 工具呼叫</i>]
 
   subgraph L1 ["Layer 1 — User Namespace"]
@@ -275,7 +272,7 @@ flowchart TB
   class NR,RO,TMP,NET critical
   </script>
 
-  <script type="text/plain" id="arch-u4-s2" data-label="③.2 U4 — Memory 雙層架構" data-kind="architecture"
+  <script type="text/plain" id="arch-u4-s2" data-label="3.2. U4 — Memory 雙層架構" data-kind="architecture"
           data-desc="<strong>短期 = Redis</strong>(session / cross-agent context,TTL 與任務生命週期對齊);<strong>長期 = RAG</strong>(Vector DB + Embedding,接 DataFlow 的 AI RAG 知識庫)。Tool Gateway 統一收口,Agent 不直連任何 store。">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart LR
@@ -309,7 +306,7 @@ flowchart LR
   class Doc shared
   </script>
 
-  <script type="text/plain" id="flow-u4-s3" data-label="③.3 U4 — Verification / CI Pipeline" data-kind="flow"
+  <script type="text/plain" id="flow-u4-s3" data-label="3.3. U4 — Verification / CI Pipeline" data-kind="flow"
           data-desc="<strong>Prompt 變動 = code 變動</strong>。任何 Prompt / Spec 改動走 Git PR + CI(Lint + Eval),通過才能 merge,Coolify 自動部署。Eval ≥ 閾值是硬門檻。">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart LR
@@ -333,10 +330,10 @@ flowchart LR
   class Done user
   </script>
 
-  <script type="text/plain" id="flow-u4-s4" data-label="③.4 U4 — Audit Trail 軌跡" data-kind="flow"
+  <script type="text/plain" id="flow-u4-s4" data-label="3.4. U4 — Audit Trail 軌跡" data-kind="flow"
           data-desc="<strong>合規追溯:誰部署 / 誰核准模型上線 / 誰改 Prompt / 誰調白名單</strong>。Audit Hook 是 middleware 收口,append-only DB,reviewer 可查不可改。">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
-flowchart TB
+flowchart LR
   subgraph Actions ["可審計動作"]
     direction LR
     A1[誰部署]
@@ -358,15 +355,15 @@ flowchart TB
   class Review shared
   </script>
 
-  <script type="text/plain" id="flow-u4-5" data-label="④ U4.5 — Domain Model Flywheel 迴路" data-kind="flow"
+  <script type="text/plain" id="flow-u4-5" data-label="4. U4.5 — Domain Model Flywheel 迴路" data-kind="flow"
           data-desc="<strong>飛輪本質:</strong>真實業務資料 → Eval → Reward → Trajectory → Fine-tune → 公司專屬 Model,迴圈累積。<strong>關鍵約束:</strong>資料須脫敏 / Reward 不可由 LLM 自評。">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart LR
-  F1["① 公司資料 / 任務來源<br><i>SOP / PLM / Test Logs / 客服</i>"] --> F2["② Evals<br><i>可量測指標</i>"]
-  F2 --> F3["③ Reward / Success Signal<br><i>U2 Engineer 審查結果</i>"]
-  F3 --> F4["④ Trajectories / Failure Cases<br><i>對 / 錯標記</i>"]
-  F4 --> F5["⑤ Fine-tuning<br><i>LoRA / RLVR</i>"]
-  F5 --> F6["⑥ 公司專用 Domain Model"]
+  F1["1 公司資料 / 任務來源<br><i>SOP / PLM / Test Logs / 客服</i>"] --> F2["2 Evals<br><i>可量測指標</i>"]
+  F2 --> F3["3 Reward / Success Signal<br><i>U2 Engineer 審查結果</i>"]
+  F3 --> F4["4 Trajectories / Failure Cases<br><i>對 / 錯標記</i>"]
+  F4 --> F5["5 Fine-tuning<br><i>LoRA / RLVR</i>"]
+  F5 --> F6["6 公司專用 Domain Model"]
   F6 -.飛輪迴圈.-> F1
   F6 --> Harness["融合回 U4 Harness Engineering"]
 
@@ -377,7 +374,7 @@ flowchart LR
   class F2,F4,F5,F6,Harness it
   </script>
 
-  <script type="text/plain" id="flow-u4-5-s1" data-label="④.1 U4.5 — Reward 標記循環" data-kind="flow"
+  <script type="text/plain" id="flow-u4-5-s1" data-label="4.1. U4.5 — Reward 標記循環" data-kind="flow"
           data-desc="<strong>Reward 不可由 LLM 自評</strong>(self-reward bias)。Engineer(U2)審查 Trajectory → 標 positive / negative → 進 Fine-tune dataset → 影響下次 Domain Model。">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart LR
@@ -400,25 +397,25 @@ flowchart LR
   class Anti critical
   </script>
 
-  <script type="text/plain" id="arch-u5" data-label="⑤ U5 — 基礎資源 / 系統" data-kind="architecture"
-          data-desc="<strong>物質基礎,沒這層上面皆空談。</strong>★ 標記者直接連動 Coolify(Repo / Dashboard);<strong>Data Hub</strong> 是公司主檔資料中心(對應 DataFlow v1.0 § 3.3);其他經 U4 Tools / Memory 收口接入。">
+  <script type="text/plain" id="arch-u5" data-label="5. U5 — 基礎資源 / 系統" data-kind="architecture"
+          data-desc="<strong>物質基礎,沒這層上面皆空談。</strong>7 個資源 = 3 IT 平台 + 4 共同維護。🔴 ★ Repo / Dashboard 連動 Coolify。詳細 Breakdown 見 U5-Foundation-Resources.md。">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
-flowchart TB
-  subgraph U5 ["⑤ 基礎資源 / 系統"]
-    subgraph Row1 ["核心 / 模型 / 平台"]
-      direction LR
-      R1["LLM / Coding Model<br><i>Claude / GPT / Ollama</i>"]
-      R2["Repo / Code ★<br><i>連動 Coolify push 即部署</i>"]
-      R6["Dashboard / Metrics ★<br><i>連動 Coolify 觀測</i>"]
-    end
-    subgraph Row2 ["業務知識 / 共同維護"]
-      direction LR
-      R3["PLM / BOM<br><i>產品壽命 / 物料</i>"]
-      R5["SOP / 規格文件<br><i>作業標準</i>"]
-      R4["Test Logs<br><i>歷史測試紀錄</i>"]
-      R7["Data Hub<br><i>主檔資料中心<br>員工/客戶/幣別/代碼</i>"]
-    end
+flowchart LR
+  subgraph Row1 ["核心 / 平台(IT 主管)"]
+    direction LR
+    R1["<b>5.1 LLM</b><br>Claude / GPT / Ollama"]
+    R2["<b>5.2 Repo ★</b><br>push = deploy"]
+    R6["<b>5.6 Dashboard ★</b><br>Coolify + Seq"]
   end
+  subgraph Row2 ["業務知識(業務 + IT)"]
+    direction LR
+    R3["<b>5.3 PLM / BOM</b><br>工程資料"]
+    R5["<b>5.5 SOP / 規格</b><br>RAG 來源"]
+    R4["<b>5.4 Test Logs</b><br>Triage 原料"]
+    R7["<b>5.7 Data Hub</b><br>主檔資料中心"]
+  end
+
+  Row1 --> Row2
 
   classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
   classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
@@ -429,10 +426,10 @@ flowchart TB
   class R3,R4,R5,R7 shared
   </script>
 
-  <script type="text/plain" id="arch-u5-s1" data-label="⑤.1 U5 — Coolify 連動 2 個關鍵資源" data-kind="architecture"
+  <script type="text/plain" id="arch-u5-s1" data-label="5.1. U5 — Coolify 連動 2 個關鍵資源" data-kind="architecture"
           data-desc="<strong>Repo / Code ★</strong> 由 Coolify watch(push 即部署);<strong>Dashboard / Metrics ★</strong> 由 Coolify collect(stdout JSON → Loki / Sentry)。其他 4 個資源(LLM / PLM / Test Logs / SOP)經 U4 Tools / Memory 收口接入。">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
-flowchart TB
+flowchart LR
   Coolify[(Coolify Host)]
 
   subgraph Repo ["Repo / Code ★"]
@@ -460,10 +457,10 @@ flowchart TB
   class Coolify,Git,Hook,Auto,Stdout,Loki,Sentry it
   </script>
 
-  <script type="text/plain" id="arch-u5-s2" data-label="⑤.2 U5 — Data Hub 跨層連動" data-kind="architecture"
+  <script type="text/plain" id="arch-u5-s2" data-label="5.2. U5 — Data Hub 跨層連動" data-kind="architecture"
           data-desc="<strong>Data Hub = DataFlow v1.0 § 3.3 的企業中央資料中心。</strong>主檔由業務維護(HR/財務/業務/採購),IT 提供 ETL/CDC 基礎設施。Data Hub 被 L3 Agent / L4 Memory / L4.5 Flywheel 同時消費。">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
-flowchart TB
+flowchart LR
   subgraph DH ["Data Hub — 主檔資料中心(共同維護)"]
     direction LR
     Org["組織<br><i>HR / 財務</i>"]
