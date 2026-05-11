@@ -6,7 +6,7 @@
 >
 > **不在範圍**:UML(class / sequence / state)— 模板技術上支援,但目前**不**列入規範範例。
 >
-> **未來方向**:本資料夾規劃包成 Claude Code skill(`/new-arch-diagram <name>`),自動 cp bundle + 開新檔。Skill 化後 `_template/README.md` 即 `SKILL.md` 內容基礎。
+> **自動化**:本模板已包成 Claude Code skill(`/create-arch-diagram`),自動 cp bundle + 改名 + 衝突偵測。Skill 定義在 [`Template/Skills/create-arch-diagram/SKILL.md`](../../../Skills/create-arch-diagram/SKILL.md)。手動 cp 跟跑 skill 等價,選一即可。
 
 ---
 
@@ -65,15 +65,30 @@ diagrams/
 
 ### 新增一份架構 bundle
 
+#### 方式 A:跑 skill(推薦)
+
+```
+/create-arch-diagram
+# → 輸入名稱(kebab-case,例:system-arch)
+# → skill 偵測衝突 → cp _template/ 到 docs/Arch/diagrams/<name>/ → 改 <title> + <h1>
+```
+
+#### 方式 B:手動 cp
+
 ```
 cp -r _template/ system-arch/
-# 1. 改 system-arch/README.md:填層級表 + 角色矩陣 + 流程清單
-# 2. 改 system-arch/diagram.html:
-#    - 改 <script id="arch"> 內容(主架構圖)
-#    - 改 <script id="flow-auth"> / <script id="flow-deploy"> 內容
-#    - 需要新增流程?複製一份 <script type="text/plain"> 區塊,改 id / data-label / data-desc
-# 3. 瀏覽器開 system-arch/diagram.html,工具列下拉切換驗證
-# 4. commit system-arch/
+```
+
+#### cp 完成後(兩種方式相同)
+
+```
+1. 改 <name>/README.md:填層級表 + 角色矩陣 + 流程清單
+2. 改 <name>/diagram.html:
+   - 改 <script id="arch"> 內容(主架構圖)
+   - 改 <script id="flow-auth"> / <script id="flow-deploy"> 內容
+   - 需要新增流程?複製一份 <script type="text/plain"> 區塊,改 id / data-label / data-desc
+3. 瀏覽器開 <name>/diagram.html,工具列下拉切換驗證
+4. commit <name>/
 ```
 
 ### `diagram.html` 內如何新增子流程

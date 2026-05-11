@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'><line x1='8' y1='4.5' x2='4' y2='11.5' stroke='%232563eb' stroke-width='1.4' stroke-linecap='round'/><line x1='8' y1='4.5' x2='12' y2='11.5' stroke='%232563eb' stroke-width='1.4' stroke-linecap='round'/><circle cx='8' cy='4' r='2.5' fill='%232563eb'/><circle cx='4' cy='12' r='2.5' fill='%2360a5fa'/><circle cx='12' cy='12' r='2.5' fill='%2360a5fa'/></svg>">
+  <title>系統架構 — Mermaid 模板</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --toolbar-bg: #f8fafc;
+      --btn-bg: #ffffff;
+      --btn-hover: #f1f5f9;
+      --accent: #2563eb;
+      --error: #dc2626;
+    }
+    [data-theme="dark"] {
+      --bg: #0f172a;
+      --fg: #f1f5f9;
+      --muted: #94a3b8;
+      --border: #334155;
+      --toolbar-bg: #1e293b;
+      --btn-bg: #1e293b;
+      --btn-hover: #334155;
+      --accent: #60a5fa;
+      --error: #f87171;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      font-family: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--fg);
+    }
+    .toolbar {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      padding: 14px 20px;
+      background: var(--toolbar-bg);
+      border-bottom: 2px solid var(--border);
+      align-items: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+    .toolbar h1 {
+      font-size: 18px;
+      margin: 0;
+      margin-right: auto;
+      font-weight: 700;
+      color: var(--accent);
+      padding-left: 12px;
+      border-left: 4px solid var(--accent);
+      line-height: 1.3;
+      letter-spacing: 0.02em;
+    }
+    .toolbar .divider {
+      width: 1px; height: 24px; background: var(--border); margin: 0 4px;
+    }
+    .toolbar button, .toolbar select, .toolbar input {
+      padding: 7px 12px; font-size: 13px;
+      border: 1px solid var(--border);
+      background: var(--btn-bg); color: var(--fg);
+      border-radius: 5px; cursor: pointer; font-family: inherit;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .toolbar button:hover, .toolbar select:hover {
+      background: var(--btn-hover); border-color: var(--accent);
+    }
+    .toolbar label {
+      font-size: 12px; color: var(--muted);
+      display: inline-flex; align-items: center; gap: 6px;
+      font-weight: 500;
+    }
+    .toolbar .picker {
+      font-weight: 600; min-width: 220px;
+      border-color: var(--accent); color: var(--fg);
+    }
+    main { height: calc(100vh - 64px); }
+    .preview {
+      width: 100%; height: 100%; overflow: auto;
+      padding: 32px 24px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+    .preview svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+    .preview svg { max-width: 100%; height: auto; }
+    .error {
+      color: var(--error); padding: 16px;
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 13px; white-space: pre-wrap; text-align: left;
+    }
+    .desc {
+      position: fixed; right: 16px; bottom: 16px;
+      max-width: 320px; padding: 12px 14px;
+      background: var(--toolbar-bg);
+      border: 1px solid var(--border); border-radius: 6px;
+      font-size: 12px; line-height: 1.6; color: var(--muted);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .desc strong { color: var(--fg); }
+  </style>
+</head>
+<body>
+  <!--
+    一個檔案內可放 1 張架構圖 + N 張流程圖。
+    新增流程圖 → 複製一份 <script type="text/plain"> 區塊,改 id / data-label / data-kind 即可。
+    用任何文字編輯器(VSCode / Notepad)打開本檔修改,存檔後重新整理瀏覽器即可。
+
+    規約:
+      id 命名 = arch(主架構)/ flow-<topic>(各流程)
+      data-label = 工具列下拉顯示文字
+      data-kind = "architecture" | "flow"(切換時自動帶分組標籤)
+      data-desc = 右下小字說明(對應架構節點 / 為什麼這條流程存在)
+  -->
+
+  <script type="text/plain" id="arch" data-label="① 系統架構(主)" data-kind="architecture"
+          data-desc="<strong>層級:</strong>Edge / App(Pres + Biz + Cross-cutting)/ Data。<strong>實線:</strong>主資料流;<strong>虛線:</strong>跨切關注點(Depends 注入 / 事件 / log)。所有 DB 寫入經 Svc 單一路徑。">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart TB
+  subgraph EXT ["🌐 外部信任邊界(Untrusted)"]
+    direction LR
+    User([終端使用者])
+    Mon[/Sentry / Loki/]
+  end
+
+  subgraph EDGE ["Edge — Owner: DevOps"]
+    Proxy[Caddy / Coolify Proxy<br><i>TLS / Domain Routing</i>]
+  end
+
+  subgraph APP ["Application — Owner: Backend Team"]
+    direction TB
+    subgraph PRES ["Presentation Layer"]
+      UI[React UI<br><i>RTK Query / i18n</i>]
+    end
+    subgraph BIZ ["Business Layer"]
+      direction LR
+      API[FastAPI Routers]
+      Svc[Domain Services]
+    end
+    subgraph CROSS ["Cross-cutting Concerns"]
+      direction LR
+      Auth[Auth / RBAC<br><i>JWT httpOnly cookie</i>]
+      Log[Structured Logging]
+      Audit[Audit Trail]
+    end
+  end
+
+  subgraph DATA ["Data — Owner: DBA + Backend"]
+    DB[(PostgreSQL<br><i>業務 + 使用者 + audit</i>)]
+  end
+
+  %% 主資料流(實線)
+  User --> Proxy
+  Proxy --> UI
+  UI -->|HTTPS API| API
+  API --> Svc
+  Svc --> DB
+
+  %% 跨切關注點(虛線)
+  API -.->|Depends 注入| Auth
+  Svc -.->|事件| Audit
+  Svc -.->|結構化 log| Log
+  Log -.->|stdout JSON| Mon
+
+  classDef external fill:#fef3c7,stroke:#d97706,color:#78350f
+  classDef cross fill:#e0e7ff,stroke:#4f46e5,color:#312e81
+  class User,Mon external
+  class Auth,Log,Audit cross
+  </script>
+
+  <script type="text/plain" id="flow-auth" data-label="② Auth 流程(JWT 登入)" data-kind="flow"
+          data-desc="<strong>對應架構節點:</strong>User → Proxy → UI → API → Auth → DB。<strong>為什麼:</strong>JWT 走 httpOnly cookie 防 XSS;bcrypt 密碼比對;失敗集中記 audit。">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart TB
+  Start([使用者送出帳密表單]) --> Post[UI POST /api/v1/auth/login<br>帶 email + password]
+  Post --> Find[API 查使用者<br>SELECT FROM users WHERE email]
+  Find --> Exist{使用者存在<br>且未停用?}
+  Exist -->|否| Reject[401 帳密錯誤<br>記 audit log]
+  Exist -->|是| Verify[bcrypt 比對密碼<br>asyncio.to_thread]
+  Verify --> Pass{密碼正確?}
+  Pass -->|否| Reject
+  Pass -->|是| Sign[簽發 JWT<br>放 sub / role / exp]
+  Sign --> Cookie[set_cookie<br>httponly=True<br>secure=True<br>samesite=lax]
+  Cookie --> Done([200 回登入成功])
+  Reject --> End([結束])
+  Done --> End
+
+  classDef terminal fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef decision fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  class Start,Done,End terminal
+  class Exist,Pass decision
+  </script>
+
+  <script type="text/plain" id="flow-deploy" data-label="③ Deploy 流程(Coolify CD)" data-kind="flow"
+          data-desc="<strong>對應架構節點:</strong>External(GitHub)→ Proxy → 服務重啟。<strong>為什麼:</strong>main push 即部署 + 健康檢查失敗自動回滾。">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart TB
+  Dev([Developer push main]) --> CI[GitHub Actions CI]
+  CI --> Pass{Lint + Test + Build<br>都通過?}
+  Pass -->|否| Block[阻擋 merge / 通知]
+  Pass -->|是| Hook[GitHub Webhook 通知 Coolify]
+  Hook --> Build[Coolify pull repo<br>docker compose build]
+  Build --> Deploy[啟動新容器<br>舊容器保留 60s]
+  Deploy --> HC{健康檢查 200?<br>連續 3 次}
+  HC -->|否| Rollback[切回舊容器<br>Sentry 告警]
+  HC -->|是| Swap[Proxy 切流量到新容器]
+  Swap --> Cleanup[60s 後清除舊容器]
+  Rollback --> End([結束])
+  Cleanup --> End
+  Block --> End
+
+  classDef terminal fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef decision fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef warn fill:#fef3c7,stroke:#d97706,color:#78350f
+  class Dev,End terminal
+  class Pass,HC decision
+  class Rollback,Block warn
+  </script>
+
+  <div class="toolbar">
+    <h1 id="title">系統架構</h1>
+    <select id="picker" class="picker"></select>
+    <label>主題
+      <select id="theme">
+        <option value="default">Light</option>
+        <option value="dark">Dark</option>
+        <option value="neutral">Neutral</option>
+        <option value="forest">Forest</option>
+      </select>
+    </label>
+    <label>字體
+      <input type="number" id="font-size" value="16" min="10" max="32" step="1" style="width: 56px;">
+      <span>px</span>
+    </label>
+    <button id="copy-svg">複製 SVG</button>
+    <button id="download-svg">下載 SVG</button>
+    <button id="download-png">下載 PNG</button>
+  </div>
+
+  <main>
+    <div class="preview" id="preview"></div>
+  </main>
+
+  <div class="desc" id="desc"></div>
+
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+
+    const preview = document.getElementById('preview');
+    const desc = document.getElementById('desc');
+    const themeSelect = document.getElementById('theme');
+    const fontSizeInput = document.getElementById('font-size');
+    const picker = document.getElementById('picker');
+
+    const blocks = Array.from(document.querySelectorAll('script[type="text/plain"][id]'));
+    let renderToken = 0;
+
+    function buildPicker() {
+      const archGroup = document.createElement('optgroup');
+      archGroup.label = '架構';
+      const flowGroup = document.createElement('optgroup');
+      flowGroup.label = '流程';
+      for (const b of blocks) {
+        const opt = document.createElement('option');
+        opt.value = b.id;
+        opt.textContent = b.dataset.label || b.id;
+        (b.dataset.kind === 'flow' ? flowGroup : archGroup).appendChild(opt);
+      }
+      if (archGroup.childNodes.length) picker.appendChild(archGroup);
+      if (flowGroup.childNodes.length) picker.appendChild(flowGroup);
+    }
+
+    function initMermaid() {
+      const theme = themeSelect.value;
+      mermaid.initialize({
+        startOnLoad: false, theme,
+        themeVariables: {
+          fontFamily: '"Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif',
+          fontSize: fontSizeInput.value + 'px',
+        },
+        flowchart: { useMaxWidth: false, htmlLabels: true },
+        sequence: { useMaxWidth: false },
+        securityLevel: 'loose',
+      });
+      document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
+    }
+
+    async function render() {
+      const id = picker.value;
+      const block = document.getElementById(id);
+      if (!block) return;
+      const code = block.textContent.trim();
+      const token = ++renderToken;
+      document.getElementById('title').textContent = block.dataset.label || id;
+      desc.innerHTML = block.dataset.desc || '';
+      desc.style.display = block.dataset.desc ? 'block' : 'none';
+      try {
+        initMermaid();
+        const { svg } = await mermaid.render('diagram-' + token, code);
+        if (token !== renderToken) return;
+        preview.innerHTML = svg;
+        elevateClusterLabels(preview.querySelector('svg'));
+      } catch (e) {
+        if (token !== renderToken) return;
+        const msg = (e && (e.message || e.str)) || String(e);
+        preview.innerHTML = '<div class="error">' + escapeHtml(msg) + '</div>';
+      }
+    }
+
+    // 把 subgraph 標題抬到 SVG 最後一個 child(SVG 無 z-index,DOM 順序 = 繪製順序)。
+    // 底色:取 page bg + 75% 不透明,讓 cluster 顏色透出 ~25%,既能辨識又跟 subgraph 融合;
+    // 加上 cluster 自己的 stroke 當細邊框,在視覺上跟所屬 subgraph 連動。
+    function elevateClusterLabels(svg) {
+      if (!svg) return;
+      const root = svg.firstElementChild && svg.firstElementChild.tagName.toLowerCase() === 'g'
+        ? svg.firstElementChild : svg;
+      const labels = Array.from(svg.querySelectorAll('.cluster-label'));
+      if (!labels.length) return;
+      const pageBg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#ffffff';
+
+      const entries = labels.map(label => {
+        const cluster = label.closest('.cluster');
+        const clusterRect = cluster && cluster.querySelector(':scope > rect');
+        let stroke = '#cbd5e1';
+        if (clusterRect) {
+          stroke = clusterRect.getAttribute('stroke')
+                || getComputedStyle(clusterRect).stroke
+                || stroke;
+        }
+        return { label, ctm: label.getCTM(), bbox: label.getBBox(), stroke };
+      });
+
+      for (const { label, ctm, bbox, stroke } of entries) {
+        if (!ctm) continue;
+        const wrapper = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        wrapper.setAttribute('transform', `matrix(${ctm.a} ${ctm.b} ${ctm.c} ${ctm.d} ${ctm.e} ${ctm.f})`);
+        wrapper.setAttribute('class', 'cluster-label-top');
+
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', bbox.x - 8);
+        rect.setAttribute('y', bbox.y - 2);
+        rect.setAttribute('width', bbox.width + 16);
+        rect.setAttribute('height', bbox.height + 4);
+        rect.setAttribute('fill', pageBg);
+        rect.setAttribute('fill-opacity', '0.78');
+        rect.setAttribute('stroke', stroke);
+        rect.setAttribute('stroke-width', '1');
+        rect.setAttribute('stroke-opacity', '0.6');
+        rect.setAttribute('rx', '4');
+        wrapper.appendChild(rect);
+
+        const clone = label.cloneNode(true);
+        clone.removeAttribute('transform');
+        wrapper.appendChild(clone);
+
+        label.style.opacity = '0';
+        root.appendChild(wrapper);
+      }
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    }
+
+    function downloadSVG() {
+      const svg = preview.querySelector('svg');
+      if (!svg) return;
+      const blob = new Blob([svg.outerHTML], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      triggerDownload(url, picker.value + '.svg');
+      URL.revokeObjectURL(url);
+    }
+
+    async function downloadPNG() {
+      const svg = preview.querySelector('svg');
+      if (!svg) return;
+      const serialized = new XMLSerializer().serializeToString(svg);
+      const blob = new Blob([serialized], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve; img.onerror = reject; img.src = url;
+      });
+      const scale = 2;
+      const w = svg.viewBox.baseVal.width || svg.clientWidth;
+      const h = svg.viewBox.baseVal.height || svg.clientHeight;
+      const canvas = document.createElement('canvas');
+      canvas.width = w * scale; canvas.height = h * scale;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = themeSelect.value === 'dark' ? '#0f172a' : '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.scale(scale, scale);
+      ctx.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      triggerDownload(canvas.toDataURL('image/png'), picker.value + '.png');
+    }
+
+    async function copySVG() {
+      const svg = preview.querySelector('svg');
+      if (!svg) return;
+      try {
+        await navigator.clipboard.writeText(svg.outerHTML);
+        flash('已複製 SVG');
+      } catch (e) {
+        flash('複製失敗:' + e.message);
+      }
+    }
+
+    function triggerDownload(href, filename) {
+      const a = document.createElement('a');
+      a.href = href; a.download = filename; a.click();
+    }
+
+    function flash(msg) {
+      const title = document.getElementById('title');
+      const original = title.textContent;
+      title.textContent = msg;
+      setTimeout(() => { title.textContent = original; }, 1500);
+    }
+
+    buildPicker();
+    picker.addEventListener('change', render);
+    themeSelect.addEventListener('change', render);
+    fontSizeInput.addEventListener('input', render);
+    document.getElementById('download-svg').addEventListener('click', downloadSVG);
+    document.getElementById('download-png').addEventListener('click', downloadPNG);
+    document.getElementById('copy-svg').addEventListener('click', copySVG);
+
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      themeSelect.value = 'dark';
+    }
+
+    render();
+  </script>
+</body>
+</html>

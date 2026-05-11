@@ -59,7 +59,8 @@ Template/
 ├── skills/                  Claude Code 原生 skill(可發佈到 GitHub 獨立分發)
 │   ├── init-project/        scaffold 新專案 skill(自包含,規範 cp + 代碼骨架)
 │   ├── start-dev/           啟動 backend + frontend dev server(自動 kill 舊 process)
-│   └── stop-dev/            停止 dev server
+│   ├── stop-dev/            停止 dev server
+│   └── create-arch-diagram/ 從內建模板 cp 出新架構圖 bundle 到 docs/Arch/diagrams/<name>/
 └── docs/Design-Base/
     ├── 00-overview/         跨領域共通底線(版本鎖定 / 機密 / 環境分層 / 時區 / API docs)
     ├── 01-propose/          版本演進 + Multi-agent 協議
