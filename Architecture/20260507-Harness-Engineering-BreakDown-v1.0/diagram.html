@@ -393,39 +393,50 @@ flowchart LR
 <strong>Demo 補充:</strong>讀 6.5.7 學習路徑(README §五)會更清楚每個角色該深讀哪幾單元。">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart TB
-  subgraph U1 ["U1 — 業務情境"]
+
+  subgraph Row1 [" "]
     direction LR
-    U1U["🟢 業務<br>寫 3 大痛點 + 落地優先序"]
-    U1I["🔵 IT<br>翻為可量測 SLA"]
-  end
-  subgraph U2 ["U2 — Agentic Engineer"]
-    direction LR
-    U2I["🔵 IT 主導(跨 L1-L4)<br>4 大職責:定目標 / 設計工作流 / 審查 / 改 Harness"]
-  end
-  subgraph U3 ["U3 — 上層工作流"]
-    direction LR
-    U3U["🟢 需求 +<br>主管報告"]
-    U3I["🔵 Control Plane<br>+ Review + 測試"]
-    U3S["🟣 品質 / NPI"]
-    U3C["🔴 ★ 維運告警"]
-  end
-  subgraph U4 ["U4 — Harness ★"]
-    direction LR
-    U4I["🔵 IT — 5 元件<br>Prompts / Tools / Memory / Tests / Hooks"]
-    U4C["🔴 ★ 3 元件<br>Sandbox / Logs / Audit"]
-  end
-  subgraph U45 ["U4.5 — Flywheel"]
-    direction LR
-    U45I["🔵 IT<br>Evals / Trajectory / Fine-tune"]
-    U45S["🟣 Reward 標記<br>(業務確認 ground truth)"]
-  end
-  subgraph U5 ["U5 — 基礎資源"]
-    direction LR
-    U5I["🔵 IT 平台<br>LLM / Repo ★ / Dashboard ★"]
-    U5S["🟣 共同維護<br>PLM / SOP / TestLog / DataHub"]
+    subgraph U1 ["U1 — 業務情境"]
+      direction LR
+      U1U["🟢 業務<br>寫 3 大痛點<br>+ 落地優先序"]
+      U1I["🔵 IT<br>翻為可量測 SLA"]
+    end
+    subgraph U2 ["U2 — Agentic Engineer"]
+      direction LR
+      U2I["🔵 IT 主導(跨 L1-L4)<br>定目標 / 設計工作流<br>審查 / 改 Harness"]
+    end
+    subgraph U3 ["U3 — 上層工作流"]
+      direction LR
+      U3U["🟢 需求 +<br>主管報告"]
+      U3I["🔵 Control Plane<br>+ Review + 測試"]
+      U3S["🟣 品質<br>/ NPI"]
+      U3C["🔴 ★ 維運<br>告警"]
+    end
   end
 
-  U1 --> U2 --> U3 --> U4 --> U45 --> U5
+  subgraph Row2 [" "]
+    direction LR
+    subgraph U4 ["U4 — Harness ★"]
+      direction LR
+      U4I["🔵 IT — 5 元件<br>Prompts / Tools / Mem<br>Tests / Hooks"]
+      U4C["🔴 ★ 3 元件<br>Sandbox / Logs<br>/ Audit"]
+    end
+    subgraph U45 ["U4.5 — Flywheel"]
+      direction LR
+      U45I["🔵 IT<br>Evals / Trajectory<br>/ Fine-tune"]
+      U45S["🟣 Reward 標記<br>(業務確認<br>ground truth)"]
+    end
+    subgraph U5 ["U5 — 基礎資源"]
+      direction LR
+      U5I["🔵 IT 平台<br>LLM / Repo ★<br>/ Dashboard ★"]
+      U5S["🟣 共同維護<br>PLM / SOP / TestLog<br>/ DataHub"]
+    end
+  end
+
+  Row1 ~~~ Row2
+
+  style Row1 fill:transparent,stroke:transparent
+  style Row2 fill:transparent,stroke:transparent
 
   classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
   classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
@@ -1140,6 +1151,8 @@ flowchart LR
       const pageBg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#ffffff';
 
       const entries = labels.map(label => {
+        const text = (label.textContent || '').trim();
+        if (!text) { label.style.opacity = '0'; return null; } // 空 / 純空白標籤直接隱藏(例 Row1/Row2 wrapper)
         const cluster = label.closest('.cluster');
         const clusterRect = cluster && cluster.querySelector(':scope > rect');
         let stroke = '#cbd5e1';
@@ -1149,7 +1162,7 @@ flowchart LR
                 || stroke;
         }
         return { label, ctm: label.getCTM(), bbox: label.getBBox(), stroke };
-      });
+      }).filter(Boolean);
 
       for (const { label, ctm, bbox, stroke } of entries) {
         if (!ctm) continue;
