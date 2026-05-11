@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'><line x1='8' y1='4.5' x2='4' y2='11.5' stroke='%232563eb' stroke-width='1.4' stroke-linecap='round'/><line x1='8' y1='4.5' x2='12' y2='11.5' stroke='%232563eb' stroke-width='1.4' stroke-linecap='round'/><circle cx='8' cy='4' r='2.5' fill='%232563eb'/><circle cx='4' cy='12' r='2.5' fill='%2360a5fa'/><circle cx='12' cy='12' r='2.5' fill='%2360a5fa'/></svg>">
+  <title>Harness Engineering — 架構 Breakdown v1.0</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --toolbar-bg: #f8fafc;
+      --btn-bg: #ffffff;
+      --btn-hover: #f1f5f9;
+      --accent: #2563eb;
+      --error: #dc2626;
+    }
+    [data-theme="dark"] {
+      --bg: #0f172a;
+      --fg: #f1f5f9;
+      --muted: #94a3b8;
+      --border: #334155;
+      --toolbar-bg: #1e293b;
+      --btn-bg: #1e293b;
+      --btn-hover: #334155;
+      --accent: #60a5fa;
+      --error: #f87171;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      font-family: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--fg);
+    }
+    .toolbar {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      padding: 14px 20px;
+      background: var(--toolbar-bg);
+      border-bottom: 2px solid var(--border);
+      align-items: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+    .toolbar h1 {
+      font-size: 18px;
+      margin: 0;
+      margin-right: auto;
+      font-weight: 700;
+      color: var(--accent);
+      padding-left: 12px;
+      border-left: 4px solid var(--accent);
+      line-height: 1.3;
+      letter-spacing: 0.02em;
+    }
+    .toolbar .divider {
+      width: 1px; height: 24px; background: var(--border); margin: 0 4px;
+    }
+    .toolbar button, .toolbar select, .toolbar input {
+      padding: 7px 12px; font-size: 13px;
+      border: 1px solid var(--border);
+      background: var(--btn-bg); color: var(--fg);
+      border-radius: 5px; cursor: pointer; font-family: inherit;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .toolbar button:hover, .toolbar select:hover {
+      background: var(--btn-hover); border-color: var(--accent);
+    }
+    .toolbar label {
+      font-size: 12px; color: var(--muted);
+      display: inline-flex; align-items: center; gap: 6px;
+      font-weight: 500;
+    }
+    .toolbar .picker {
+      font-weight: 600; min-width: 220px;
+      border-color: var(--accent); color: var(--fg);
+    }
+    main { height: calc(100vh - 64px); }
+    .preview {
+      width: 100%; height: 100%; overflow: auto;
+      padding: 32px 24px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+    .preview svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+    .preview svg { max-width: 100%; height: auto; }
+    .error {
+      color: var(--error); padding: 16px;
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 13px; white-space: pre-wrap; text-align: left;
+    }
+    .desc {
+      position: fixed; right: 16px; bottom: 16px;
+      max-width: 320px; padding: 12px 14px;
+      background: var(--toolbar-bg);
+      border: 1px solid var(--border); border-radius: 6px;
+      font-size: 12px; line-height: 1.6; color: var(--muted);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .desc strong { color: var(--fg); }
+  </style>
+</head>
+<body>
+  <!--
+    一個檔案內可放 1 張架構圖 + N 張流程圖。
+    新增流程圖 → 複製一份 <script type="text/plain"> 區塊,改 id / data-label / data-kind 即可。
+    用任何文字編輯器(VSCode / Notepad)打開本檔修改,存檔後重新整理瀏覽器即可。
+
+    規約:
+      id 命名 = arch(主架構)/ flow-<topic>(各流程)
+      data-label = 工具列下拉顯示文字
+      data-kind = "architecture" | "flow"(切換時自動帶分組標籤)
+      data-desc = 右下小字說明(對應架構節點 / 為什麼這條流程存在)
+  -->
+
+  <script type="text/plain" id="arch" data-label="① 5 層架構總覽" data-kind="architecture"
+          data-desc="<strong>五層 + 飛輪:</strong>業務情境 → Agentic Engineer 角色 → Agentic Engineering(上層工作流)→ <strong>Harness Engineering ★(合規層)</strong>→ Flywheel(可延續經營)→ 基礎資源(物質基礎)。下層支撐上層。">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart TB
+  L1["① 公司 / 業務情境<br><i>提升交付效率 / 知識複用 / 跨部門協作</i>"]
+  L2["② Agentic Engineer 人類角色<br><i>定義目標 / 設計工作流 / 審查 / 持續改善</i>"]
+  L3["③ Agentic Engineering(上層工作流)<br><i>Control Plane + 6 種 Agent</i>"]
+  L4["④ Harness Engineering ★<br><i>執行底座:8 元件 / Coolify 主合規層</i>"]
+  L45["④.5 Domain Model Flywheel<br><i>Evals → Reward → Trajectory → Fine-tune → Domain Model</i>"]
+  L5["⑤ 基礎資源 / 系統<br><i>LLM / Repo / PLM / Test Logs / SOP / Dashboard</i>"]
+
+  L1 --> L2 --> L3 --> L4
+  L4 --> L45
+  L4 --> L5
+  L45 -.延伸學習.-> L5
+
+  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef flywheel fill:#fed7aa,stroke:#ea580c,color:#7c2d12
+  class L4 critical
+  class L45 flywheel
+  </script>
+
+  <script type="text/plain" id="arch-u3" data-label="② U3 — Agentic Engineering 上層工作流" data-kind="architecture"
+          data-desc="<strong>Control Plane / Leader Agent</strong>(任務分派 / Shared Memory / Tool Gateway)統籌 <strong>6 種 Agent</strong> 分工。Leader 自己也是 Agent;Tool Gateway 對接 U4 的 Tools/MCP。">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart TB
+  subgraph CP ["Control Plane / Leader Agent"]
+    direction LR
+    Task[任務分派<br><i>切子任務 / 派 Agent</i>]
+    Mem[Shared Memory<br><i>跨 Agent 上下文</i>]
+    Gate[Tool Gateway<br><i>白名單 / 配額</i>]
+  end
+
+  subgraph AG ["6 種 Agent 分工"]
+    direction LR
+    A1["① 需求業務<br>Agent<br><i>口語 → 結構化規格</i>"]
+    A2["② 設計 Review<br>Agent<br><i>對齊 Spec / 排除衝突</i>"]
+    A3["③ 測試 / 驗證<br>Agent<br><i>跑 Evals + 回 Trajectory</i>"]
+    A4["④ 品質 / NPI<br>Agent<br><i>對 PLM / BOM 把關</i>"]
+    A5["⑤ 維運 / 告警<br>Agent<br><i>接 Coolify 告警</i>"]
+    A6["⑥ 主管報告<br>Agent<br><i>產進度 / 摘要</i>"]
+  end
+
+  CP -->|分派 + Memory 仲裁| AG
+
+  classDef leader fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef devops fill:#fef3c7,stroke:#d97706,color:#78350f
+  class Task,Mem,Gate leader
+  class A5 devops
+  </script>
+
+  <script type="text/plain" id="arch-u3-s1" data-label="②.1 U3 — Control Plane 內部運作" data-kind="architecture"
+          data-desc="<strong>Leader 三大職責:</strong>任務分派(切子任務)/ Memory 仲裁(讀寫衝突)/ Tool Gateway(白名單 + 配額)。Agent 不直接呼工具,所有 IO 經 Leader 收口。">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart TB
+  In([業務目標 / 需求進入]) --> Lead[Leader Agent<br><i>接收 + 解析</i>]
+
+  subgraph CP3 ["Control Plane 三職責"]
+    direction LR
+    Task[任務分派<br><i>切子任務</i>]
+    Mem[Shared Memory<br><i>讀寫仲裁</i>]
+    Gate[Tool Gateway<br><i>白名單 + 配額</i>]
+  end
+
+  Lead --> CP3
+  Task -->|派| Agent1[指派的 Agent<br><i>需求 / 設計 / 測試 ...</i>]
+  Mem -.讀 context.-> Agent1
+  Gate -.授權 tool 呼叫.-> Agent1
+  Agent1 -->|寫結果 / log| Mem
+  Mem --> Done([子任務完成])
+
+  classDef leader fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef control fill:#fef3c7,stroke:#d97706,color:#78350f
+  classDef terminal fill:#dcfce7,stroke:#16a34a,color:#14532d
+  class Lead leader
+  class Task,Mem,Gate control
+  class In,Done terminal
+  </script>
+
+  <script type="text/plain" id="arch-u4" data-label="③ U4 — Harness Engineering 8 元件 ★" data-kind="architecture"
+          data-desc="<strong>Agent = Model + Harness</strong>。8 元件分管理面(Prompts/Tools/Memory/Sandbox)+ 運維面(Tests/Logs/Hooks/Audit)。Sandbox 是 Coolify 6 條合規中最易踩雷的一條。">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart TB
+  subgraph H ["Harness Engineering — 共通 Agent 可控 / 可觀察 / 可治理"]
+    subgraph Manage ["管理面(設計時 / Spec)"]
+      direction TB
+      C1["Prompts / Spec<br><i>Git PR / 禁熱改</i>"]
+      C2["Tools / MCP / API<br><i>Tool Gateway 收口</i>"]
+      C3["文件 / 知識 / Memory<br><i>Redis 短期 + RAG 長期</i>"]
+      C4["Sandbox / 權限授權 ★<br><i>non-root / read-only / tmpfs</i>"]
+    end
+    subgraph Operate ["運維面(執行時 / Runtime)"]
+      direction TB
+      C5["Verification / Tests / CI<br><i>Prompt 改 = CI 跑</i>"]
+      C6["Logs / Traces / Observability<br><i>Trace ID 串聯</i>"]
+      C7["Middleware / Hooks / Guard<br><i>運行中安全 / 風控</i>"]
+      C8["風險 / 落為 / Audit Trail<br><i>誰部署 / 誰核准</i>"]
+    end
+  end
+
+  Eq["Agent = Model + Harness<br><i>Harness 是承載 Agent 的 runtime / control substrate</i>"]
+  H --- Eq
+
+  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef hint fill:#f3f4f6,stroke:#6b7280,color:#374151,font-style:italic
+  class C4 critical
+  class Eq hint
+  </script>
+
+  <script type="text/plain" id="arch-u4-s1" data-label="③.1 U4 — Sandbox ★ 三層隔離" data-kind="architecture"
+          data-desc="<strong>Coolify 6 條合規中最易踩雷的一條(第 3 條)。</strong>三層由內而外:User Namespace(non-root)→ Filesystem(read-only + tmpfs)→ Network(內網限定)。三層任一缺,Sandbox 不成立。">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart TB
+  Proc[Agent process<br><i>跑 LLM 推論 / 工具呼叫</i>]
+
+  subgraph L1 ["Layer 1 — User Namespace"]
+    NR[non-root user<br><i>compose: user: 1000:1000</i><br>禁 sudo / chmod /]
+  end
+
+  subgraph L2 ["Layer 2 — Filesystem"]
+    direction LR
+    RO[Root: read-only<br><i>read_only: true</i>]
+    TMP[Writable: tmpfs<br><i>限 /tmp + /run</i>]
+  end
+
+  subgraph L3 ["Layer 3 — Network"]
+    NET[僅內網<br><i>Docker network 限定<br>禁外網 egress</i>]
+  end
+
+  Proc -.被約束於.-> L1
+  Proc -.被約束於.-> L2
+  Proc -.被約束於.-> L3
+
+  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef process fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  class Proc process
+  class NR,RO,TMP,NET critical
+  </script>
+
+  <script type="text/plain" id="arch-u4-s2" data-label="③.2 U4 — Memory 雙層架構" data-kind="architecture"
+          data-desc="<strong>短期 = Redis</strong>(session / cross-agent context,TTL 與任務生命週期對齊);<strong>長期 = RAG</strong>(Vector DB + Embedding,接 DataFlow 的 AI RAG 知識庫)。Tool Gateway 統一收口,Agent 不直連任何 store。">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart LR
+  Agent[Agent process]
+
+  subgraph ST ["短期 Memory(Redis)"]
+    direction TB
+    Redis[(Redis<br><i>session / cache</i>)]
+    TTL["TTL: 與任務生命週期對齊"]
+    Redis --- TTL
+  end
+
+  subgraph LT ["長期知識(RAG)"]
+    direction TB
+    Doc[文件庫 / 主檔]
+    Emb[Embedding 模型]
+    Vec[(Vector DB<br><i>pgvector / Qdrant</i>)]
+    Doc -->|index| Emb
+    Emb -->|向量| Vec
+  end
+
+  TG[Tool Gateway<br><i>權限收口</i>]
+  Agent -->|短期讀寫| TG
+  Agent -->|長期查詢| TG
+  TG --> ST
+  TG --> LT
+
+  classDef gateway fill:#fef3c7,stroke:#d97706,color:#78350f
+  classDef process fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  class TG gateway
+  class Agent process
+  </script>
+
+  <script type="text/plain" id="flow-u4-s3" data-label="③.3 U4 — Verification / CI Pipeline" data-kind="flow"
+          data-desc="<strong>Prompt 變動 = code 變動</strong>。任何 Prompt / Spec 改動走 Git PR + CI(Lint + Eval),通過才能 merge,Coolify 自動部署。Eval ≥ 閾值是硬門檻。">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart LR
+  Change([Prompt / Spec 改動]) --> PR[Git PR]
+  PR --> Lint{Lint 通過?}
+  Lint -->|否| Block[阻擋 merge<br>通知作者]
+  Lint -->|是| Eval{Eval 分數<br>≥ 閾值?}
+  Eval -->|否| Block
+  Eval -->|是| Merge[Merge to main]
+  Merge --> Hook[Coolify Webhook]
+  Hook --> Deploy[自動 build + deploy]
+  Deploy --> Done([Prompt 上線])
+  Block --> End([回退])
+
+  classDef terminal fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef decision fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef warn fill:#fef3c7,stroke:#d97706,color:#78350f
+  class Change,Done,End terminal
+  class Lint,Eval decision
+  class Block warn
+  </script>
+
+  <script type="text/plain" id="flow-u4-s4" data-label="③.4 U4 — Audit Trail 軌跡" data-kind="flow"
+          data-desc="<strong>合規追溯:誰部署 / 誰核准模型上線 / 誰改 Prompt / 誰調白名單</strong>。Audit Hook 是 middleware 收口,append-only DB,reviewer 可查不可改。">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart TB
+  subgraph Actions ["可審計動作"]
+    direction LR
+    A1[誰部署]
+    A2[誰核准<br>模型上線]
+    A3[誰改 Prompt]
+    A4[誰調白名單]
+  end
+
+  Actions --> Hook[Audit Hook<br><i>middleware 收口</i>]
+  Hook --> Log[結構化 Audit Log<br><i>actor / action / target / time</i>]
+  Log --> Store[(Audit DB<br><i>append-only</i>)]
+  Store --> Review[Reviewer 查詢<br><i>合規追溯</i>]
+
+  classDef append fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef review fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef hook fill:#fef3c7,stroke:#d97706,color:#78350f
+  class Store append
+  class Review review
+  class Hook hook
+  </script>
+
+  <script type="text/plain" id="flow-u4-5" data-label="④ U4.5 — Domain Model Flywheel 迴路" data-kind="flow"
+          data-desc="<strong>飛輪本質:</strong>真實業務資料 → Eval → Reward → Trajectory → Fine-tune → 公司專屬 Model,迴圈累積。<strong>關鍵約束:</strong>資料須脫敏 / Reward 不可由 LLM 自評。">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart LR
+  F1["① 公司資料 / 任務來源<br><i>SOP / PLM / Test Logs / 客服</i>"] --> F2["② Evals<br><i>可量測指標</i>"]
+  F2 --> F3["③ Reward / Success Signal<br><i>U2 Engineer 審查結果</i>"]
+  F3 --> F4["④ Trajectories / Failure Cases<br><i>對 / 錯標記</i>"]
+  F4 --> F5["⑤ Fine-tuning<br><i>LoRA / RLVR</i>"]
+  F5 --> F6["⑥ 公司專用 Domain Model"]
+  F6 -.飛輪迴圈.-> F1
+  F6 --> Harness["融合回 U4 Harness Engineering"]
+
+  classDef start fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef end fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  class F1 start
+  class Harness end
+  class F3 critical
+  </script>
+
+  <script type="text/plain" id="flow-u4-5-s1" data-label="④.1 U4.5 — Reward 標記循環" data-kind="flow"
+          data-desc="<strong>Reward 不可由 LLM 自評</strong>(self-reward bias)。Engineer(U2)審查 Trajectory → 標 positive / negative → 進 Fine-tune dataset → 影響下次 Domain Model。">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart LR
+  Run[Agent 跑出<br>Trajectory] --> Eng[U2 Agentic Engineer<br>審查]
+  Eng -->|好| Pos[標 Positive<br><i>好範例</i>]
+  Eng -->|壞| Neg[標 Negative<br><i>失敗案例</i>]
+  Pos --> Train[Fine-tune dataset]
+  Neg --> Train
+  Train --> Model[Domain Model<br><i>新版本</i>]
+  Model -.延伸下次.-> Run
+
+  Anti["⚠ 禁:LLM self-reward bias<br><i>不可由 LLM 自己評</i>"] -.約束.- Eng
+
+  classDef warn fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef positive fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef negative fill:#fef3c7,stroke:#d97706,color:#78350f
+  classDef model fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  class Anti warn
+  class Pos positive
+  class Neg negative
+  class Model model
+  </script>
+
+  <script type="text/plain" id="arch-u5" data-label="⑤ U5 — 基礎資源 / 系統" data-kind="architecture"
+          data-desc="<strong>物質基礎,沒這層上面皆空談。</strong>★ 標記者直接連動 Coolify(Repo / Dashboard);其他經 U4 Tools / Memory 收口接入。">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart TB
+  subgraph U5 ["⑤ 基礎資源 / 系統"]
+    subgraph Row1 ["核心 / 模型 / 知識"]
+      direction LR
+      R1["LLM / Coding Model<br><i>Claude / GPT / Ollama</i>"]
+      R2["Repo / Code ★<br><i>連動 Coolify push 即部署</i>"]
+      R3["PLM / BOM<br><i>產品壽命 / 物料</i>"]
+    end
+    subgraph Row2 ["驗證 / 文件 / 觀測"]
+      direction LR
+      R4["Test Logs<br><i>歷史測試紀錄</i>"]
+      R5["SOP / 規格文件<br><i>作業標準</i>"]
+      R6["Dashboard / Metrics ★<br><i>連動 Coolify 觀測</i>"]
+    end
+  end
+
+  classDef coolify fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  class R2,R6 coolify
+  </script>
+
+  <script type="text/plain" id="arch-u5-s1" data-label="⑤.1 U5 — Coolify 連動 2 個關鍵資源" data-kind="architecture"
+          data-desc="<strong>Repo / Code ★</strong> 由 Coolify watch(push 即部署);<strong>Dashboard / Metrics ★</strong> 由 Coolify collect(stdout JSON → Loki / Sentry)。其他 4 個資源(LLM / PLM / Test Logs / SOP)經 U4 Tools / Memory 收口接入。">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart TB
+  Coolify[(Coolify Host)]
+
+  subgraph Repo ["Repo / Code ★"]
+    direction TB
+    Git[Developer<br>push to main]
+    Hook[Coolify Webhook]
+    Auto[自動 build + deploy]
+    Git --> Hook --> Auto
+  end
+
+  subgraph Dash ["Dashboard / Metrics ★"]
+    direction TB
+    Stdout[Container stdout<br><i>JSON 結構化</i>]
+    Loki[Loki / Seq<br><i>log 聚合</i>]
+    Sentry[Sentry / Grafana<br><i>告警 + 指標</i>]
+    Stdout --> Loki --> Sentry
+  end
+
+  Coolify -.會 watch.- Repo
+  Coolify -.會 collect.- Dash
+
+  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef host fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  class Repo,Dash critical
+  class Coolify host
+  </script>
+
+  <div class="toolbar">
+    <h1 id="title">Harness Engineering — Breakdown v1.0</h1>
+    <select id="picker" class="picker"></select>
+    <label>主題
+      <select id="theme">
+        <option value="default">Light</option>
+        <option value="dark">Dark</option>
+        <option value="neutral">Neutral</option>
+        <option value="forest">Forest</option>
+      </select>
+    </label>
+    <label>字體
+      <input type="number" id="font-size" value="16" min="10" max="32" step="1" style="width: 56px;">
+      <span>px</span>
+    </label>
+    <button id="copy-svg">複製 SVG</button>
+    <button id="download-svg">下載 SVG</button>
+    <button id="download-png">下載 PNG</button>
+  </div>
+
+  <main>
+    <div class="preview" id="preview"></div>
+  </main>
+
+  <div class="desc" id="desc"></div>
+
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+
+    const preview = document.getElementById('preview');
+    const desc = document.getElementById('desc');
+    const themeSelect = document.getElementById('theme');
+    const fontSizeInput = document.getElementById('font-size');
+    const picker = document.getElementById('picker');
+
+    const blocks = Array.from(document.querySelectorAll('script[type="text/plain"][id]'));
+    let renderToken = 0;
+
+    function buildPicker() {
+      const archGroup = document.createElement('optgroup');
+      archGroup.label = '架構';
+      const flowGroup = document.createElement('optgroup');
+      flowGroup.label = '流程';
+      for (const b of blocks) {
+        const opt = document.createElement('option');
+        opt.value = b.id;
+        opt.textContent = b.dataset.label || b.id;
+        (b.dataset.kind === 'flow' ? flowGroup : archGroup).appendChild(opt);
+      }
+      if (archGroup.childNodes.length) picker.appendChild(archGroup);
+      if (flowGroup.childNodes.length) picker.appendChild(flowGroup);
+    }
+
+    function initMermaid() {
+      const theme = themeSelect.value;
+      mermaid.initialize({
+        startOnLoad: false, theme,
+        themeVariables: {
+          fontFamily: '"Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif',
+          fontSize: fontSizeInput.value + 'px',
+        },
+        flowchart: { useMaxWidth: false, htmlLabels: true },
+        sequence: { useMaxWidth: false },
+        securityLevel: 'loose',
+      });
+      document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
+    }
+
+    async function render() {
+      const id = picker.value;
+      const block = document.getElementById(id);
+      if (!block) return;
+      const code = block.textContent.trim();
+      const token = ++renderToken;
+      document.getElementById('title').textContent = block.dataset.label || id;
+      desc.innerHTML = block.dataset.desc || '';
+      desc.style.display = block.dataset.desc ? 'block' : 'none';
+      try {
+        initMermaid();
+        const { svg } = await mermaid.render('diagram-' + token, code);
+        if (token !== renderToken) return;
+        preview.innerHTML = svg;
+        elevateClusterLabels(preview.querySelector('svg'));
+      } catch (e) {
+        if (token !== renderToken) return;
+        const msg = (e && (e.message || e.str)) || String(e);
+        preview.innerHTML = '<div class="error">' + escapeHtml(msg) + '</div>';
+      }
+    }
+
+    // 把 subgraph 標題抬到 SVG 最後一個 child(SVG 無 z-index,DOM 順序 = 繪製順序)。
+    // 底色:取 page bg + 75% 不透明,讓 cluster 顏色透出 ~25%,既能辨識又跟 subgraph 融合;
+    // 加上 cluster 自己的 stroke 當細邊框,在視覺上跟所屬 subgraph 連動。
+    function elevateClusterLabels(svg) {
+      if (!svg) return;
+      const root = svg.firstElementChild && svg.firstElementChild.tagName.toLowerCase() === 'g'
+        ? svg.firstElementChild : svg;
+      const labels = Array.from(svg.querySelectorAll('.cluster-label'));
+      if (!labels.length) return;
+      const pageBg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#ffffff';
+
+      const entries = labels.map(label => {
+        const cluster = label.closest('.cluster');
+        const clusterRect = cluster && cluster.querySelector(':scope > rect');
+        let stroke = '#cbd5e1';
+        if (clusterRect) {
+          stroke = clusterRect.getAttribute('stroke')
+                || getComputedStyle(clusterRect).stroke
+                || stroke;
+        }
+        return { label, ctm: label.getCTM(), bbox: label.getBBox(), stroke };
+      });
+
+      for (const { label, ctm, bbox, stroke } of entries) {
+        if (!ctm) continue;
+        const wrapper = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        wrapper.setAttribute('transform', `matrix(${ctm.a} ${ctm.b} ${ctm.c} ${ctm.d} ${ctm.e} ${ctm.f})`);
+        wrapper.setAttribute('class', 'cluster-label-top');
+
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', bbox.x - 8);
+        rect.setAttribute('y', bbox.y - 2);
+        rect.setAttribute('width', bbox.width + 16);
+        rect.setAttribute('height', bbox.height + 4);
+        rect.setAttribute('fill', pageBg);
+        rect.setAttribute('fill-opacity', '0.78');
+        rect.setAttribute('stroke', stroke);
+        rect.setAttribute('stroke-width', '1');
+        rect.setAttribute('stroke-opacity', '0.6');
+        rect.setAttribute('rx', '4');
+        wrapper.appendChild(rect);
+
+        const clone = label.cloneNode(true);
+        clone.removeAttribute('transform');
+        wrapper.appendChild(clone);
+
+        label.style.opacity = '0';
+        root.appendChild(wrapper);
+      }
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    }
+
+    function downloadSVG() {
+      const svg = preview.querySelector('svg');
+      if (!svg) return;
+      const blob = new Blob([svg.outerHTML], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      triggerDownload(url, picker.value + '.svg');
+      URL.revokeObjectURL(url);
+    }
+
+    async function downloadPNG() {
+      const svg = preview.querySelector('svg');
+      if (!svg) return;
+      const serialized = new XMLSerializer().serializeToString(svg);
+      const blob = new Blob([serialized], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve; img.onerror = reject; img.src = url;
+      });
+      const scale = 2;
+      const w = svg.viewBox.baseVal.width || svg.clientWidth;
+      const h = svg.viewBox.baseVal.height || svg.clientHeight;
+      const canvas = document.createElement('canvas');
+      canvas.width = w * scale; canvas.height = h * scale;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = themeSelect.value === 'dark' ? '#0f172a' : '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.scale(scale, scale);
+      ctx.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      triggerDownload(canvas.toDataURL('image/png'), picker.value + '.png');
+    }
+
+    async function copySVG() {
+      const svg = preview.querySelector('svg');
+      if (!svg) return;
+      try {
+        await navigator.clipboard.writeText(svg.outerHTML);
+        flash('已複製 SVG');
+      } catch (e) {
+        flash('複製失敗:' + e.message);
+      }
+    }
+
+    function triggerDownload(href, filename) {
+      const a = document.createElement('a');
+      a.href = href; a.download = filename; a.click();
+    }
+
+    function flash(msg) {
+      const title = document.getElementById('title');
+      const original = title.textContent;
+      title.textContent = msg;
+      setTimeout(() => { title.textContent = original; }, 1500);
+    }
+
+    buildPicker();
+    picker.addEventListener('change', render);
+    themeSelect.addEventListener('change', render);
+    fontSizeInput.addEventListener('input', render);
+    document.getElementById('download-svg').addEventListener('click', downloadSVG);
+    document.getElementById('download-png').addEventListener('click', downloadPNG);
+    document.getElementById('copy-svg').addEventListener('click', copySVG);
+
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      themeSelect.value = 'dark';
+    }
+
+    render();
+  </script>
+</body>
+</html>

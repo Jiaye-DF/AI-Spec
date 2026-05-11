@@ -25,6 +25,38 @@
 
 ---
 
+## 視覺索引(diagram.html)
+
+互動式 HTML 圖檔:[`diagram.html`](diagram.html)(雙擊瀏覽器即開,工具列下拉切換)。
+
+### 主架構(picker「架構」群)
+
+| # | 工具列標籤 | 對應 / 重點 |
+| --- | --- | --- |
+| ① | 5 層架構總覽 | 本檔(融合 U1–U5 + Flywheel) |
+| ② | U3 — Agentic Engineering 上層工作流 | [U3-Agentic-Engineering.md](U3-Agentic-Engineering.md) |
+| ②.1 | U3 — Control Plane 內部運作 | Leader 三職責:任務分派 / Memory 仲裁 / Tool Gateway |
+| ③ | U4 — Harness Engineering 8 元件 ★ | [U4-Harness-Engineering.md](U4-Harness-Engineering.md) |
+| ③.1 | U4 — Sandbox ★ 三層隔離 | Coolify 合規第 3 條,User NS / Filesystem / Network |
+| ③.2 | U4 — Memory 雙層架構 | Redis 短期 + RAG 長期 + Tool Gateway 收口 |
+| ⑤ | U5 — 基礎資源 / 系統 | [U5-Foundation-Resources.md](U5-Foundation-Resources.md) |
+| ⑤.1 | U5 — Coolify 連動 2 個關鍵資源 | Repo + Dashboard 直連 Coolify |
+
+### 流程 / 迴路(picker「流程」群)
+
+| # | 工具列標籤 | 對應 / 重點 |
+| --- | --- | --- |
+| ③.3 | U4 — Verification / CI Pipeline | Prompt 改 = code 改;Lint + Eval 雙關卡 |
+| ③.4 | U4 — Audit Trail 軌跡 | 誰部署 / 誰核准 / 誰改 Prompt,append-only |
+| ④ | U4.5 — Domain Model Flywheel 迴路 | [U4.5-Domain-Model-Flywheel.md](U4.5-Domain-Model-Flywheel.md) |
+| ④.1 | U4.5 — Reward 標記循環 | Engineer 審查 → label → Fine-tune dataset |
+
+> **U1 / U2 / 附件不出圖**:U1 業務情境與 U2 角色定義是脈絡性內容,以文字承載即可;Coolify 合規以對照表表達(見附件)。
+> **小數點編號 = sub-diagram**:`②.1` 是 `②` 的 zoom-in,維持「大模組(U-level)看總覽,sub 看細節」的兩層結構。
+> **圖內容變動 → 對應 MD 文件同步**:`diagram.html` 是視覺層,單元 MD 是文字層。改架構節點 / 元件名稱時,兩處須一致(由本檔 § 六維護準則收口)。
+
+---
+
 ## 二、學習單元一覽
 
 | 單元 | 對應圖層 | 核心內容 | Coolify 合規關聯 | 文件 |
