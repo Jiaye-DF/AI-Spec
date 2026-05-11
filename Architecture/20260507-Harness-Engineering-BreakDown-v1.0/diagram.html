@@ -285,6 +285,10 @@
     .card.it { border-left-color: #2563eb; }
     .card.shared { border-left-color: #9333ea; }
     .card.critical { border-left-color: #dc2626; }
+    .card-badges {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      margin-bottom: 10px;
+    }
     .card-badge {
       display: inline-block;
       font-size: 12.5px; font-weight: 700;
@@ -294,6 +298,18 @@
       align-self: flex-start;
       letter-spacing: 0.02em;
     }
+    .card-badges .card-badge { margin-bottom: 0; }
+    .card-tag {
+      display: inline-block;
+      font-size: 11.5px;
+      padding: 3px 8px;
+      border-radius: 5px;
+      background: var(--btn-hover);
+      color: var(--muted);
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    [data-theme="dark"] .card-tag { background: rgba(148, 163, 184, 0.15); }
     .card.user .card-badge { background: #dcfce7; color: #14532d; }
     .card.it .card-badge { background: #dbeafe; color: #1e3a8a; }
     .card.shared .card-badge { background: #f3e8ff; color: #581c87; }
@@ -578,9 +594,11 @@ flowchart LR
       </div>
     </div>
     <div class="raci-cell">
-      <div class="raci-title">U2 — Agentic Engineer</div>
+      <div class="raci-title">U2 — Agentic Engineer ▸ Vibe Coding 版</div>
       <div class="raci-items">
-        <div class="raci-item it">🔵 IT 主導(跨 L1-L4)<br>4 大職責:定目標 / 設計工作流 / 審查 / 改 Harness</div>
+        <div class="raci-item user">🟢 User:定義目標(自行用 AI 開發)</div>
+        <div class="raci-item shared">🟣 共同:設計工作流 + 審查結果</div>
+        <div class="raci-item it">🔵 IT:持續改善 Harness 底座</div>
       </div>
     </div>
     <div class="raci-cell has-star">
@@ -615,7 +633,7 @@ flowchart LR
     </div>
   </div>
   <div class="raci-foot">
-    <strong>讀法:</strong>使用者(🟢)只主導 2 格(U1 痛點 + U3 需求/主管報告)· IT(🔵)是主軸覆蓋 U2-U4.5 全程 · 共同(🟣)三區(U3 品質/NPI + U4.5 Reward + U5 業務主檔)· <strong style="color:#dc2626">★ Critical(🔴)5 點</strong>(U3 維運告警 + U4 Sandbox/Logs/Audit + U5 Repo/Dashboard),Coolify 上線前每條必過。
+    <strong>讀法(Vibe Coding 版):</strong>使用者(🟢)主導 3 格(U1 痛點 + <strong>U2 定義目標</strong> + U3 需求/主管報告) · 共同(🟣)擴增到 4 區(<strong>U2 設計+審查</strong> + U3 品質/NPI + U4.5 Reward + U5 業務主檔) · IT(🔵)聚焦平台底座(U4 Harness + U4.5 訓練 + U5 IT 平台 + U2 持續改善) · <strong style="color:#dc2626">★ Critical(🔴)5 點</strong>(U3 維運告警 + U4 Sandbox/Logs/Audit + U5 Repo/Dashboard)。
   </div>
 </div>
   </script>
@@ -629,35 +647,46 @@ flowchart LR
           data-desc="">
 <div class="cards-wrap">
   <div class="cards-head">
-    <strong>U2 — Agentic Engineer 4 大職責</strong>
-    <span>· 🔵 IT 主導,跨 L1-L4 ·</span>
-    <span>Vibe Coding 公司關鍵差異</span>
+    <strong>U2 — 4 大職責(Vibe Coding 版)</strong>
+    <span>· 🟢 User 主導開發 + 🔵 IT 提供平台底座 + 治理 ·</span>
   </div>
   <div class="cards-grid cols-2">
-    <div class="card it">
-      <span class="card-badge">🔵 IT 主導</span>
+    <div class="card user">
+      <div class="card-badges">
+        <span class="card-badge">🟢 業務</span>
+        <span class="card-tag">主導</span>
+      </div>
       <div class="card-title"><span class="card-num">1.</span>定義目標 / 需求</div>
-      <div class="card-body">把業務痛點翻成<strong>可量測 SLA</strong>(例「Triage 平均 ≤ 10 分鐘」)。成功訊號餵 U4.5 飛輪 Reward 階段。</div>
+      <div class="card-body">Vibe Coding 模式 — <strong>業務使用者用 AI 自行寫需求</strong>,翻成可量測 SLA(例「Triage 平均 ≤ 10 分鐘」)。成功訊號餵 U4.5 飛輪 Reward 階段。</div>
     </div>
-    <div class="card it">
-      <span class="card-badge">🔵 IT</span>
+    <div class="card shared">
+      <div class="card-badges">
+        <span class="card-badge">🟣 共同</span>
+        <span class="card-tag">User 拉草稿 · IT 給模板</span>
+      </div>
       <div class="card-title"><span class="card-num">2.</span>設計工作流</div>
-      <div class="card-body">決定幾個 Agent、誰是 Leader、Memory 怎麼接、Tool Gateway 收口。<strong>不寫程式但要能畫工作流圖</strong>。</div>
+      <div class="card-body">User 用 AI 拉初版工作流(幾 Agent / 接 Memory / 呼工具);<strong>IT 提供 Spec 模板 + Tool Gateway 規則 + 範例 Repo</strong>。</div>
     </div>
-    <div class="card critical">
-      <span class="card-badge">🔴 ★ 人類介入</span>
+    <div class="card shared">
+      <div class="card-badges">
+        <span class="card-badge">🟣 共同</span>
+        <span class="card-tag">🔴 ★ 人類介入</span>
+      </div>
       <div class="card-title"><span class="card-num">3.</span>審查結果 ★</div>
-      <div class="card-body"><strong>不可外包給 AI</strong>。判斷可交付 / 打回 Failure Cases(餵 U4.5 飛輪)。否則 Reward 失準(self-reward bias)。</div>
+      <div class="card-body">User 看自己跑的成果 → 判斷可交付 / 打回 Failure Cases。<strong>IT 把關合規與安全</strong>(PII / Token / Sandbox)。<strong>不可外包給 AI 自評</strong>(self-reward bias)。</div>
     </div>
     <div class="card it">
-      <span class="card-badge">🔵 IT</span>
+      <div class="card-badges">
+        <span class="card-badge">🔵 IT</span>
+        <span class="card-tag">主導 · 底座所有權</span>
+      </div>
       <div class="card-title"><span class="card-num">4.</span>持續改善 Harness</div>
-      <div class="card-body"><strong>動底座,非只調 Prompt</strong>。改 Sandbox / Tool 白名單 / Guardrails。這是與 Prompt Engineer 的最大差異。</div>
+      <div class="card-body"><strong>動底座,非只調 Prompt</strong>。改 Sandbox / Tool 白名單 / Guardrails / Audit 規則。<strong>IT 永遠擁有底座所有權</strong>。</div>
     </div>
   </div>
   <div class="cards-foot">
-    <strong>角色定位:</strong>Agentic Engineer ≠ 傳統 PM ≠ Prompt Engineer ≠ SRE。是把「業務口語」翻成「可重複 Spec」並維護 Harness 底座的<strong>技術職</strong>。<br>
-    <strong>Coolify 簽核鏈:</strong>Prompt 改動 / 新工具上線 / Guardrails 放寬 → 都要 Agentic Engineer 人工核准(合規 #6 Audit Trail)。
+    <strong>Vibe Coding 角色重分配:</strong>原本 4 大職責全在 IT 手上,公司推行 Vibe Coding 後 <strong>Duty 1 移交給 User</strong>(自行用 AI 寫需求)、<strong>Duty 2-3 變共同</strong>(User 拉草稿,IT 把關合規)、<strong>Duty 4 維持 IT 主導</strong>(底座所有權不變)。<br>
+    <strong>IT 角色轉型:</strong>從「直接做工程」→「<strong>平台提供者 + 治理者</strong>」。Coolify 簽核鏈仍由 IT 守住(合規 #6 Audit Trail):Prompt 改動 / 新工具上線 / Guardrails 放寬 → IT 簽核。
   </div>
 </div>
   </script>
@@ -676,37 +705,55 @@ flowchart LR
   </div>
   <div class="cards-grid cols-3">
     <div class="card user">
-      <span class="card-badge">🟢 業務驅動</span>
+      <div class="card-badges">
+        <span class="card-badge">🟢 業務</span>
+        <span class="card-tag">驅動 · Vibe Coding</span>
+      </div>
       <div class="card-title"><span class="card-num">1.</span>需求業務 Agent</div>
       <div class="card-body">把口語需求 → 結構化規格 → 放到 Shared Memory。輸出 <code>docs/specs/&lt;feature&gt;.md</code>。</div>
       <div class="card-meta">觸發:新需求 / PM 新 Spec · Eval:規格完整度</div>
     </div>
     <div class="card shared">
-      <span class="card-badge">🟣 共同</span>
+      <div class="card-badges">
+        <span class="card-badge">🟣 共同</span>
+        <span class="card-tag">Agent 抓格式 · 人類抓邏輯</span>
+      </div>
       <div class="card-title"><span class="card-num">2.</span>設計 Review Agent</div>
       <div class="card-body">對照五大原則做 review。Agent 抓格式違規,<strong>人類抓商業邏輯</strong>。輸出設計變更摘要。</div>
       <div class="card-meta">觸發:新 PR / 新 Spec</div>
     </div>
     <div class="card shared">
-      <span class="card-badge">🟣 共同</span>
+      <div class="card-badges">
+        <span class="card-badge">🟣 共同</span>
+        <span class="card-tag">Eval 標準業務定</span>
+      </div>
       <div class="card-title"><span class="card-num">3.</span>測試 / 驗證 Agent</div>
       <div class="card-body">吃 Test Logs 做 Triage 與 Issue 歸類。<strong>Eval 標準需業務定義</strong>。</div>
       <div class="card-meta">觸發:CI 完成 / QA 手動 · Eval:Triage 準確率</div>
     </div>
     <div class="card shared">
-      <span class="card-badge">🟣 共同</span>
+      <div class="card-badges">
+        <span class="card-badge">🟣 共同</span>
+        <span class="card-tag">QA · NPI</span>
+      </div>
       <div class="card-title"><span class="card-num">4.</span>品質 / NPI Agent</div>
       <div class="card-body">對照 PLM/BOM 做良率與品質分析。輸出良率報告 + 異常根因建議。</div>
       <div class="card-meta">觸發:NPI 階段 / 品質會議前</div>
     </div>
     <div class="card critical">
-      <span class="card-badge">🔴 ★ Coolify 合規 #4</span>
+      <div class="card-badges">
+        <span class="card-badge">🔴 ★ Critical</span>
+        <span class="card-tag">🔵 IT · 合規 #4</span>
+      </div>
       <div class="card-title"><span class="card-num">5.</span>維運 / 告警 Agent ★</div>
       <div class="card-body">接 Coolify webhook + Seq log + Dashboard metric。<strong>自身告警鏈不可中斷</strong>。</div>
       <div class="card-meta">觸發:Coolify event / log 異常</div>
     </div>
     <div class="card user">
-      <span class="card-badge">🟢 業務驅動</span>
+      <div class="card-badges">
+        <span class="card-badge">🟢 業務</span>
+        <span class="card-tag">驅動</span>
+      </div>
       <div class="card-title"><span class="card-num">6.</span>主管報告 Agent</div>
       <div class="card-body">把上述 5 Agent 的產出彙整成主管摘要。輸出 Markdown / Gamma 報表。</div>
       <div class="card-meta">觸發:每週 / 每月排程</div>
@@ -768,42 +815,66 @@ flowchart LR
   </div>
   <div class="cards-grid cols-4">
     <div class="card it">
-      <span class="card-badge">🔵 設計時</span>
+      <div class="card-badges">
+        <span class="card-badge">🔵 IT</span>
+        <span class="card-tag">設計時</span>
+      </div>
       <div class="card-title"><span class="card-num">4.1</span>Prompts / Spec</div>
       <div class="card-body">Agent 的「程式碼」,Git PR + version。<strong>禁線上熱改</strong>(合規 #5)。</div>
     </div>
     <div class="card it">
-      <span class="card-badge">🔵 設計時</span>
+      <div class="card-badges">
+        <span class="card-badge">🔵 IT</span>
+        <span class="card-tag">設計時</span>
+      </div>
       <div class="card-title"><span class="card-num">4.2</span>Tools / MCP</div>
       <div class="card-body">Tool Gateway 收口 + 白名單 + 配額。Token 走 Coolify env,不入 image。</div>
     </div>
     <div class="card it">
-      <span class="card-badge">🔵 設計時</span>
+      <div class="card-badges">
+        <span class="card-badge">🔵 IT</span>
+        <span class="card-tag">設計時</span>
+      </div>
       <div class="card-title"><span class="card-num">4.3</span>Memory</div>
       <div class="card-body">短期 Redis + 長期 RAG。Agent 不直連 store,走 Gateway。</div>
     </div>
     <div class="card critical">
-      <span class="card-badge">🔴 ★ 合規 #3</span>
+      <div class="card-badges">
+        <span class="card-badge">🔴 ★ Critical</span>
+        <span class="card-tag">🔵 IT · 合規 #3</span>
+      </div>
       <div class="card-title"><span class="card-num">4.4</span>Sandbox ★</div>
       <div class="card-body">non-root + read_only + tmpfs + 內網限定。<strong>6 條合規中最易踩雷</strong>。</div>
     </div>
     <div class="card it">
-      <span class="card-badge">🔵 設計時</span>
+      <div class="card-badges">
+        <span class="card-badge">🔵 IT</span>
+        <span class="card-tag">設計時</span>
+      </div>
       <div class="card-title"><span class="card-num">4.5</span>Tests / CI</div>
       <div class="card-body">Prompt 改 = code 改。Lint + Eval ≥ 閾值才能 merge。</div>
     </div>
     <div class="card critical">
-      <span class="card-badge">🔴 ★ 合規 #4</span>
+      <div class="card-badges">
+        <span class="card-badge">🔴 ★ Critical</span>
+        <span class="card-tag">🔵 IT · 合規 #4</span>
+      </div>
       <div class="card-title"><span class="card-num">4.6</span>Logs / Traces ★</div>
       <div class="card-body">stdout 結構化 → Coolify → Seq。<strong>Trace ID 跨 Agent 串聯</strong>。</div>
     </div>
     <div class="card it">
-      <span class="card-badge">🔵 設計時</span>
+      <div class="card-badges">
+        <span class="card-badge">🔵 IT</span>
+        <span class="card-tag">設計時</span>
+      </div>
       <div class="card-title"><span class="card-num">4.7</span>Hooks / Guardrails</div>
       <div class="card-body">PII / Token 過濾 / Rate limit。放寬須 Agentic Engineer 簽核。</div>
     </div>
     <div class="card critical">
-      <span class="card-badge">🔴 ★ 合規 #6</span>
+      <div class="card-badges">
+        <span class="card-badge">🔴 ★ Critical</span>
+        <span class="card-tag">🔵 IT · 合規 #6</span>
+      </div>
       <div class="card-title"><span class="card-num">4.8</span>Audit Trail ★</div>
       <div class="card-body">誰部署 / 改 Prompt / 核准模型。<strong>append-only,retention ≥ 1 年</strong>。</div>
     </div>
@@ -1041,37 +1112,58 @@ flowchart LR
   </div>
   <div class="cards-grid cols-4">
     <div class="card it">
-      <span class="card-badge">🔵 IT 平台</span>
+      <div class="card-badges">
+        <span class="card-badge">🔵 IT</span>
+        <span class="card-tag">平台</span>
+      </div>
       <div class="card-title"><span class="card-num">5.1</span>LLM</div>
       <div class="card-body">Claude(主)/ GPT(備)/ Ollama(實驗)。由 U4.2 Tools/MCP 收口,<strong>Agent 不可直呼</strong>。</div>
     </div>
     <div class="card critical">
-      <span class="card-badge">🔴 ★ Coolify watch</span>
+      <div class="card-badges">
+        <span class="card-badge">🔴 ★ Critical</span>
+        <span class="card-tag">🔵 IT · Coolify watch</span>
+      </div>
       <div class="card-title"><span class="card-num">5.2</span>Repo / Code ★</div>
       <div class="card-body">GitHub / GitLab。<strong>push = auto deploy</strong>(合規 #5)。整個 Harness 的事實來源。</div>
     </div>
     <div class="card shared">
-      <span class="card-badge">🟣 共同</span>
+      <div class="card-badges">
+        <span class="card-badge">🟣 共同</span>
+        <span class="card-tag">業務 SME 維護</span>
+      </div>
       <div class="card-title"><span class="card-num">5.3</span>PLM / BOM</div>
       <div class="card-body">工程資料。給 U3 品質/NPI Agent + U4.5 飛輪資料。走內網,<strong>不走公網</strong>。</div>
     </div>
     <div class="card shared">
-      <span class="card-badge">🟣 共同</span>
+      <div class="card-badges">
+        <span class="card-badge">🟣 共同</span>
+        <span class="card-tag">QA · IT</span>
+      </div>
       <div class="card-title"><span class="card-num">5.4</span>Test Logs</div>
       <div class="card-body">CI raw + 結構化(Seq)。給測試 Agent Triage,給飛輪 Trajectory 當原料。</div>
     </div>
     <div class="card shared">
-      <span class="card-badge">🟣 共同</span>
+      <div class="card-badges">
+        <span class="card-badge">🟣 共同</span>
+        <span class="card-tag">業務 SME 主筆</span>
+      </div>
       <div class="card-title"><span class="card-num">5.5</span>SOP / 規格</div>
       <div class="card-body">本 AI-Spec 倉庫 + 各部門 SOP。Agent 的外部記憶,<strong>RAG 索引主要來源</strong>。</div>
     </div>
     <div class="card critical">
-      <span class="card-badge">🔴 ★ Coolify collect</span>
+      <div class="card-badges">
+        <span class="card-badge">🔴 ★ Critical</span>
+        <span class="card-tag">🔵 IT · Coolify collect</span>
+      </div>
       <div class="card-title"><span class="card-num">5.6</span>Dashboard ★</div>
       <div class="card-body">Coolify + Seq + Grafana。U4.6 Observability 可視化(合規 #4)。Agentic Engineer 審查介面。</div>
     </div>
     <div class="card shared">
-      <span class="card-badge">🟣 共同</span>
+      <div class="card-badges">
+        <span class="card-badge">🟣 共同</span>
+        <span class="card-tag">HR/採購/業務維護</span>
+      </div>
       <div class="card-title"><span class="card-num">5.7</span>Data Hub</div>
       <div class="card-body">主檔資料中心(對應 DataFlow §3.3)。組織 / 人員 / 客戶 / 物料,業務 SME 維護。</div>
     </div>
