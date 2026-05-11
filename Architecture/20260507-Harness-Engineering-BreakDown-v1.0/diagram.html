@@ -357,6 +357,41 @@
       color: var(--fg); line-height: 1.6;
     }
     .cards-foot strong { color: var(--accent); }
+
+    /* ---- Before / After 對比 section(0.1 用) ---- */
+    .compare-section { margin-bottom: 18px; }
+    .compare-label {
+      font-size: 16px;
+      font-weight: 700;
+      padding: 11px 18px;
+      border-radius: 8px;
+      margin-bottom: 14px;
+      letter-spacing: 0.02em;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .compare-section.bad .compare-label {
+      background: #fee2e2; color: #7f1d1d;
+      border-left: 5px solid #dc2626;
+    }
+    .compare-section.good .compare-label {
+      background: #dcfce7; color: #14532d;
+      border-left: 5px solid #16a34a;
+    }
+    [data-theme="dark"] .compare-section.bad .compare-label {
+      background: rgba(248, 113, 113, 0.15); color: #fca5a5;
+    }
+    [data-theme="dark"] .compare-section.good .compare-label {
+      background: rgba(34, 197, 94, 0.15); color: #86efac;
+    }
+    .compare-arrow {
+      text-align: center;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent);
+      padding: 10px;
+      margin: 4px 0 10px;
+      letter-spacing: 0.08em;
+    }
     .slide-cover .tag {
       display: inline-block;
       padding: 4px 12px;
@@ -488,51 +523,102 @@
 </div>
   </script>
 
-  <!-- ================== 0.1 為什麼需要 Harness ================== -->
+  <!-- ================== 0.1 為什麼需要 Harness(卡片) ================== -->
   <script type="text/plain" id="arch-why"
           data-label="0.1 為什麼需要 Harness(Before vs After)"
           data-order="0.1"
           data-kind="compare"
-          data-desc="<strong>核心命題:Agent = Model + Harness</strong>。只有 LLM 但沒有 Harness 會發生:
-<ul>
-<li><strong>Prompt 線上熱改 → 結果不可重現</strong>(沒版本控)</li>
-<li><strong>工具呼叫失控 → 費用爆炸 / 權限失控</strong>(沒 Tool Gateway)</li>
-<li><strong>跑 shell 炸主機 / DB</strong>(沒 Sandbox)</li>
-<li><strong>出事追不到責任</strong>(沒 Audit Trail / Logs)</li>
-</ul>
-<strong>Harness 把 8 件事系統化</strong>:Prompts / Tools / Memory / Sandbox / Tests-CI / Logs / Hooks / Audit。任何 Agent 要上 Coolify,8 件都不能缺。">
-%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
-flowchart LR
-  subgraph Before ["❌ 沒 Harness:Model-only 直呼"]
-    direction TB
-    B1["Agent (LLM 直呼)"]
-    B1 -.->|無管制| BL[("LLM API<br>費用失控")]
-    B1 -.->|直接讀寫| BD[("業務 DB<br>無權限切割")]
-    B1 -.->|任意呼| BS["shell / fs<br>炸主機"]
-    B1 -.->|無紀錄| BX["線上熱改 Prompt<br>無 Audit"]
-  end
+          data-format="html"
+          data-desc="">
+<div class="cards-wrap">
+  <div class="cards-head">
+    <strong>為什麼需要 Harness?</strong>
+    <span>· Agent = Model + Harness ·</span>
+    <span>Model-only 失控 → 8 元件治理</span>
+  </div>
 
-  subgraph After ["✅ 有 Harness:8 元件治理"]
-    direction TB
-    A1["Agent process"]
-    A1 -->|統一收口| AG["Tool Gateway<br>白名單 + 配額"]
-    AG --> AL[("LLM")]
-    AG --> AD[("DB")]
-    A1 --- AS["Sandbox<br>non-root / RO / 內網"]
-    A1 -->|stdout JSON| AO["Logs + Trace<br>Trace ID"]
-    A1 -->|append-only| AT["Audit Trail<br>合規可追溯"]
-    A1 --- AM["Memory<br>Redis + RAG"]
-    A1 --- AP["Prompts / Spec<br>Git 版控 + CI"]
-  end
+  <div class="compare-section bad">
+    <div class="compare-label">❌ 沒 Harness:Model-only 直呼 — 4 大失控</div>
+    <div class="cards-grid cols-4">
+      <div class="card critical">
+        <div class="card-badges">
+          <span class="card-badge">❌ 問題 1</span>
+          <span class="card-tag">無版本控</span>
+        </div>
+        <div class="card-title">Prompt 線上熱改</div>
+        <div class="card-body">改完沒人測,結果不可重現。<strong>誰改的、何時改的、為何改</strong> — 完全無紀錄。</div>
+      </div>
+      <div class="card critical">
+        <div class="card-badges">
+          <span class="card-badge">❌ 問題 2</span>
+          <span class="card-tag">無配額</span>
+        </div>
+        <div class="card-title">工具呼叫失控</div>
+        <div class="card-body">Agent 想呼什麼就呼什麼。<strong>Token 費用爆炸</strong>,權限失控。</div>
+      </div>
+      <div class="card critical">
+        <div class="card-badges">
+          <span class="card-badge">❌ 問題 3</span>
+          <span class="card-tag">無沙箱</span>
+        </div>
+        <div class="card-title">shell / fs 炸主機</div>
+        <div class="card-body">Agent 拿到 shell 權限可以 <code>rm -rf /</code>,直連 DB 可以 <code>DROP TABLE</code>。</div>
+      </div>
+      <div class="card critical">
+        <div class="card-badges">
+          <span class="card-badge">❌ 問題 4</span>
+          <span class="card-tag">無 Audit</span>
+        </div>
+        <div class="card-title">出事追不到責任</div>
+        <div class="card-body">誰部署、誰核准、誰改 Prompt — <strong>完全沒紀錄</strong>。合規鑑定零分。</div>
+      </div>
+    </div>
+  </div>
 
-  Before == 升級 ==> After
+  <div class="compare-arrow">↓ 升級:Agent = Model + Harness ↓</div>
 
-  classDef bad fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
-  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
-  classDef critical fill:#fff7ed,stroke:#ea580c,color:#7c2d12
-  class B1,BL,BD,BS,BX bad
-  class A1,AG,AL,AD,AM,AP it
-  class AS,AO,AT critical
+  <div class="compare-section good">
+    <div class="compare-label">✅ 有 Harness:8 元件對應治理 — 4 大失控全收</div>
+    <div class="cards-grid cols-4">
+      <div class="card user">
+        <div class="card-badges">
+          <span class="card-badge">✅ 解法 1</span>
+          <span class="card-tag">U4.1 + U4.5</span>
+        </div>
+        <div class="card-title">Prompts / Spec + CI</div>
+        <div class="card-body">Git PR + version。<strong>Lint + Eval ≥ 閾值才能 merge</strong>。Coolify auto deploy,禁線上熱改。</div>
+      </div>
+      <div class="card user">
+        <div class="card-badges">
+          <span class="card-badge">✅ 解法 2</span>
+          <span class="card-tag">U4.2</span>
+        </div>
+        <div class="card-title">Tool Gateway</div>
+        <div class="card-body">白名單 + 配額管控所有對外呼叫。Token 走 Coolify env。<strong>Agent 不直連任何 store</strong>。</div>
+      </div>
+      <div class="card user">
+        <div class="card-badges">
+          <span class="card-badge">✅ 解法 3</span>
+          <span class="card-tag">U4.4 ★</span>
+        </div>
+        <div class="card-title">Sandbox</div>
+        <div class="card-body">non-root + read_only + tmpfs + 內網限定。<strong>shell 跑不了 <code>rm</code>,DB 連不到外網</strong>。</div>
+      </div>
+      <div class="card user">
+        <div class="card-badges">
+          <span class="card-badge">✅ 解法 4</span>
+          <span class="card-tag">U4.6 + U4.8 ★</span>
+        </div>
+        <div class="card-title">Logs + Audit Trail</div>
+        <div class="card-body">stdout 結構化 + Trace ID 跨 Agent;<strong>append-only Audit DB,retention ≥ 1 年</strong>。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cards-foot">
+    <strong>核心命題:</strong>Agent = Model + Harness。只給 Model 但沒給 Harness,<strong>8 件事</strong>(Prompts / Tools / Memory / Sandbox / Tests-CI / Logs / Hooks / Audit)都會出事。<strong>任何 Agent 要上 Coolify,8 件都不能缺</strong>。
+  </div>
+</div>
   </script>
 
   <!-- ================== 1. 五層架構總覽 ================== -->
