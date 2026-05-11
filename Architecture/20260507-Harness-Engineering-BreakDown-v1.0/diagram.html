@@ -796,7 +796,7 @@ flowchart LR
         <span class="card-tag">驅動 · Vibe Coding</span>
       </div>
       <div class="card-title"><span class="card-num">1.</span>需求業務 Agent</div>
-      <div class="card-body">把口語需求 → 結構化規格 → 放到 Shared Memory。輸出 <code>docs/specs/&lt;feature&gt;.md</code>。</div>
+      <div class="card-body">把口語需求 → 結構化規格 → 放到 Shared Memory,供下游 Agent 取用。</div>
       <div class="card-meta">觸發:新需求 / PM 新 Spec · Eval:規格完整度</div>
     </div>
     <div class="card shared">
@@ -846,7 +846,7 @@ flowchart LR
     </div>
   </div>
   <div class="cards-foot">
-    <strong>Control Plane / Leader Agent</strong>(🔵 IT)在這 6 個 Agent 之上,做<strong>任務分派</strong>(切子任務)、<strong>Shared Memory</strong>(讀寫仲裁)、<strong>Tool Gateway</strong>(白名單 + 配額)三件事 — Agent 不直接呼工具,所有 IO 經 Leader 收口。詳細 Breakdown 見 <code>U3-Agentic-Engineering.md</code>。
+    <strong>Control Plane / Leader Agent</strong>(🔵 IT)在這 6 個 Agent 之上,做<strong>任務分派</strong>(切子任務)、<strong>Shared Memory</strong>(讀寫仲裁)、<strong>Tool Gateway</strong>(白名單 + 配額)三件事 — Agent 不直接呼工具,所有 IO 經 Leader 收口。
   </div>
 </div>
   </script>
@@ -966,7 +966,7 @@ flowchart LR
     </div>
   </div>
   <div class="cards-foot">
-    <strong>分類邏輯:</strong>6 個🔵<u>設計時</u>元件(4.1-4.5、4.7)= 改 Prompt / 調 Spec 時動;2 個🔴<u>執行時</u>元件(4.6 Logs、4.8 Audit)= 跑起來才產生資料。<strong>Critical 3 點對應 Coolify 合規 6 條中的 #3 / #4 / #6</strong>,沒過不可上線。詳見 <code>U4-Harness-Engineering.md</code>。
+    <strong>分類邏輯:</strong>6 個🔵<u>設計時</u>元件(4.1-4.5、4.7)= 改 Prompt / 調 Spec 時動;2 個🔴<u>執行時</u>元件(4.6 Logs、4.8 Audit)= 跑起來才產生資料。<strong>Critical 3 點對應 Coolify 合規 6 條中的 #3 / #4 / #6</strong>,沒過不可上線。
   </div>
 </div>
   </script>
@@ -1255,7 +1255,7 @@ flowchart LR
     </div>
   </div>
   <div class="cards-foot">
-    <strong>分組:</strong>🔵 3 項 IT 平台(LLM / Repo★ / Dashboard★)+ 🟣 4 項業務共同維護(PLM / Test Logs / SOP / Data Hub)。<strong>新專案啟動申請順序:</strong>Repo → LLM token → 資料中心唯讀帳號 → Coolify 空間 → Seq token → Dashboard 權限。詳見 <code>U5-Foundation-Resources.md</code>。
+    <strong>分組:</strong>🔵 3 項 IT 平台(LLM / Repo★ / Dashboard★)+ 🟣 4 項業務共同維護(PLM / Test Logs / SOP / Data Hub)。<strong>新專案啟動申請順序:</strong>Repo → LLM token → 資料中心唯讀帳號 → Coolify 空間 → Seq token → Dashboard 權限。
   </div>
 </div>
   </script>
