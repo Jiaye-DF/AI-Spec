@@ -134,47 +134,24 @@
       align-items: flex-start;
       justify-content: center;
     }
-    .preview svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+    .preview.zoomed { justify-content: flex-start; }
+    .preview svg { display: block; margin: 0 auto; }
+    .preview .svg-wrap {
+      display: inline-block;
+      transform-origin: top left;
+      transition: transform 0.12s ease;
+    }
+    .zoom-label {
+      font-size: 12px; color: var(--muted); font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      min-width: 42px; text-align: center;
+      cursor: pointer;
+    }
+    .zoom-label:hover { color: var(--accent); }
     .error {
       color: var(--error); padding: 16px;
       font-family: 'JetBrains Mono', Consolas, monospace;
       font-size: 13px; white-space: pre-wrap; text-align: left;
-    }
-
-    /* ---- speaker notes panel ---- */
-    .notes {
-      flex-shrink: 0;
-      max-height: 38vh;
-      overflow-y: auto;
-      background: var(--bg-soft);
-      border-top: 2px solid var(--border);
-      padding: 14px 24px 16px;
-      font-size: 13px; line-height: 1.65;
-      transition: max-height 0.18s ease;
-    }
-    .notes.collapsed { max-height: 30px; overflow: hidden; padding: 4px 24px; cursor: pointer; }
-    .notes .notes-head {
-      display: flex; align-items: center; gap: 10px;
-      margin-bottom: 6px;
-      font-weight: 700; color: var(--accent); font-size: 13px;
-    }
-    .notes .toggle {
-      margin-left: auto;
-      padding: 2px 8px;
-      font-size: 11px;
-      background: var(--btn-bg); border: 1px solid var(--border);
-      border-radius: 4px; cursor: pointer; color: var(--muted);
-    }
-    .notes .toggle:hover { color: var(--accent); border-color: var(--accent); }
-    .notes .body { color: var(--fg); }
-    .notes.collapsed .body { display: none; }
-    .notes strong { color: var(--accent); }
-    .notes ul { margin: 4px 0; padding-left: 20px; }
-    .notes li { margin: 2px 0; }
-    .notes code {
-      background: var(--btn-hover); padding: 1px 5px;
-      border-radius: 3px; font-size: 12px;
-      font-family: 'JetBrains Mono', Consolas, monospace;
     }
 
     /* ---- cover slide ---- */
@@ -288,7 +265,7 @@
   <div class="meta">
     <strong>用途</strong><span>Demo 簡報 / 新人 Onboarding / Coolify 合規對照</span>
     <strong>對象</strong><span>業務 / PM / Agentic Engineer / Backend / DevOps / QA</span>
-    <strong>導覽</strong><span>← / → 翻頁;ESC 收/展講者註記;右上 picker 可跳頁</span>
+    <strong>導覽</strong><span>← / → 翻頁;+ / − 放大縮小;0 重設、F 符合視窗;Ctrl+滾輪也可 zoom;右上 picker 可跳頁</span>
   </div>
 
   <table class="role-table">
@@ -964,9 +941,14 @@ flowchart LR
       </select>
     </label>
     <label>字體
-      <input type="number" id="font-size" value="16" min="10" max="32" step="1" style="width: 56px;">
+      <input type="number" id="font-size" value="18" min="10" max="32" step="1" style="width: 56px;">
       <span>px</span>
     </label>
+    <span class="divider"></span>
+    <button id="zoom-out" class="nav-btn" title="縮小(- 鍵)">−</button>
+    <span id="zoom-label" class="zoom-label" title="點擊重設為 100%(0 鍵)">100%</span>
+    <button id="zoom-in" class="nav-btn" title="放大(+ 鍵)">+</button>
+    <button id="zoom-fit" title="符合視窗(F 鍵)">Fit</button>
     <span class="divider"></span>
     <button id="copy-svg" title="複製 SVG 到剪貼簿">複製 SVG</button>
     <button id="download-svg" title="下載 SVG 檔">下載 SVG</button>
@@ -995,21 +977,10 @@ flowchart LR
     <div class="preview" id="preview"></div>
   </main>
 
-  <aside class="notes" id="notes">
-    <div class="notes-head">
-      <span>📝 講者註記 / Speaker Notes</span>
-      <button class="toggle" id="notes-toggle" title="ESC 也可切換">收起</button>
-    </div>
-    <div class="body" id="notes-body"></div>
-  </aside>
-
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
 
     const preview = document.getElementById('preview');
-    const notesEl = document.getElementById('notes');
-    const notesBody = document.getElementById('notes-body');
-    const notesToggle = document.getElementById('notes-toggle');
     const themeSelect = document.getElementById('theme');
     const fontSizeInput = document.getElementById('font-size');
     const picker = document.getElementById('picker');
@@ -1017,6 +988,54 @@ flowchart LR
     const prevBtn = document.getElementById('prev');
     const nextBtn = document.getElementById('next');
     const titleEl = document.getElementById('title');
+    const zoomLabel = document.getElementById('zoom-label');
+    const zoomIn = document.getElementById('zoom-in');
+    const zoomOut = document.getElementById('zoom-out');
+    const zoomFitBtn = document.getElementById('zoom-fit');
+
+    let zoom = 1;
+    const ZOOM_STEPS = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.15, 1.3, 1.5, 1.75, 2.0, 2.5, 3.0];
+
+    function findZoomIdx(z) {
+      let best = 0, diff = Infinity;
+      ZOOM_STEPS.forEach((v, i) => {
+        const d = Math.abs(v - z);
+        if (d < diff) { diff = d; best = i; }
+      });
+      return best;
+    }
+    function setZoom(z, recenter = false) {
+      zoom = Math.max(0.3, Math.min(4, z));
+      const wrap = preview.querySelector('.svg-wrap');
+      if (wrap) {
+        wrap.style.transform = `scale(${zoom})`;
+        const svg = wrap.querySelector('svg');
+        if (svg) {
+          const w = parseFloat(svg.dataset.origW || svg.getBoundingClientRect().width / zoom);
+          const h = parseFloat(svg.dataset.origH || svg.getBoundingClientRect().height / zoom);
+          wrap.style.width = (w * zoom) + 'px';
+          wrap.style.height = (h * zoom) + 'px';
+        }
+      }
+      preview.classList.toggle('zoomed', zoom > 1.01);
+      zoomLabel.textContent = Math.round(zoom * 100) + '%';
+    }
+    function zoomStep(dir) {
+      const idx = findZoomIdx(zoom);
+      const ni = Math.max(0, Math.min(ZOOM_STEPS.length - 1, idx + dir));
+      setZoom(ZOOM_STEPS[ni]);
+    }
+    function zoomFit() {
+      const svg = preview.querySelector('svg');
+      if (!svg) { setZoom(1); return; }
+      const w = parseFloat(svg.dataset.origW);
+      const h = parseFloat(svg.dataset.origH);
+      if (!w || !h) { setZoom(1); return; }
+      const pad = 56;
+      const fitX = (preview.clientWidth - pad) / w;
+      const fitY = (preview.clientHeight - pad) / h;
+      setZoom(Math.min(fitX, fitY, 4));
+    }
 
     // 蒐集所有 slide 並依 data-order 排序
     const slides = Array.from(document.querySelectorAll('script[type="text/plain"][id]'))
@@ -1071,18 +1090,31 @@ flowchart LR
       const token = ++renderToken;
 
       titleEl.textContent = slide.label;
-      notesBody.innerHTML = slide.el.dataset.desc || '<em style="color:var(--muted)">(此 slide 無註記)</em>';
+      zoom = 1; // 換頁時重設 zoom
 
       try {
         if (slide.format === 'html') {
           initMermaid(); // 仍套用 theme
           preview.innerHTML = code;
+          preview.classList.remove('zoomed');
+          zoomLabel.textContent = '100%';
         } else {
           initMermaid();
           const { svg } = await mermaid.render('diagram-' + token, code);
           if (token !== renderToken) return;
-          preview.innerHTML = svg;
-          elevateClusterLabels(preview.querySelector('svg'));
+          // 用 wrapper div 包 SVG,用 transform 做 zoom
+          preview.innerHTML = '<div class="svg-wrap">' + svg + '</div>';
+          const svgEl = preview.querySelector('svg');
+          if (svgEl) {
+            const vb = svgEl.viewBox && svgEl.viewBox.baseVal;
+            const origW = (vb && vb.width) || svgEl.getBoundingClientRect().width;
+            const origH = (vb && vb.height) || svgEl.getBoundingClientRect().height;
+            svgEl.dataset.origW = origW;
+            svgEl.dataset.origH = origH;
+            svgEl.removeAttribute('style');
+          }
+          elevateClusterLabels(svgEl);
+          setZoom(1);
         }
       } catch (e) {
         if (token !== renderToken) return;
@@ -1158,11 +1190,6 @@ flowchart LR
       if (idx >= 0) goTo(idx);
     }
 
-    function toggleNotes() {
-      notesEl.classList.toggle('collapsed');
-      notesToggle.textContent = notesEl.classList.contains('collapsed') ? '展開' : '收起';
-    }
-
     function downloadSVG() {
       const svg = preview.querySelector('svg');
       if (!svg) { flash('目前 slide 沒有 SVG 可下載'); return; }
@@ -1225,10 +1252,21 @@ flowchart LR
     fontSizeInput.addEventListener('input', render);
     prevBtn.addEventListener('click', () => goTo(currentIndex - 1));
     nextBtn.addEventListener('click', () => goTo(currentIndex + 1));
-    notesToggle.addEventListener('click', toggleNotes);
     document.getElementById('download-svg').addEventListener('click', downloadSVG);
     document.getElementById('download-png').addEventListener('click', downloadPNG);
     document.getElementById('copy-svg').addEventListener('click', copySVG);
+
+    zoomIn.addEventListener('click', () => zoomStep(1));
+    zoomOut.addEventListener('click', () => zoomStep(-1));
+    zoomFitBtn.addEventListener('click', zoomFit);
+    zoomLabel.addEventListener('click', () => setZoom(1));
+
+    // Ctrl + 滾輪 = 放大縮小
+    preview.addEventListener('wheel', e => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      zoomStep(e.deltaY < 0 ? 1 : -1);
+    }, { passive: false });
 
     document.addEventListener('keydown', e => {
       const tag = e.target.tagName;
@@ -1237,12 +1275,18 @@ flowchart LR
         e.preventDefault(); goTo(currentIndex + 1);
       } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
         e.preventDefault(); goTo(currentIndex - 1);
-      } else if (e.key === 'Escape') {
-        e.preventDefault(); toggleNotes();
       } else if (e.key === 'Home') {
         e.preventDefault(); goTo(0);
       } else if (e.key === 'End') {
         e.preventDefault(); goTo(slides.length - 1);
+      } else if (e.key === '+' || e.key === '=') {
+        e.preventDefault(); zoomStep(1);
+      } else if (e.key === '-' || e.key === '_') {
+        e.preventDefault(); zoomStep(-1);
+      } else if (e.key === '0') {
+        e.preventDefault(); setZoom(1);
+      } else if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault(); zoomFit();
       }
     });
 
