@@ -4,10 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'><line x1='8' y1='4.5' x2='4' y2='11.5' stroke='%232563eb' stroke-width='1.4' stroke-linecap='round'/><line x1='8' y1='4.5' x2='12' y2='11.5' stroke='%232563eb' stroke-width='1.4' stroke-linecap='round'/><circle cx='8' cy='4' r='2.5' fill='%232563eb'/><circle cx='4' cy='12' r='2.5' fill='%2360a5fa'/><circle cx='12' cy='12' r='2.5' fill='%2360a5fa'/></svg>">
-  <title>Harness Engineering — 架構 Breakdown v1.0</title>
+  <title>Harness Engineering — Breakdown v1.0 (Vibe Coding 公司版)</title>
   <style>
     :root {
       --bg: #ffffff;
+      --bg-soft: #f8fafc;
       --fg: #0f172a;
       --muted: #64748b;
       --border: #e2e8f0;
@@ -16,9 +17,14 @@
       --btn-hover: #f1f5f9;
       --accent: #2563eb;
       --error: #dc2626;
+      --user: #16a34a;
+      --it: #2563eb;
+      --shared: #9333ea;
+      --critical: #dc2626;
     }
     [data-theme="dark"] {
       --bg: #0f172a;
+      --bg-soft: #1e293b;
       --fg: #f1f5f9;
       --muted: #94a3b8;
       --border: #334155;
@@ -34,16 +40,20 @@
       font-family: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, -apple-system, sans-serif;
       background: var(--bg); color: var(--fg);
     }
+    body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+    /* ---- toolbar ---- */
     .toolbar {
       display: flex; gap: 10px; flex-wrap: wrap;
-      padding: 14px 20px;
+      padding: 12px 20px;
       background: var(--toolbar-bg);
       border-bottom: 2px solid var(--border);
       align-items: center;
       box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+      flex-shrink: 0;
     }
     .toolbar h1 {
-      font-size: 18px;
+      font-size: 16px;
       margin: 0;
       margin-right: auto;
       font-weight: 700;
@@ -52,12 +62,14 @@
       border-left: 4px solid var(--accent);
       line-height: 1.3;
       letter-spacing: 0.02em;
+      max-width: 40%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
-    .toolbar .divider {
-      width: 1px; height: 24px; background: var(--border); margin: 0 4px;
-    }
+    .toolbar .divider { width: 1px; height: 22px; background: var(--border); margin: 0 4px; }
     .toolbar button, .toolbar select, .toolbar input {
-      padding: 7px 12px; font-size: 13px;
+      padding: 6px 11px; font-size: 13px;
       border: 1px solid var(--border);
       background: var(--btn-bg); color: var(--fg);
       border-radius: 5px; cursor: pointer; font-family: inherit;
@@ -66,78 +78,311 @@
     .toolbar button:hover, .toolbar select:hover {
       background: var(--btn-hover); border-color: var(--accent);
     }
+    .toolbar button:disabled { opacity: 0.4; cursor: not-allowed; }
     .toolbar label {
       font-size: 12px; color: var(--muted);
       display: inline-flex; align-items: center; gap: 6px;
       font-weight: 500;
     }
     .toolbar .picker {
-      font-weight: 600; min-width: 220px;
+      font-weight: 600; min-width: 240px;
       border-color: var(--accent); color: var(--fg);
     }
-    .legend {
-      display: inline-flex; gap: 12px; align-items: center;
-      padding: 6px 12px; font-size: 12px;
-      background: var(--bg); border: 1px solid var(--border); border-radius: 5px;
+    .counter {
+      font-size: 12px; color: var(--muted); font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      padding: 0 8px;
     }
-    .legend .item { display: inline-flex; align-items: center; gap: 4px; }
-    .legend .sw {
+    .nav-btn {
+      width: 32px; height: 30px; padding: 0 !important;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 600;
+    }
+
+    /* ---- legend bar ---- */
+    .legend-bar {
+      display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+      padding: 8px 20px;
+      background: var(--bg-soft);
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .legend-bar .group { display: inline-flex; align-items: center; gap: 8px; }
+    .legend-bar .group-title { font-weight: 700; color: var(--muted); font-size: 11px; }
+    .legend-bar .item { display: inline-flex; align-items: center; gap: 4px; }
+    .legend-bar .sw {
       display: inline-block; width: 14px; height: 14px; border-radius: 3px;
       border: 1px solid currentColor;
     }
-    .legend .u { background: #dcfce7; color: #16a34a; }
-    .legend .i { background: #dbeafe; color: #2563eb; }
-    .legend .s { background: #f3e8ff; color: #9333ea; }
-    .legend .c { background: #fee2e2; color: #dc2626; }
-    main { height: calc(100vh - 64px); }
+    .legend-bar .sw.u { background: #dcfce7; color: #16a34a; }
+    .legend-bar .sw.i { background: #dbeafe; color: #2563eb; }
+    .legend-bar .sw.s { background: #f3e8ff; color: #9333ea; }
+    .legend-bar .sw.c { background: #fee2e2; color: #dc2626; }
+    .legend-bar svg.line { color: var(--fg); }
+
+    /* ---- stage ---- */
+    main {
+      flex: 1; min-height: 0;
+      display: flex; flex-direction: column;
+    }
     .preview {
-      width: 100%; height: 100%; overflow: auto;
-      padding: 32px 24px;
+      flex: 1; min-height: 0;
+      overflow: auto;
+      padding: 28px 24px;
       display: flex;
       align-items: flex-start;
       justify-content: center;
     }
     .preview svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
-    .preview svg { max-width: 100%; height: auto; }
     .error {
       color: var(--error); padding: 16px;
       font-family: 'JetBrains Mono', Consolas, monospace;
       font-size: 13px; white-space: pre-wrap; text-align: left;
     }
-    .desc {
-      position: fixed; right: 16px; bottom: 16px;
-      max-width: 320px; padding: 12px 14px;
-      background: var(--toolbar-bg);
-      border: 1px solid var(--border); border-radius: 6px;
-      font-size: 12px; line-height: 1.6; color: var(--muted);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+
+    /* ---- speaker notes panel ---- */
+    .notes {
+      flex-shrink: 0;
+      max-height: 38vh;
+      overflow-y: auto;
+      background: var(--bg-soft);
+      border-top: 2px solid var(--border);
+      padding: 14px 24px 16px;
+      font-size: 13px; line-height: 1.65;
+      transition: max-height 0.18s ease;
     }
-    .desc strong { color: var(--fg); }
+    .notes.collapsed { max-height: 30px; overflow: hidden; padding: 4px 24px; cursor: pointer; }
+    .notes .notes-head {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 6px;
+      font-weight: 700; color: var(--accent); font-size: 13px;
+    }
+    .notes .toggle {
+      margin-left: auto;
+      padding: 2px 8px;
+      font-size: 11px;
+      background: var(--btn-bg); border: 1px solid var(--border);
+      border-radius: 4px; cursor: pointer; color: var(--muted);
+    }
+    .notes .toggle:hover { color: var(--accent); border-color: var(--accent); }
+    .notes .body { color: var(--fg); }
+    .notes.collapsed .body { display: none; }
+    .notes strong { color: var(--accent); }
+    .notes ul { margin: 4px 0; padding-left: 20px; }
+    .notes li { margin: 2px 0; }
+    .notes code {
+      background: var(--btn-hover); padding: 1px 5px;
+      border-radius: 3px; font-size: 12px;
+      font-family: 'JetBrains Mono', Consolas, monospace;
+    }
+
+    /* ---- cover slide ---- */
+    .slide-cover {
+      max-width: 920px; width: 100%;
+      padding: 40px 56px;
+      background: linear-gradient(135deg, var(--bg) 0%, var(--bg-soft) 100%);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+      text-align: left;
+    }
+    .slide-cover .tag {
+      display: inline-block;
+      padding: 4px 12px;
+      background: var(--accent); color: white;
+      font-size: 12px; font-weight: 700;
+      border-radius: 999px;
+      letter-spacing: 0.05em;
+    }
+    .slide-cover .title {
+      font-size: 44px; font-weight: 800;
+      margin: 18px 0 8px;
+      color: var(--accent);
+      letter-spacing: 0.01em;
+    }
+    .slide-cover .subtitle {
+      font-size: 18px; font-weight: 500;
+      color: var(--fg); margin: 0 0 24px;
+      line-height: 1.5;
+    }
+    .slide-cover .meta {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: 6px 16px;
+      font-size: 14px;
+      margin-bottom: 24px;
+      color: var(--fg);
+    }
+    .slide-cover .meta strong { color: var(--muted); font-weight: 600; }
+    .slide-cover .role-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-bottom: 18px;
+    }
+    .slide-cover .role-table th, .slide-cover .role-table td {
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      text-align: left;
+    }
+    .slide-cover .role-table th { background: var(--btn-hover); font-weight: 700; }
+    .slide-cover .role-table .dot {
+      display: inline-block;
+      width: 12px; height: 12px; border-radius: 3px;
+      margin-right: 6px; vertical-align: middle;
+    }
+    .slide-cover .role-table .dot.u { background: #dcfce7; border: 1px solid #16a34a; }
+    .slide-cover .role-table .dot.i { background: #dbeafe; border: 1px solid #2563eb; }
+    .slide-cover .role-table .dot.s { background: #f3e8ff; border: 1px solid #9333ea; }
+    .slide-cover .role-table .dot.c { background: #fee2e2; border: 1px solid #dc2626; }
+    .slide-cover .foot {
+      font-size: 12px; color: var(--muted);
+      border-top: 1px dashed var(--border); padding-top: 12px;
+    }
+    .slide-cover .key-msg {
+      background: #eff6ff; border-left: 4px solid var(--accent);
+      padding: 10px 14px; margin: 14px 0;
+      font-size: 13px; color: #1e3a8a;
+      border-radius: 0 6px 6px 0;
+    }
+    [data-theme="dark"] .slide-cover .key-msg {
+      background: rgba(96, 165, 250, 0.1); color: #93c5fd;
+    }
   </style>
 </head>
 <body>
   <!--
-    一個檔案內可放 1 張架構圖 + N 張流程圖。
-    新增流程圖 → 複製一份 <script type="text/plain"> 區塊,改 id / data-label / data-kind 即可。
-    用任何文字編輯器(VSCode / Notepad)打開本檔修改,存檔後重新整理瀏覽器即可。
+    一個檔案內可放 N 張 slide(架構 / 流程 / 封面 / 對比)。
+    新增 slide → 複製一份 <script type="text/plain"> 區塊,改 id / data-label / data-order / data-kind / data-format。
 
     規約:
-      id 命名 = arch(主架構)/ flow-<topic>(各流程)
-      data-label = 工具列下拉顯示文字
-      data-kind = "architecture" | "flow"(切換時自動帶分組標籤)
-      data-desc = 右下小字說明(對應架構節點 / 為什麼這條流程存在)
+      id            = 全域唯一,英數 + 連字號
+      data-label    = 工具列下拉與 slide 標題顯示文字
+      data-order    = 數字,picker / 鍵盤翻頁依此排序(不必連續,可塞 0.5)
+      data-kind     = "architecture" | "flow" | "cover" | "compare"(僅做語意標記)
+      data-format   = "mermaid"(預設) | "html"(內容直接當 HTML 渲染)
+      data-desc     = 講者註記,以 HTML 字串呈現於下方 notes 面板
+
+    鍵盤:← / → 翻頁;ESC 收/展 notes 面板。
   -->
 
-  <script type="text/plain" id="arch" data-label="1. 整體架構總覽" data-kind="architecture"
-          data-desc="<strong>Vibe Coding 公司架構:</strong>L1 業務發起(使用者)→ L2/L3/L4 工程化(IT,Agentic Engineer 屬 IT)→ L4.5 / L5 業務+IT 共同產物。<strong>★ Harness</strong> 是 Coolify 合規主層。">
+  <!-- ================== 0. 封面 ================== -->
+  <script type="text/plain" id="cover"
+          data-label="0. 封面 / Vibe Coding 公司版"
+          data-order="0"
+          data-kind="cover"
+          data-format="html"
+          data-desc="<strong>開場 30 秒 talking points:</strong>
+<ul>
+<li>這份 Breakdown 是把原始 Harness Engineering 架構圖,<strong>公司化客製</strong>為「<u>6 學習單元 × 三角色色碼 × Coolify 合規 × Data Hub 整合</u>」。</li>
+<li><strong>Vibe Coding 公司定位</strong>:業務人員用 AI 自然語言驅動工作,IT(Agentic Engineer)建治理底座。</li>
+<li>三色責任:🟢 業務(寫痛點 / 提供 ground truth) · 🔵 IT(建 Harness + 跑 Eval) · 🟣 共同(品質 + SOP + 主檔)。</li>
+<li>本次 Demo 走線性順序:封面 → 為什麼需要 → 5 層總覽 → 責任分布 → U2-U5 各單元逐張深入。<strong>← / → 翻頁</strong>。</li>
+</ul>">
+<div class="slide-cover">
+  <span class="tag">Vibe Coding 公司版 · v1.0</span>
+  <div class="title">Harness Engineering</div>
+  <div class="subtitle">架構 Breakdown — 6 學習單元 × 三角色責任 × Coolify 合規</div>
+
+  <div class="meta">
+    <strong>用途</strong><span>Demo 簡報 / 新人 Onboarding / Coolify 合規對照</span>
+    <strong>對象</strong><span>業務 / PM / Agentic Engineer / Backend / DevOps / QA</span>
+    <strong>導覽</strong><span>← / → 翻頁;ESC 收/展講者註記;右上 picker 可跳頁</span>
+  </div>
+
+  <table class="role-table">
+    <thead>
+      <tr><th style="width:18%">角色</th><th style="width:36%">公司內對應</th><th>在架構中的位置</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><span class="dot u"></span>🟢 使用者</td><td>業務人員 / 業務主管 / PM</td><td>L1 業務情境、需求 / 主管報告 Agent、Audit Trail 可審計人物</td></tr>
+      <tr><td><span class="dot i"></span>🔵 IT</td><td>Agentic Engineer / Backend / DevOps / Tech Lead</td><td>L2 Engineer、L3 Control Plane、L4 Harness 全 8 元件、L5 LLM/Repo/Dashboard</td></tr>
+      <tr><td><span class="dot s"></span>🟣 共同</td><td>QA / NPI、業務 SME、HR / 採購(主檔)</td><td>品質 Agent、L4.5 Reward、L5 PLM/SOP/TestLog/DataHub</td></tr>
+      <tr><td><span class="dot c"></span>🔴 ★ Critical</td><td>(附加標記,不是第四種角色)</td><td>L4 Sandbox / Logs / Audit、L5 Repo / Dashboard、Reward 約束</td></tr>
+    </tbody>
+  </table>
+
+  <div class="key-msg">
+    <strong>本檔差異 vs 原 Harness 架構:</strong>三色角色碼 + 加入 Data Hub(對應 DataFlow v1.0 § 3.3) + Agentic Engineer 屬 IT(非共同角色)+ Coolify 主合規層標記。
+  </div>
+
+  <div class="foot">
+    日期:2026-05-07 · 維護:Agentic Engineer · 互補文件:<code>20260421-DataFlow-v1.0.md</code> · <code>Coolify-Deploy/Docker-Compose-Spec-v1.3.md</code>
+  </div>
+</div>
+  </script>
+
+  <!-- ================== 0.1 為什麼需要 Harness ================== -->
+  <script type="text/plain" id="arch-why"
+          data-label="0.1 為什麼需要 Harness(Before vs After)"
+          data-order="0.1"
+          data-kind="compare"
+          data-desc="<strong>核心命題:Agent = Model + Harness</strong>。只有 LLM 但沒有 Harness 會發生:
+<ul>
+<li><strong>Prompt 線上熱改 → 結果不可重現</strong>(沒版本控)</li>
+<li><strong>工具呼叫失控 → 費用爆炸 / 權限失控</strong>(沒 Tool Gateway)</li>
+<li><strong>跑 shell 炸主機 / DB</strong>(沒 Sandbox)</li>
+<li><strong>出事追不到責任</strong>(沒 Audit Trail / Logs)</li>
+</ul>
+<strong>Harness 把 8 件事系統化</strong>:Prompts / Tools / Memory / Sandbox / Tests-CI / Logs / Hooks / Audit。任何 Agent 要上 Coolify,8 件都不能缺。">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart LR
-  L1["1 公司 / 業務情境<br><i>提升交付效率 / 知識複用 / 跨部門協作</i>"]
-  L2["2 Agentic Engineer<br><i>定義目標 / 設計工作流 / 審查 / 持續改善</i>"]
-  L3["3 Agentic Engineering(上層工作流)<br><i>Control Plane + 6 種 Agent</i>"]
-  L4["4 Harness Engineering ★<br><i>執行底座:8 元件 / Coolify 主合規層</i>"]
-  L45["4.5 Domain Model Flywheel<br><i>Evals → Reward → Trajectory → Fine-tune → Domain Model</i>"]
-  L5["5 基礎資源 / 系統<br><i>LLM / Repo / PLM / Test Logs / SOP / Dashboard / Data Hub</i>"]
+  subgraph Before ["❌ 沒 Harness:Model-only 直呼"]
+    direction TB
+    B1["Agent (LLM 直呼)"]
+    B1 -.->|無管制| BL[("LLM API<br>費用失控")]
+    B1 -.->|直接讀寫| BD[("業務 DB<br>無權限切割")]
+    B1 -.->|任意呼| BS["shell / fs<br>炸主機"]
+    B1 -.->|無紀錄| BX["線上熱改 Prompt<br>無 Audit"]
+  end
+
+  subgraph After ["✅ 有 Harness:8 元件治理"]
+    direction TB
+    A1["Agent process"]
+    A1 -->|統一收口| AG["Tool Gateway<br>白名單 + 配額"]
+    AG --> AL[("LLM")]
+    AG --> AD[("DB")]
+    A1 --- AS["Sandbox<br>non-root / RO / 內網"]
+    A1 -->|stdout JSON| AO["Logs + Trace<br>Trace ID"]
+    A1 -->|append-only| AT["Audit Trail<br>合規可追溯"]
+    A1 --- AM["Memory<br>Redis + RAG"]
+    A1 --- AP["Prompts / Spec<br>Git 版控 + CI"]
+  end
+
+  Before == 升級 ==> After
+
+  classDef bad fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef critical fill:#fff7ed,stroke:#ea580c,color:#7c2d12
+  class B1,BL,BD,BS,BX bad
+  class A1,AG,AL,AD,AM,AP it
+  class AS,AO,AT critical
+  </script>
+
+  <!-- ================== 1. 五層架構總覽 ================== -->
+  <script type="text/plain" id="arch"
+          data-label="1. 五層架構總覽"
+          data-order="1"
+          data-kind="architecture"
+          data-desc="<strong>5 層 + 飛輪:</strong>
+<ul>
+<li><strong>L1 🟢 公司 / 業務情境</strong> — 業務人員寫痛點清單,定義「為何要建這套」。</li>
+<li><strong>L2 🔵 Agentic Engineer</strong> — IT 角色,把業務口語翻成可重複 Spec(Vibe Coding 公司關鍵差異)。</li>
+<li><strong>L3 🔵 上層工作流</strong> — Control Plane + 6 種 Agent 協作。</li>
+<li><strong>L4 🔵 Harness(★ 含 3 個 Critical 元件)</strong> — 8 元件執行底座,Coolify 主合規層。</li>
+<li><strong>L4.5 🔵 Flywheel</strong> — IT 主導 Evals/Fine-tune,Reward 由業務確認。</li>
+<li><strong>L5 🔵 基礎資源</strong> — IT 平台(LLM/Repo/Dashboard)+ 業務共同維護(PLM/SOP/TestLog/DataHub)。</li>
+</ul>
+<strong>關鍵讀法:</strong>L1 → L2 → L3 → L4 是線性「業務 → IT → Agent」;L4 → L4.5/L5 是「Harness 延伸學習能力 + 基礎物質」雙腳。">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart LR
+  L1["1. 公司 / 業務情境<br><i>提升交付效率 / 知識複用 / 跨部門協作</i>"]
+  L2["2. Agentic Engineer<br><i>定義目標 / 設計工作流 / 審查 / 持續改善</i>"]
+  L3["3. Agentic Engineering(上層工作流)<br><i>Control Plane + 6 種 Agent</i>"]
+  L4["4. Harness Engineering ★<br><i>8 元件 / 含 3 個 Coolify 合規關鍵點</i>"]
+  L45["4.5 Domain Model Flywheel<br><i>Evals → Reward → Trajectory → Fine-tune</i><br>(Reward 由業務確認)"]
+  L5["5. 基礎資源 / 系統<br><i>LLM / Repo / PLM / TestLog / SOP / Dashboard / DataHub</i><br>(4 項業務 SME 共同維護)"]
 
   L1 --> L2 --> L3 --> L4
   L4 --> L45
@@ -149,13 +394,123 @@ flowchart LR
   classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
   classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
   class L1 user
-  class L2,L3 it
-  class L4 critical
-  class L45,L5 shared
+  class L2,L3,L4,L45,L5 it
   </script>
 
-  <script type="text/plain" id="arch-u3" data-label="2. U3 — Agentic Engineering 上層工作流" data-kind="architecture"
-          data-desc="<strong>Control Plane</strong>(IT)統籌 <strong>6 種 Agent</strong>(單列水平)。Agent 染色:🟢 業務面 / 🔵 IT / 🟣 共同 / 🔴 ★ Critical。詳細 Breakdown 見 U3-Agentic-Engineering.md。">
+  <!-- ================== 1.1 RACI 三角色責任分布 ================== -->
+  <script type="text/plain" id="arch-raci"
+          data-label="1.1 三角色責任分布(6 單元 × 三色)"
+          data-order="1.1"
+          data-kind="architecture"
+          data-desc="<strong>這是整份文件最重要的「責任地圖」</strong> — 把『6 學習單元 × 三角色』一次攤平,讓每個角色一眼看到「我該管哪幾格」。
+<ul>
+<li><strong>使用者(🟢)只主導兩格</strong>:U1 痛點清單 + U3 需求/主管報告 Agent。其餘是 IT 或共同。</li>
+<li><strong>IT(🔵)是主軸</strong>:U2-U4.5 主要工程化都在 IT 手上(對應 Vibe Coding 定位)。</li>
+<li><strong>共同(🟣)三大區</strong>:U3 品質/NPI Agent + U4.5 Reward 標記 + U5 業務主檔。</li>
+<li><strong>★ Critical(🔴)5 個點</strong>:U3 維運告警 + U4 Sandbox/Logs/Audit + U5 Repo/Dashboard。Coolify 上線前每條必過。</li>
+</ul>
+<strong>Demo 補充:</strong>讀 6.5.7 學習路徑(README §五)會更清楚每個角色該深讀哪幾單元。">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart LR
+  subgraph U1 ["U1 業務情境"]
+    direction TB
+    U1U["🟢 業務<br>寫 3 大痛點<br>+ 落地優先序"]
+    U1I["🔵 IT<br>翻為可量測 SLA"]
+  end
+  subgraph U2 ["U2 Engineer"]
+    direction TB
+    U2I["🔵 IT 主導<br>4 大職責<br>跨 L1-L4"]
+  end
+  subgraph U3 ["U3 上層工作流"]
+    direction TB
+    U3U["🟢 需求 + 主管報告"]
+    U3I["🔵 Control Plane<br>+ Review + 測試"]
+    U3S["🟣 品質 / NPI"]
+    U3C["🔴 ★ 維運告警"]
+  end
+  subgraph U4 ["U4 Harness ★"]
+    direction TB
+    U4I["🔵 IT — 5 元件<br>Prompts/Tools/Mem<br>Tests/Hooks"]
+    U4C["🔴 ★ 3 元件<br>Sandbox / Logs<br>/ Audit"]
+  end
+  subgraph U45 ["U4.5 Flywheel"]
+    direction TB
+    U45I["🔵 IT<br>Evals/Trajectory<br>/Fine-tune"]
+    U45S["🟣 Reward 標記<br>(業務確認<br>ground truth)"]
+  end
+  subgraph U5 ["U5 基礎資源"]
+    direction TB
+    U5I["🔵 IT 平台<br>LLM/Repo★/Dashboard★"]
+    U5S["🟣 共同維護<br>PLM/SOP/TestLog<br>/DataHub"]
+  end
+
+  U1 --> U2 --> U3 --> U4 --> U45 --> U5
+
+  classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
+  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  class U1U,U3U user
+  class U1I,U2I,U3I,U4I,U45I,U5I it
+  class U3S,U45S,U5S shared
+  class U3C,U4C critical
+  </script>
+
+  <!-- ================== U2 — Agentic Engineer 4 大職責 ================== -->
+  <script type="text/plain" id="arch-u2"
+          data-label="U2 — Agentic Engineer 4 大職責(★ 新增)"
+          data-order="2"
+          data-kind="architecture"
+          data-desc="<strong>Vibe Coding 公司的關鍵差異</strong> — Agentic Engineer 不是傳統 PM,也不是 Prompt Engineer,而是把<strong>『業務口語』翻成『可重複 Spec』</strong>並維護 Harness 底座的技術職。
+<ul>
+<li><strong>1. 定義目標</strong> — 把業務痛點翻成可量測 SLA(例「Triage 平均 ≤ 10 分鐘」)。</li>
+<li><strong>2. 設計工作流</strong> — 決定幾個 Agent、誰是 Leader、Memory 怎麼接。</li>
+<li><strong>3. 審查結果 ★</strong> — 這是<u>人類介入點,不可外包給 AI</u>(否則 Flywheel Reward 失準)。</li>
+<li><strong>4. 持續改善 Harness</strong> — 動 U4 底座(改 Sandbox 規則 / Tool 白名單 / Guardrails),不只調 Prompt。</li>
+</ul>
+<strong>Coolify 合規鏈中的角色:</strong>Agentic Engineer 是「人工核准」節點 — Prompt 改動 / 新工具上線 / Guardrails 放寬,都要他簽核。">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart LR
+  subgraph Eng ["② Agentic Engineer 🔵 (IT,跨 L1-L4)"]
+    direction TB
+    D1["1. 定義目標 / 需求<br><i>痛點 → 可量測 SLA</i>"]
+    D2["2. 設計工作流<br><i>幾 Agent / Leader / Worker</i>"]
+    D3["3. 審查結果 ★<br><i>人類介入,不可外包 AI</i>"]
+    D4["4. 持續改善 Harness<br><i>動底座,非只調 Prompt</i>"]
+  end
+
+  L1["L1 業務情境"]
+  L3["L3 上層工作流"]
+  L4["L4 執行底座"]
+  L45["L4.5 Flywheel"]
+
+  L1 <-->|"需求 / 約束<br>資料來源 / 驗證標準"| Eng
+  Eng <-->|"驅動需求 / 設定目標"| L3
+  Eng <-->|"改 Prompt / Tool<br>Sandbox 規則"| L4
+  Eng -.審查 + Reward 標記.- L45
+
+  classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
+  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  class L1 user
+  class D1,D2,D4,L3,L4 it
+  class D3 critical
+  class L45 shared
+  </script>
+
+  <!-- ================== U3 — 上層工作流 ================== -->
+  <script type="text/plain" id="arch-u3"
+          data-label="U3 — Agentic Engineering 上層工作流"
+          data-order="3"
+          data-kind="architecture"
+          data-desc="<strong>Control Plane(IT)+ 6 種 Agent 協作</strong>。
+<ul>
+<li><strong>染色更新:</strong>設計 Review / 測試驗證 Agent 改為共同(🟣) — 因為 Spec 對照 + Eval 標準都需要業務 ground truth,純 IT 不夠精準。</li>
+<li><strong>雙向箭頭:</strong>CP ↔ Agent — 強調 Agent 會回寫 Memory 形成資料 trajectory(餵 U4.5 飛輪)。</li>
+<li><strong>★ 維運 / 告警 Agent:</strong>直接接 Coolify webhook,自身告警鏈不可中斷(Coolify 合規第 4 條)。</li>
+</ul>
+詳見 <code>U3-Agentic-Engineering.md</code>。">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart LR
   subgraph CP ["Control Plane / Leader Agent"]
@@ -168,14 +523,14 @@ flowchart LR
   subgraph AG ["6 種 Agent 分工"]
     direction LR
     A1["<b>1. 需求業務</b> 🟢<br>口語 → 結構化規格"]
-    A2["<b>2. 設計 Review</b> 🔵<br>對齊 Spec"]
-    A3["<b>3. 測試 / 驗證</b> 🔵<br>Test Log Triage"]
+    A2["<b>2. 設計 Review</b> 🟣<br>對齊 Spec(業務 SME)"]
+    A3["<b>3. 測試 / 驗證</b> 🟣<br>Eval 標準需業務定"]
     A4["<b>4. 品質 / NPI</b> 🟣<br>PLM/BOM 良率"]
     A5["<b>5. 維運 / 告警 ★</b> 🔴<br>Coolify 告警鏈"]
     A6["<b>6. 主管報告</b> 🟢<br>彙整 5 Agent 摘要"]
   end
 
-  CP --> AG
+  CP <-->|"派工 / 回寫 Memory"| AG
 
   classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
   classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
@@ -183,13 +538,20 @@ flowchart LR
   classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
   class Task,Mem,Gate it
   class A1,A6 user
-  class A2,A3 it
-  class A4 shared
+  class A2,A3,A4 shared
   class A5 critical
   </script>
 
-  <script type="text/plain" id="arch-u3-s1" data-label="2.1. U3 — Control Plane 內部運作" data-kind="architecture"
-          data-desc="<strong>Leader 三大職責:</strong>任務分派(切子任務)/ Memory 仲裁(讀寫衝突)/ Tool Gateway(白名單 + 配額)。Agent 不直接呼工具,所有 IO 經 Leader 收口。">
+  <!-- ================== U3.1 — Control Plane 內部運作 ================== -->
+  <script type="text/plain" id="arch-u3-s1"
+          data-label="U3.1 — Control Plane 內部運作"
+          data-order="3.1"
+          data-kind="architecture"
+          data-desc="<strong>Leader 三大職責:</strong>任務分派(切子任務)/ Memory 仲裁(讀寫衝突)/ Tool Gateway(白名單 + 配額)。
+<ul>
+<li><strong>關鍵:</strong>Agent 不直接呼工具,所有 IO 經 Leader 收口 — 才能做配額管理與審計。</li>
+<li><strong>回寫 Memory</strong>是 Flywheel ④ Trajectory 的原始素材。</li>
+</ul>">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart LR
   In([業務目標 / 需求進入]) --> Lead[Leader Agent<br><i>接收 + 解析</i>]
@@ -215,8 +577,18 @@ flowchart LR
   class Done user
   </script>
 
-  <script type="text/plain" id="arch-u4" data-label="3. U4 — Harness Engineering 8 元件 ★" data-kind="architecture"
-          data-desc="<strong>Agent = Model + Harness</strong>。8 元件分管理面(設計時)+ 運維面(執行時)。🔴 ★ = Coolify 合規鑑定關鍵點(Sandbox / Logs / Audit)。詳細 Breakdown 見 U4-Harness-Engineering.md。">
+  <!-- ================== U4 — Harness 8 元件 ================== -->
+  <script type="text/plain" id="arch-u4"
+          data-label="U4 — Harness Engineering 8 元件"
+          data-order="4"
+          data-kind="architecture"
+          data-desc="<strong>Agent = Model + Harness</strong>。8 元件分管理面(設計時)+ 執行面(運行時)。
+<ul>
+<li><strong>分類更新:</strong>Tests / CI 是 Prompt 改動觸發,屬<u>設計時</u>已移到管理面(原圖放運維面不直覺)。</li>
+<li><strong>🔴 ★ 3 個 Critical 元件</strong>(Coolify 合規鑑定關鍵點):Sandbox(第 3 條)/ Logs(第 4 條)/ Audit(第 6 條)。</li>
+<li><strong>5 個 IT 元件</strong>:Prompts / Tools / Memory / Tests-CI / Hooks。</li>
+</ul>
+詳細 Breakdown 見 <code>U4-Harness-Engineering.md</code>。">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart LR
   subgraph Manage ["管理面(設計時)"]
@@ -225,12 +597,12 @@ flowchart LR
     C2["<b>4.2 Tools / MCP / API</b><br>Gateway 收口"]
     C3["<b>4.3 Memory</b><br>Redis + RAG"]
     C4["<b>4.4 Sandbox ★</b><br>non-root / RO / tmpfs"]
-  end
-  subgraph Operate ["運維面(執行時)"]
-    direction LR
     C5["<b>4.5 Tests / CI</b><br>Prompt 改 = CI 跑"]
-    C6["<b>4.6 Logs / Traces ★</b><br>stdout / Trace ID"]
     C7["<b>4.7 Hooks / Guardrails</b><br>PII / Token 過濾"]
+  end
+  subgraph Operate ["執行面(運行時)"]
+    direction LR
+    C6["<b>4.6 Logs / Traces ★</b><br>stdout / Trace ID"]
     C8["<b>4.8 Audit Trail ★</b><br>合規必過"]
   end
 
@@ -242,8 +614,18 @@ flowchart LR
   class C4,C6,C8 critical
   </script>
 
-  <script type="text/plain" id="arch-u4-s1" data-label="3.1. U4 — Sandbox ★ 三層隔離" data-kind="architecture"
-          data-desc="<strong>Coolify 6 條合規中最易踩雷的一條(第 3 條)。</strong>三層由內而外:User Namespace(non-root)→ Filesystem(read-only + tmpfs)→ Network(內網限定)。三層任一缺,Sandbox 不成立。">
+  <!-- ================== U4.1 — Sandbox 三層隔離 ================== -->
+  <script type="text/plain" id="arch-u4-s1"
+          data-label="U4.1 — Sandbox ★ 三層隔離"
+          data-order="4.1"
+          data-kind="architecture"
+          data-desc="<strong>Coolify 6 條合規中最易踩雷的一條(第 3 條)。</strong>三層由內而外:User Namespace(non-root)→ Filesystem(read-only + tmpfs)→ Network(內網限定)。<strong>三層任一缺,Sandbox 不成立。</strong>
+<ul>
+<li>L1:<code>user: 1000:1000</code> 禁 sudo / chmod /</li>
+<li>L2:<code>read_only: true</code> + <code>tmpfs: [/tmp, /run]</code></li>
+<li>L3:Docker network 限定,禁外網 egress;對外請求走 Tool Gateway</li>
+</ul>
+對照 <code>Docker-Compose-Spec-v1.3.md</code> 找具體欄位範例。">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart LR
   Proc[Agent process<br><i>跑 LLM 推論 / 工具呼叫</i>]
@@ -272,8 +654,16 @@ flowchart LR
   class NR,RO,TMP,NET critical
   </script>
 
-  <script type="text/plain" id="arch-u4-s2" data-label="3.2. U4 — Memory 雙層架構" data-kind="architecture"
-          data-desc="<strong>短期 = Redis</strong>(session / cross-agent context,TTL 與任務生命週期對齊);<strong>長期 = RAG</strong>(Vector DB + Embedding,接 DataFlow 的 AI RAG 知識庫)。Tool Gateway 統一收口,Agent 不直連任何 store。">
+  <!-- ================== U4.2 — Memory 雙層架構 ================== -->
+  <script type="text/plain" id="arch-u4-s2"
+          data-label="U4.2 — Memory 雙層架構"
+          data-order="4.2"
+          data-kind="architecture"
+          data-desc="<strong>短期 = Redis</strong>(session / cross-agent context,TTL 與任務生命週期對齊);<strong>長期 = RAG</strong>(Vector DB + Embedding,接 DataFlow 的 AI RAG 知識庫)。
+<ul>
+<li><strong>Tool Gateway 統一收口</strong>,Agent 不直連任何 store。</li>
+<li><strong>業務 SME 參與點(🟣):</strong>文件庫由業務維護,且 RAG 索引品質需業務 SME 抽樣驗收(否則「答非所問」)。</li>
+</ul>">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart LR
   Agent[Agent process]
@@ -287,11 +677,13 @@ flowchart LR
 
   subgraph LT ["長期知識(RAG)"]
     direction TB
-    Doc[文件庫 / 主檔]
+    Doc[文件庫 / 主檔<br><i>業務 SME 維護</i>]
     Emb[Embedding 模型]
     Vec[(Vector DB<br><i>pgvector / Qdrant</i>)]
+    QA["業務 SME 抽樣驗收<br><i>RAG 品質</i>"]
     Doc -->|index| Emb
     Emb -->|向量| Vec
+    Vec -.驗收.-> QA
   end
 
   TG[Tool Gateway<br><i>權限收口</i>]
@@ -303,11 +695,20 @@ flowchart LR
   classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
   classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
   class TG,Agent,Redis,Emb,Vec it
-  class Doc shared
+  class Doc,QA shared
   </script>
 
-  <script type="text/plain" id="flow-u4-s3" data-label="3.3. U4 — Verification / CI Pipeline" data-kind="flow"
-          data-desc="<strong>Prompt 變動 = code 變動</strong>。任何 Prompt / Spec 改動走 Git PR + CI(Lint + Eval),通過才能 merge,Coolify 自動部署。Eval ≥ 閾值是硬門檻。">
+  <!-- ================== U4.3 — Verification CI Pipeline ================== -->
+  <script type="text/plain" id="flow-u4-s3"
+          data-label="U4.3 — Verification / CI Pipeline"
+          data-order="4.3"
+          data-kind="flow"
+          data-desc="<strong>Prompt 變動 = code 變動</strong>。任何 Prompt / Spec 改動走 Git PR + CI(Lint + Eval),通過才能 merge,Coolify 自動部署。
+<ul>
+<li><strong>Eval ≥ 閾值是硬門檻</strong>(對應 U4.5 飛輪 ② Evals)。</li>
+<li><strong>Block 路徑</strong>不是失敗就完結 — 通知作者修正後重提 PR。</li>
+</ul>
+<strong>反例:</strong>「直接在 Coolify 後台改 Prompt 試試看」→ 拒絕,違反第 5 條 CI/CD。">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart LR
   Change([Prompt / Spec 改動]) --> PR[Git PR]
@@ -330,8 +731,18 @@ flowchart LR
   class Done user
   </script>
 
-  <script type="text/plain" id="flow-u4-s4" data-label="3.4. U4 — Audit Trail 軌跡" data-kind="flow"
-          data-desc="<strong>合規追溯:誰部署 / 誰核准模型上線 / 誰改 Prompt / 誰調白名單</strong>。Audit Hook 是 middleware 收口,append-only DB,reviewer 可查不可改。">
+  <!-- ================== U4.4 — Audit Trail 軌跡 ================== -->
+  <script type="text/plain" id="flow-u4-s4"
+          data-label="U4.4 — Audit Trail 軌跡"
+          data-order="4.4"
+          data-kind="flow"
+          data-desc="<strong>合規追溯</strong>:誰部署 / 誰核准模型上線 / 誰改 Prompt / 誰調白名單。
+<ul>
+<li><strong>Audit Hook = middleware 收口</strong>,所有可審計動作都走這裡寫入。</li>
+<li><strong>Audit DB = append-only</strong>,reviewer 可查不可改(這是合規證據要求)。</li>
+<li><strong>retention ≥ 1 年</strong>(對應 Coolify 合規第 6 條)。</li>
+</ul>
+Audit log 必須與業務 DB 分庫,避免 PII 與 audit 混存。">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart LR
   subgraph Actions ["可審計動作"]
@@ -355,17 +766,27 @@ flowchart LR
   class Review shared
   </script>
 
-  <script type="text/plain" id="flow-u4-5" data-label="4. U4.5 — Domain Model Flywheel 迴路" data-kind="flow"
-          data-desc="<strong>飛輪本質:</strong>真實業務資料 → Eval → Reward → Trajectory → Fine-tune → 公司專屬 Model,迴圈累積。<strong>關鍵約束:</strong>資料須脫敏 / Reward 不可由 LLM 自評。">
+  <!-- ================== U4.5 — Domain Model Flywheel ================== -->
+  <script type="text/plain" id="flow-u4-5"
+          data-label="U4.5 — Domain Model Flywheel"
+          data-order="5"
+          data-kind="flow"
+          data-desc="<strong>飛輪本質:</strong>真實業務資料 → Eval → Reward → Trajectory → Fine-tune → 公司專屬 Model,迴圈累積。
+<ul>
+<li><strong>關鍵約束:</strong>資料須脫敏 / Reward 不可由 LLM 自評(self-reward bias)。</li>
+<li><strong>順序不可跳</strong>(見 <code>U4.5</code> §四) — 跳 ① 沒燃料、跳 ② 沒度量、跳 ③ 訓練亂收斂。</li>
+<li><strong>啟動條件</strong>(README §六.5.6):≥ 6 個月 trajectory + 通用 LLM 已 plateau + 清楚 reward signal。</li>
+<li>公司目前(2026-05):先把 U1-U4 落實,U4.5 第二年再啟動。</li>
+</ul>">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart LR
-  F1["1 公司資料 / 任務來源<br><i>SOP / PLM / Test Logs / 客服</i>"] --> F2["2 Evals<br><i>可量測指標</i>"]
-  F2 --> F3["3 Reward / Success Signal<br><i>U2 Engineer 審查結果</i>"]
-  F3 --> F4["4 Trajectories / Failure Cases<br><i>對 / 錯標記</i>"]
-  F4 --> F5["5 Fine-tuning<br><i>LoRA / RLVR</i>"]
-  F5 --> F6["6 公司專用 Domain Model"]
+  F1["1. 公司資料 / 任務來源<br><i>SOP / PLM / TestLog / 客服</i>"] --> F2["2. Evals<br><i>可量測指標</i>"]
+  F2 --> F3["3. Reward / Success Signal<br><i>U2 Engineer 審查結果</i>"]
+  F3 --> F4["4. Trajectories / Failure Cases<br><i>對 / 錯標記</i>"]
+  F4 --> F5["5. Fine-tuning<br><i>LoRA / RLVR</i>"]
+  F5 --> F6["6. 公司專用 Domain Model"]
   F6 -.飛輪迴圈.-> F1
-  F6 --> Harness["融合回 U4 Harness Engineering"]
+  F6 --> Harness["融合回 U4 Harness"]
 
   classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
   classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
@@ -374,8 +795,16 @@ flowchart LR
   class F2,F4,F5,F6,Harness it
   </script>
 
-  <script type="text/plain" id="flow-u4-5-s1" data-label="4.1. U4.5 — Reward 標記循環" data-kind="flow"
-          data-desc="<strong>Reward 不可由 LLM 自評</strong>(self-reward bias)。Engineer(U2)審查 Trajectory → 標 positive / negative → 進 Fine-tune dataset → 影響下次 Domain Model。">
+  <!-- ================== U4.5.1 — Reward 標記循環 ================== -->
+  <script type="text/plain" id="flow-u4-5-s1"
+          data-label="U4.5.1 — Reward 標記循環"
+          data-order="5.1"
+          data-kind="flow"
+          data-desc="<strong>Reward 不可由 LLM 自評</strong>(self-reward bias 會讓模型「自我膨脹」)。
+<ul>
+<li><strong>染色更新:</strong>Engineer 改回 IT(🔵) — 對齊三色定義(Agentic Engineer 屬 IT)。Pos / Neg 標籤保持共同(🟣) — 因為 ground truth 需業務確認。</li>
+<li><strong>路徑:</strong>Agent 跑 Trajectory → Engineer 審 → 標 Pos/Neg → 進 Fine-tune dataset → 影響下次 Domain Model。</li>
+</ul>">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart LR
   Run[Agent 跑出<br>Trajectory] --> Eng[U2 Agentic Engineer<br>審查]
@@ -392,13 +821,23 @@ flowchart LR
   classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
   classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
   classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
-  class Run,Train,Model it
-  class Eng,Pos,Neg shared
+  class Run,Train,Model,Eng it
+  class Pos,Neg shared
   class Anti critical
   </script>
 
-  <script type="text/plain" id="arch-u5" data-label="5. U5 — 基礎資源 / 系統" data-kind="architecture"
-          data-desc="<strong>物質基礎,沒這層上面皆空談。</strong>7 個資源 = 3 IT 平台 + 4 共同維護。🔴 ★ Repo / Dashboard 連動 Coolify。詳細 Breakdown 見 U5-Foundation-Resources.md。">
+  <!-- ================== U5 — 基礎資源 ================== -->
+  <script type="text/plain" id="arch-u5"
+          data-label="U5 — 基礎資源 / 系統"
+          data-order="6"
+          data-kind="architecture"
+          data-desc="<strong>物質基礎,沒這層上面皆空談。</strong>7 個資源:
+<ul>
+<li><strong>Row 1 🔵 IT 平台</strong>(3 項):LLM / Repo ★ / Dashboard ★ — 後 2 個直連 Coolify。</li>
+<li><strong>Row 2 🟣 業務知識共同維護</strong>(4 項):PLM/BOM / SOP / TestLog / DataHub。</li>
+<li><strong>★ Repo + Dashboard</strong>是 Coolify 合規 4+5 條的兩個落腳點。</li>
+</ul>
+詳見 <code>U5-Foundation-Resources.md</code>。">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart LR
   subgraph Row1 ["核心 / 平台(IT 主管)"]
@@ -426,7 +865,11 @@ flowchart LR
   class R3,R4,R5,R7 shared
   </script>
 
-  <script type="text/plain" id="arch-u5-s1" data-label="5.1. U5 — Coolify 連動 2 個關鍵資源" data-kind="architecture"
+  <!-- ================== U5.1 — Coolify 連動 ================== -->
+  <script type="text/plain" id="arch-u5-s1"
+          data-label="U5.1 — Coolify 連動 2 個關鍵資源"
+          data-order="6.1"
+          data-kind="architecture"
           data-desc="<strong>Repo / Code ★</strong> 由 Coolify watch(push 即部署);<strong>Dashboard / Metrics ★</strong> 由 Coolify collect(stdout JSON → Loki / Sentry)。其他 4 個資源(LLM / PLM / Test Logs / SOP)經 U4 Tools / Memory 收口接入。">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart LR
@@ -457,11 +900,22 @@ flowchart LR
   class Coolify,Git,Hook,Auto,Stdout,Loki,Sentry it
   </script>
 
-  <script type="text/plain" id="arch-u5-s2" data-label="5.2. U5 — Data Hub 跨層連動" data-kind="architecture"
-          data-desc="<strong>Data Hub = DataFlow v1.0 § 3.3 的企業中央資料中心。</strong>主檔由業務維護(HR/財務/業務/採購),IT 提供 ETL/CDC 基礎設施。Data Hub 被 L3 Agent / L4 Memory / L4.5 Flywheel 同時消費。">
+  <!-- ================== U5.2 — Data Hub 跨層連動 ================== -->
+  <script type="text/plain" id="arch-u5-s2"
+          data-label="U5.2 — Data Hub 跨層連動"
+          data-order="6.2"
+          data-kind="architecture"
+          data-desc="<strong>Data Hub = DataFlow v1.0 § 3.3 的企業中央資料中心。</strong>
+<ul>
+<li><strong>染色更新:</strong>新增『業務 SME 維護主檔』箭頭 — 主檔由 HR/財務/業務/採購維護(🟢),不是只有 IT 染色。</li>
+<li><strong>IT(Engineer)只建 ETL/CDC 基礎設施</strong>,主檔內容由業務填。</li>
+<li><strong>跨層消費</strong>:被 L3 Agent(REST)/ L4 Memory(Embedding)/ L4.5 Flywheel(脫敏訓練資料)同時使用。</li>
+</ul>">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart LR
-  subgraph DH ["Data Hub — 主檔資料中心(共同維護)"]
+  Biz["業務 SME<br><i>HR / 財務 / 業務 / 採購</i>"]
+
+  subgraph DH ["Data Hub — 主檔資料中心"]
     direction LR
     Org["組織<br><i>HR / 財務</i>"]
     Emp["人員<br><i>HR + AD</i>"]
@@ -479,6 +933,7 @@ flowchart LR
 
   Eng[Agentic Engineer<br><i>建 ETL / CDC</i>]
 
+  Biz ==>|"維護主檔內容"| DH
   DH -->|REST<br>/api/v1/master/*| L3A
   DH -->|index<br>+ Embedding| L4M
   DH -->|脫敏訓練資料| L45F
@@ -487,19 +942,19 @@ flowchart LR
   classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
   classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
   classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
+  class Biz user
   class Org,Emp,Cust,Code,Item shared
   class L3A,L4M,L45F,Eng it
   </script>
 
-  <div class="toolbar">
+  <!-- ================== 工具列 + 圖例 + 舞台 + 講者註記 ================== -->
+  <header class="toolbar">
     <h1 id="title">Harness Engineering — Breakdown v1.0</h1>
-    <div class="legend">
-      <span class="item"><span class="sw u"></span>使用者</span>
-      <span class="item"><span class="sw i"></span>IT</span>
-      <span class="item"><span class="sw s"></span>共同</span>
-      <span class="item"><span class="sw c"></span>★ Critical</span>
-    </div>
+    <button id="prev" class="nav-btn" title="上一頁(←)">‹</button>
+    <span id="counter" class="counter">0 / 0</span>
+    <button id="next" class="nav-btn" title="下一頁(→)">›</button>
     <select id="picker" class="picker"></select>
+    <span class="divider"></span>
     <label>主題
       <select id="theme">
         <option value="default">Light</option>
@@ -512,42 +967,86 @@ flowchart LR
       <input type="number" id="font-size" value="16" min="10" max="32" step="1" style="width: 56px;">
       <span>px</span>
     </label>
-    <button id="copy-svg">複製 SVG</button>
-    <button id="download-svg">下載 SVG</button>
-    <button id="download-png">下載 PNG</button>
+    <span class="divider"></span>
+    <button id="copy-svg" title="複製 SVG 到剪貼簿">複製 SVG</button>
+    <button id="download-svg" title="下載 SVG 檔">下載 SVG</button>
+    <button id="download-png" title="下載 PNG(2× 解析度)">下載 PNG</button>
+  </header>
+
+  <div class="legend-bar">
+    <div class="group">
+      <span class="group-title">角色</span>
+      <span class="item"><span class="sw u"></span>🟢 使用者</span>
+      <span class="item"><span class="sw i"></span>🔵 IT</span>
+      <span class="item"><span class="sw s"></span>🟣 共同</span>
+      <span class="item"><span class="sw c"></span>🔴 ★ Critical</span>
+    </div>
+    <span class="divider" style="width:1px;height:18px;background:var(--border);"></span>
+    <div class="group">
+      <span class="group-title">箭頭</span>
+      <span class="item"><svg class="line" width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="currentColor" stroke-width="1.6"/></svg> 強依賴</span>
+      <span class="item"><svg class="line" width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="currentColor" stroke-width="1.6" stroke-dasharray="4 2"/></svg> 弱關聯 / 延伸</span>
+      <span class="item"><svg class="line" width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="currentColor" stroke-width="1.6" stroke-dasharray="1 2"/></svg> 約束</span>
+      <span class="item"><svg class="line" width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="currentColor" stroke-width="2.5"/></svg> 升級 / 主幹</span>
+    </div>
   </div>
 
   <main>
     <div class="preview" id="preview"></div>
   </main>
 
-  <div class="desc" id="desc"></div>
+  <aside class="notes" id="notes">
+    <div class="notes-head">
+      <span>📝 講者註記 / Speaker Notes</span>
+      <button class="toggle" id="notes-toggle" title="ESC 也可切換">收起</button>
+    </div>
+    <div class="body" id="notes-body"></div>
+  </aside>
 
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
 
     const preview = document.getElementById('preview');
-    const desc = document.getElementById('desc');
+    const notesEl = document.getElementById('notes');
+    const notesBody = document.getElementById('notes-body');
+    const notesToggle = document.getElementById('notes-toggle');
     const themeSelect = document.getElementById('theme');
     const fontSizeInput = document.getElementById('font-size');
     const picker = document.getElementById('picker');
+    const counterEl = document.getElementById('counter');
+    const prevBtn = document.getElementById('prev');
+    const nextBtn = document.getElementById('next');
+    const titleEl = document.getElementById('title');
 
-    const blocks = Array.from(document.querySelectorAll('script[type="text/plain"][id]'));
+    // 蒐集所有 slide 並依 data-order 排序
+    const slides = Array.from(document.querySelectorAll('script[type="text/plain"][id]'))
+      .map(el => ({
+        el,
+        id: el.id,
+        label: el.dataset.label || el.id,
+        order: parseFloat(el.dataset.order || '99'),
+        kind: el.dataset.kind || 'flow',
+        format: el.dataset.format || 'mermaid',
+      }))
+      .sort((a, b) => a.order - b.order);
+
+    let currentIndex = 0;
     let renderToken = 0;
 
     function buildPicker() {
-      const archGroup = document.createElement('optgroup');
-      archGroup.label = '架構';
-      const flowGroup = document.createElement('optgroup');
-      flowGroup.label = '流程';
-      for (const b of blocks) {
+      picker.innerHTML = '';
+      slides.forEach((s, idx) => {
         const opt = document.createElement('option');
-        opt.value = b.id;
-        opt.textContent = b.dataset.label || b.id;
-        (b.dataset.kind === 'flow' ? flowGroup : archGroup).appendChild(opt);
-      }
-      if (archGroup.childNodes.length) picker.appendChild(archGroup);
-      if (flowGroup.childNodes.length) picker.appendChild(flowGroup);
+        opt.value = s.id;
+        opt.textContent = `${s.label}`;
+        picker.appendChild(opt);
+      });
+    }
+
+    function updateCounter() {
+      counterEl.textContent = `${currentIndex + 1} / ${slides.length}`;
+      prevBtn.disabled = currentIndex === 0;
+      nextBtn.disabled = currentIndex === slides.length - 1;
     }
 
     function initMermaid() {
@@ -566,20 +1065,25 @@ flowchart LR
     }
 
     async function render() {
-      const id = picker.value;
-      const block = document.getElementById(id);
-      if (!block) return;
-      const code = block.textContent.trim();
+      const slide = slides[currentIndex];
+      if (!slide) return;
+      const code = slide.el.textContent.trim();
       const token = ++renderToken;
-      document.getElementById('title').textContent = block.dataset.label || id;
-      desc.innerHTML = block.dataset.desc || '';
-      desc.style.display = block.dataset.desc ? 'block' : 'none';
+
+      titleEl.textContent = slide.label;
+      notesBody.innerHTML = slide.el.dataset.desc || '<em style="color:var(--muted)">(此 slide 無註記)</em>';
+
       try {
-        initMermaid();
-        const { svg } = await mermaid.render('diagram-' + token, code);
-        if (token !== renderToken) return;
-        preview.innerHTML = svg;
-        elevateClusterLabels(preview.querySelector('svg'));
+        if (slide.format === 'html') {
+          initMermaid(); // 仍套用 theme
+          preview.innerHTML = code;
+        } else {
+          initMermaid();
+          const { svg } = await mermaid.render('diagram-' + token, code);
+          if (token !== renderToken) return;
+          preview.innerHTML = svg;
+          elevateClusterLabels(preview.querySelector('svg'));
+        }
       } catch (e) {
         if (token !== renderToken) return;
         const msg = (e && (e.message || e.str)) || String(e);
@@ -588,8 +1092,8 @@ flowchart LR
     }
 
     // 把 subgraph 標題抬到 SVG 最後一個 child(SVG 無 z-index,DOM 順序 = 繪製順序)。
-    // 底色:取 page bg + 75% 不透明,讓 cluster 顏色透出 ~25%,既能辨識又跟 subgraph 融合;
-    // 加上 cluster 自己的 stroke 當細邊框,在視覺上跟所屬 subgraph 連動。
+    // 底色:取 page bg + ~75% 不透明,讓 cluster 顏色透出 ~25%;
+    // 加上 cluster stroke 當細邊框,在視覺上跟所屬 subgraph 連動。
     function elevateClusterLabels(svg) {
       if (!svg) return;
       const root = svg.firstElementChild && svg.firstElementChild.tagName.toLowerCase() === 'g'
@@ -642,18 +1146,35 @@ flowchart LR
       return s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
     }
 
+    function goTo(idx) {
+      currentIndex = Math.max(0, Math.min(slides.length - 1, idx));
+      picker.value = slides[currentIndex].id;
+      updateCounter();
+      render();
+    }
+
+    function goToId(id) {
+      const idx = slides.findIndex(s => s.id === id);
+      if (idx >= 0) goTo(idx);
+    }
+
+    function toggleNotes() {
+      notesEl.classList.toggle('collapsed');
+      notesToggle.textContent = notesEl.classList.contains('collapsed') ? '展開' : '收起';
+    }
+
     function downloadSVG() {
       const svg = preview.querySelector('svg');
-      if (!svg) return;
+      if (!svg) { flash('目前 slide 沒有 SVG 可下載'); return; }
       const blob = new Blob([svg.outerHTML], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(blob);
-      triggerDownload(url, picker.value + '.svg');
+      triggerDownload(url, slides[currentIndex].id + '.svg');
       URL.revokeObjectURL(url);
     }
 
     async function downloadPNG() {
       const svg = preview.querySelector('svg');
-      if (!svg) return;
+      if (!svg) { flash('目前 slide 沒有 SVG 可下載'); return; }
       const serialized = new XMLSerializer().serializeToString(svg);
       const blob = new Blob([serialized], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(blob);
@@ -672,12 +1193,12 @@ flowchart LR
       ctx.scale(scale, scale);
       ctx.drawImage(img, 0, 0, w, h);
       URL.revokeObjectURL(url);
-      triggerDownload(canvas.toDataURL('image/png'), picker.value + '.png');
+      triggerDownload(canvas.toDataURL('image/png'), slides[currentIndex].id + '.png');
     }
 
     async function copySVG() {
       const svg = preview.querySelector('svg');
-      if (!svg) return;
+      if (!svg) { flash('目前 slide 沒有 SVG 可複製'); return; }
       try {
         await navigator.clipboard.writeText(svg.outerHTML);
         flash('已複製 SVG');
@@ -692,25 +1213,45 @@ flowchart LR
     }
 
     function flash(msg) {
-      const title = document.getElementById('title');
-      const original = title.textContent;
-      title.textContent = msg;
-      setTimeout(() => { title.textContent = original; }, 1500);
+      const original = titleEl.textContent;
+      titleEl.textContent = msg;
+      setTimeout(() => { titleEl.textContent = original; }, 1500);
     }
 
+    // 事件
     buildPicker();
-    picker.addEventListener('change', render);
+    picker.addEventListener('change', e => goToId(e.target.value));
     themeSelect.addEventListener('change', render);
     fontSizeInput.addEventListener('input', render);
+    prevBtn.addEventListener('click', () => goTo(currentIndex - 1));
+    nextBtn.addEventListener('click', () => goTo(currentIndex + 1));
+    notesToggle.addEventListener('click', toggleNotes);
     document.getElementById('download-svg').addEventListener('click', downloadSVG);
     document.getElementById('download-png').addEventListener('click', downloadPNG);
     document.getElementById('copy-svg').addEventListener('click', copySVG);
+
+    document.addEventListener('keydown', e => {
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+        e.preventDefault(); goTo(currentIndex + 1);
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault(); goTo(currentIndex - 1);
+      } else if (e.key === 'Escape') {
+        e.preventDefault(); toggleNotes();
+      } else if (e.key === 'Home') {
+        e.preventDefault(); goTo(0);
+      } else if (e.key === 'End') {
+        e.preventDefault(); goTo(slides.length - 1);
+      }
+    });
 
     if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
       themeSelect.value = 'dark';
     }
 
-    render();
+    // 初始
+    goTo(0);
   </script>
 </body>
 </html>

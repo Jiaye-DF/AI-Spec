@@ -32,34 +32,36 @@
 
 ## 視覺索引(diagram.html)
 
-互動式 HTML 圖檔:[`diagram.html`](diagram.html)(雙擊瀏覽器即開,工具列下拉切換)。
+互動式 Demo 簡報網頁:[`diagram.html`](diagram.html)(雙擊瀏覽器即開)。
 
-### 主架構(picker「架構」群)
+**操作:**`← / →` 翻頁;`ESC` 收/展講者註記;`Home / End` 跳首尾;右上 picker 可直接跳 slide;`空白鍵` = 下一頁。每張 slide 都帶 **講者註記**(下方面板),可直接當 Demo 簡報走稿。
 
-| # | 工具列標籤 | 對應 / 重點 |
+### 17 張 slide 線性順序
+
+| 序 | 工具列標籤 | 重點 / 對應 |
 | --- | --- | --- |
-| ① | 5 層架構總覽 | 本檔(融合 U1–U5 + Flywheel) |
-| ② | U3 — Agentic Engineering 上層工作流 | [U3-Agentic-Engineering.md](U3-Agentic-Engineering.md) |
-| ②.1 | U3 — Control Plane 內部運作 | Leader 三職責:任務分派 / Memory 仲裁 / Tool Gateway |
-| ③ | U4 — Harness Engineering 8 元件 ★ | [U4-Harness-Engineering.md](U4-Harness-Engineering.md) |
-| ③.1 | U4 — Sandbox ★ 三層隔離 | Coolify 合規第 3 條,User NS / Filesystem / Network |
-| ③.2 | U4 — Memory 雙層架構 | Redis 短期 + RAG 長期 + Tool Gateway 收口 |
-| ⑤ | U5 — 基礎資源 / 系統 | [U5-Foundation-Resources.md](U5-Foundation-Resources.md) |
-| ⑤.1 | U5 — Coolify 連動 2 個關鍵資源 | Repo + Dashboard 直連 Coolify |
-| ⑤.2 | U5 — Data Hub 跨層連動 | 主檔資料中心(對應 DataFlow v1.0 § 3.3),被 L3 / L4 / L4.5 同時消費 |
+| 0 | 0. 封面 / Vibe Coding 公司版 | 三色定義 + Demo 導覽說明 |
+| 0.1 | 0.1 為什麼需要 Harness(Before vs After) | Model-only 失控 vs 8 元件治理對比 |
+| 1 | 1. 五層架構總覽 | L1→L2→L3→L4 線性 + L4.5 / L5 雙腳 |
+| 1.1 | 1.1 三角色責任分布(6 單元 × 三色) | RACI 總圖 — 每個角色該管哪幾格 |
+| 2 | U2 — Agentic Engineer 4 大職責 | Vibe Coding 公司關鍵差異(★ 新增) |
+| 3 | U3 — Agentic Engineering 上層工作流 | Control Plane + 6 種 Agent(設計 Review / 測試驗證 染共同)|
+| 3.1 | U3.1 — Control Plane 內部運作 | Leader 三職責 + 回寫 Memory |
+| 4 | U4 — Harness 8 元件 ★ | 管理面(設計時,6 項)+ 執行面(運行時,2 項)|
+| 4.1 | U4.1 — Sandbox ★ 三層隔離 | Coolify 合規第 3 條(User NS / FS / Network)|
+| 4.2 | U4.2 — Memory 雙層架構 | Redis 短期 + RAG 長期 + 業務 SME 驗收 |
+| 4.3 | U4.3 — Verification / CI Pipeline | Prompt 改 = code 改;Lint + Eval 雙關卡 |
+| 4.4 | U4.4 — Audit Trail 軌跡 | append-only,誰部署 / 誰改 Prompt |
+| 5 | U4.5 — Domain Model Flywheel | 6 元件不可跳序;Reward 由業務確認 |
+| 5.1 | U4.5.1 — Reward 標記循環 | Engineer(IT)審查 → 業務確認 ground truth |
+| 6 | U5 — 基礎資源 / 系統 | Row 1 IT 平台(3 項)+ Row 2 業務知識(4 項)|
+| 6.1 | U5.1 — Coolify 連動 2 個關鍵資源 | Repo + Dashboard 直連 Coolify |
+| 6.2 | U5.2 — Data Hub 跨層連動 | 業務 SME 維護主檔 + IT 建 ETL |
 
-### 流程 / 迴路(picker「流程」群)
-
-| # | 工具列標籤 | 對應 / 重點 |
-| --- | --- | --- |
-| ③.3 | U4 — Verification / CI Pipeline | Prompt 改 = code 改;Lint + Eval 雙關卡 |
-| ③.4 | U4 — Audit Trail 軌跡 | 誰部署 / 誰核准 / 誰改 Prompt,append-only |
-| ④ | U4.5 — Domain Model Flywheel 迴路 | [U4.5-Domain-Model-Flywheel.md](U4.5-Domain-Model-Flywheel.md) |
-| ④.1 | U4.5 — Reward 標記循環 | Engineer 審查 → label → Fine-tune dataset |
-
-> **U1 / U2 / 附件不出圖**:U1 業務情境與 U2 角色定義是脈絡性內容,以文字承載即可;Coolify 合規以對照表表達(見附件)。
-> **小數點編號 = sub-diagram**:`②.1` 是 `②` 的 zoom-in,維持「大模組(U-level)看總覽,sub 看細節」的兩層結構。
-> **圖內容變動 → 對應 MD 文件同步**:`diagram.html` 是視覺層,單元 MD 是文字層。改架構節點 / 元件名稱時,兩處須一致(由本檔 § 六維護準則收口)。
+> **U1 不出圖**:業務情境以文字承載即可(見 [U1-Business-Context.md](U1-Business-Context.md))。U2 因為是 Vibe Coding 公司關鍵差異,**新版補出一張圖**(序 2)。
+> **編號規約**:統一用 `U<unit>.<sub>` 半形數(對齊 MD 檔名);picker 與本表索引完全一致。
+> **新增 slide**:`0.1 Before vs After`、`1.1 RACI`、`U2 Engineer 4 大職責` 三張是 v1.0 → v1.1 新加,專為 Demo 線性敘事補位。
+> **圖內容變動 → MD 同步**:`diagram.html` 是視覺層,單元 MD 是文字層。改架構節點 / 元件名稱時,兩處須一致(由本檔 § 六維護準則收口)。
 
 ---
 
@@ -151,5 +153,16 @@
 ## 六、版本與維護
 
 - **v1.0(2026-05-07)** — 首版,依架構圖原始 5 層拆解,Coolify 合規取自當前 Coolify + Docker Compose 環境(無 K8s)。
+- **v1.1(2026-05-11)** — Demo 化改版,專注於可直接當簡報用:
+  - **新增 3 張 slide**:`0.1 Before vs After`、`1.1 RACI 三角色責任分布`、`U2 Agentic Engineer 4 大職責`(原 U2 只有文字)。
+  - **編號統一**:全部改半形 `U<x>.<y>`(對齊 MD 檔名),取消全形圓圈/小數混用。
+  - **染色修正**:
+    - 主架構 L4 / L4.5 / L5 從 Critical/共同 改為 IT 主色(Critical 標記移到子節點)。
+    - U3 設計 Review / 測試驗證 / 品質 NPI Agent 改共同(對應業務 ground truth 角色)。
+    - Reward 循環中 Engineer 改 IT 主色(對齊三色定義);Pos/Neg 維持共同。
+    - U5.2 Data Hub 新增「業務 SME 維護主檔」箭頭(原本只看到 IT 建 ETL,缺業務角色)。
+  - **U4 8 元件分類修正**:Tests/CI 從「運維面」移到「管理面」(Prompt 改動觸發,屬設計時)。
+  - **U3 Control Plane → Agent 改雙向箭頭**(原單向漏寫回 Memory)。
+  - **HTML 升級為 Demo 簡報網頁**:線性導覽 + 講者註記面板 + 鍵盤翻頁 + 箭頭圖例。
 - 後續變更:架構圖更新時,本目錄連同單元一併升版,避免單檔散落不同版本。
 - 修正規則:任何 Coolify 合規條目調整,**必須同步更新附件 + 對應單元的 Coolify 章節**,不可只改其中一處。
