@@ -309,27 +309,29 @@ flowchart TB
     }
 
     // 把 subgraph 標題抬到 SVG 最後一個 child(SVG 無 z-index,DOM 順序 = 繪製順序)。
-    // 標題底色取「該 cluster 自己的 fill」,避免白底跟黃 subgraph 不搭。
+    // 底色:取 page bg + 75% 不透明,讓 cluster 顏色透出 ~25%,既能辨識又跟 subgraph 融合;
+    // 加上 cluster 自己的 stroke 當細邊框,在視覺上跟所屬 subgraph 連動。
     function elevateClusterLabels(svg) {
       if (!svg) return;
       const root = svg.firstElementChild && svg.firstElementChild.tagName.toLowerCase() === 'g'
         ? svg.firstElementChild : svg;
       const labels = Array.from(svg.querySelectorAll('.cluster-label'));
       if (!labels.length) return;
+      const pageBg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#ffffff';
 
       const entries = labels.map(label => {
         const cluster = label.closest('.cluster');
         const clusterRect = cluster && cluster.querySelector(':scope > rect');
-        let fill = '#ffffff';
+        let stroke = '#cbd5e1';
         if (clusterRect) {
-          fill = clusterRect.getAttribute('fill')
-              || getComputedStyle(clusterRect).fill
-              || fill;
+          stroke = clusterRect.getAttribute('stroke')
+                || getComputedStyle(clusterRect).stroke
+                || stroke;
         }
-        return { label, ctm: label.getCTM(), bbox: label.getBBox(), fill };
+        return { label, ctm: label.getCTM(), bbox: label.getBBox(), stroke };
       });
 
-      for (const { label, ctm, bbox, fill } of entries) {
+      for (const { label, ctm, bbox, stroke } of entries) {
         if (!ctm) continue;
         const wrapper = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         wrapper.setAttribute('transform', `matrix(${ctm.a} ${ctm.b} ${ctm.c} ${ctm.d} ${ctm.e} ${ctm.f})`);
@@ -340,7 +342,11 @@ flowchart TB
         rect.setAttribute('y', bbox.y - 2);
         rect.setAttribute('width', bbox.width + 16);
         rect.setAttribute('height', bbox.height + 4);
-        rect.setAttribute('fill', fill);
+        rect.setAttribute('fill', pageBg);
+        rect.setAttribute('fill-opacity', '0.78');
+        rect.setAttribute('stroke', stroke);
+        rect.setAttribute('stroke-width', '1');
+        rect.setAttribute('stroke-opacity', '0.6');
         rect.setAttribute('rx', '4');
         wrapper.appendChild(rect);
 
