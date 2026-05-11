@@ -191,48 +191,48 @@
 
     /* ---- RACI 3x2 grid (HTML slide) ---- */
     .raci-wrap {
-      max-width: 1200px; width: 100%;
+      max-width: 1280px; width: 100%;
     }
     .raci-head {
-      margin-bottom: 12px;
-      font-size: 13px; color: var(--muted);
-      display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center;
+      margin-bottom: 16px;
+      font-size: 15px; color: var(--muted);
+      display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center;
     }
-    .raci-head strong { color: var(--accent); font-size: 14px; }
+    .raci-head strong { color: var(--accent); font-size: 18px; }
     .raci-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       grid-template-rows: repeat(2, 1fr);
-      gap: 14px;
+      gap: 18px;
     }
     .raci-cell {
       background: var(--bg);
       border: 1.5px solid var(--border);
-      border-radius: 8px;
-      padding: 14px;
+      border-radius: 10px;
+      padding: 18px 20px;
       display: flex;
       flex-direction: column;
       box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
     }
     .raci-cell.has-star { border-color: var(--critical); border-width: 2px; }
     .raci-title {
-      font-size: 15px;
+      font-size: 18px;
       font-weight: 700;
       color: var(--fg);
       border-bottom: 1px solid var(--border);
-      padding-bottom: 7px;
-      margin-bottom: 10px;
+      padding-bottom: 9px;
+      margin-bottom: 12px;
       letter-spacing: 0.01em;
     }
     .raci-items {
       display: flex;
       flex-direction: column;
-      gap: 7px;
+      gap: 9px;
     }
     .raci-item {
-      font-size: 12.5px;
-      padding: 7px 11px;
-      border-radius: 6px;
+      font-size: 15px;
+      padding: 10px 14px;
+      border-radius: 7px;
       line-height: 1.5;
       border: 1px solid transparent;
     }
@@ -245,41 +245,41 @@
     [data-theme="dark"] .raci-item.shared { background: rgba(168, 85, 247, 0.18); color: #d8b4fe; }
     [data-theme="dark"] .raci-item.critical { background: rgba(248, 113, 113, 0.18); color: #fca5a5; }
     .raci-foot {
-      margin-top: 16px;
-      padding: 10px 14px;
+      margin-top: 20px;
+      padding: 14px 18px;
       background: var(--bg-soft);
-      border-left: 3px solid var(--accent);
-      border-radius: 0 6px 6px 0;
-      font-size: 13px;
-      color: var(--fg); line-height: 1.55;
+      border-left: 4px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      font-size: 15px;
+      color: var(--fg); line-height: 1.6;
     }
     .raci-foot strong { color: var(--accent); }
 
     /* ---- 通用卡片 grid(U2 / U3 / U4 / U5 用) ---- */
-    .cards-wrap { max-width: 1200px; width: 100%; }
+    .cards-wrap { max-width: 1280px; width: 100%; }
     .cards-head {
-      margin-bottom: 14px;
-      font-size: 13px; color: var(--muted);
-      display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center;
+      margin-bottom: 18px;
+      font-size: 15px; color: var(--muted);
+      display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center;
     }
-    .cards-head strong { color: var(--accent); font-size: 15px; }
-    .cards-grid { display: grid; gap: 12px; }
+    .cards-head strong { color: var(--accent); font-size: 19px; }
+    .cards-grid { display: grid; gap: 16px; }
     .cards-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
     .cards-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
     .cards-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
     .card {
       background: var(--bg);
       border: 1px solid var(--border);
-      border-left-width: 4px;
-      border-radius: 8px;
-      padding: 12px 14px;
+      border-left-width: 5px;
+      border-radius: 10px;
+      padding: 16px 18px;
       display: flex; flex-direction: column;
       box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
       transition: transform 0.12s ease, box-shadow 0.12s ease;
     }
     .card:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.1);
     }
     .card.user { border-left-color: #16a34a; }
     .card.it { border-left-color: #2563eb; }
@@ -287,10 +287,10 @@
     .card.critical { border-left-color: #dc2626; }
     .card-badge {
       display: inline-block;
-      font-size: 10.5px; font-weight: 700;
-      padding: 2px 7px;
-      border-radius: 4px;
-      margin-bottom: 6px;
+      font-size: 12.5px; font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 5px;
+      margin-bottom: 9px;
       align-self: flex-start;
       letter-spacing: 0.02em;
     }
@@ -303,42 +303,42 @@
     [data-theme="dark"] .card.shared .card-badge { background: rgba(168,85,247,0.2); color: #d8b4fe; }
     [data-theme="dark"] .card.critical .card-badge { background: rgba(248,113,113,0.2); color: #fca5a5; }
     .card-title {
-      font-size: 14.5px; font-weight: 700;
-      margin: 0 0 6px;
+      font-size: 17.5px; font-weight: 700;
+      margin: 0 0 9px;
       color: var(--fg); line-height: 1.35;
     }
     .card-num {
-      font-size: 11.5px; color: var(--muted);
-      font-weight: 700; margin-right: 5px;
+      font-size: 14px; color: var(--muted);
+      font-weight: 700; margin-right: 6px;
       font-variant-numeric: tabular-nums;
     }
     .card-body {
-      font-size: 12.5px;
+      font-size: 15px;
       color: var(--fg);
-      line-height: 1.55;
+      line-height: 1.6;
     }
     .card-body strong { color: var(--accent); }
     .card-body code {
       background: var(--btn-hover);
-      padding: 1px 5px;
-      border-radius: 3px;
-      font-size: 11.5px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13.5px;
       font-family: 'JetBrains Mono', Consolas, monospace;
     }
     .card-meta {
-      margin-top: 8px;
-      padding-top: 6px;
+      margin-top: 11px;
+      padding-top: 9px;
       border-top: 1px dashed var(--border);
-      font-size: 11px; color: var(--muted);
+      font-size: 13px; color: var(--muted);
     }
     .cards-foot {
-      margin-top: 16px;
-      padding: 10px 14px;
+      margin-top: 20px;
+      padding: 14px 18px;
       background: var(--bg-soft);
-      border-left: 3px solid var(--accent);
-      border-radius: 0 6px 6px 0;
-      font-size: 13px;
-      color: var(--fg); line-height: 1.55;
+      border-left: 4px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      font-size: 15px;
+      color: var(--fg); line-height: 1.6;
     }
     .cards-foot strong { color: var(--accent); }
     .slide-cover .tag {
