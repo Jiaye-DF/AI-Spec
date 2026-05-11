@@ -160,14 +160,34 @@
 
     /* ---- cover slide ---- */
     .slide-cover {
-      max-width: 920px; width: 100%;
-      padding: 40px 56px;
+      max-width: 1100px; width: 100%;
+      padding: 36px 48px;
       background: linear-gradient(135deg, var(--bg) 0%, var(--bg-soft) 100%);
       border: 1px solid var(--border);
       border-radius: 12px;
       box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
       text-align: left;
     }
+    .slide-cover .hero {
+      margin: 18px 0 24px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--bg);
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+    }
+    .slide-cover .hero img {
+      display: block; width: 100%; height: auto;
+      max-height: 56vh; object-fit: contain;
+      background: #fff;
+    }
+    .slide-cover .hero .caption {
+      padding: 8px 14px;
+      font-size: 12px; color: var(--muted);
+      border-top: 1px solid var(--border);
+      background: var(--bg-soft);
+    }
+    .slide-cover .hero .caption strong { color: var(--fg); }
     .slide-cover .tag {
       display: inline-block;
       padding: 4px 12px;
@@ -265,6 +285,11 @@
   <span class="tag">Vibe Coding 公司版 · v1.0</span>
   <div class="title">Harness Engineering</div>
   <div class="subtitle">架構 Breakdown — 6 學習單元 × 三角色責任 × Coolify 合規</div>
+
+  <div class="hero">
+    <img src="Harness-Architecture.jpg" alt="Harness Engineering 原始架構圖">
+    <div class="caption"><strong>原始架構圖</strong> — 本 Breakdown 即根據此圖逐層拆解(L1 業務情境 → L2 Engineer → L3 上層工作流 → L4 Harness 8 元件 → L4.5 Flywheel → L5 基礎資源)。</div>
+  </div>
 
   <div class="meta">
     <strong>用途</strong><span>Demo 簡報 / 新人 Onboarding / Coolify 合規對照</span>
