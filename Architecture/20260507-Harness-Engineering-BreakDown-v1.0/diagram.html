@@ -254,6 +254,93 @@
       color: var(--fg); line-height: 1.55;
     }
     .raci-foot strong { color: var(--accent); }
+
+    /* ---- 通用卡片 grid(U2 / U3 / U4 / U5 用) ---- */
+    .cards-wrap { max-width: 1200px; width: 100%; }
+    .cards-head {
+      margin-bottom: 14px;
+      font-size: 13px; color: var(--muted);
+      display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center;
+    }
+    .cards-head strong { color: var(--accent); font-size: 15px; }
+    .cards-grid { display: grid; gap: 12px; }
+    .cards-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+    .cards-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .cards-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+    .card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-left-width: 4px;
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex; flex-direction: column;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+    .card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+    }
+    .card.user { border-left-color: #16a34a; }
+    .card.it { border-left-color: #2563eb; }
+    .card.shared { border-left-color: #9333ea; }
+    .card.critical { border-left-color: #dc2626; }
+    .card-badge {
+      display: inline-block;
+      font-size: 10.5px; font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      margin-bottom: 6px;
+      align-self: flex-start;
+      letter-spacing: 0.02em;
+    }
+    .card.user .card-badge { background: #dcfce7; color: #14532d; }
+    .card.it .card-badge { background: #dbeafe; color: #1e3a8a; }
+    .card.shared .card-badge { background: #f3e8ff; color: #581c87; }
+    .card.critical .card-badge { background: #fee2e2; color: #7f1d1d; }
+    [data-theme="dark"] .card.user .card-badge { background: rgba(34,197,94,0.2); color: #86efac; }
+    [data-theme="dark"] .card.it .card-badge { background: rgba(96,165,250,0.2); color: #93c5fd; }
+    [data-theme="dark"] .card.shared .card-badge { background: rgba(168,85,247,0.2); color: #d8b4fe; }
+    [data-theme="dark"] .card.critical .card-badge { background: rgba(248,113,113,0.2); color: #fca5a5; }
+    .card-title {
+      font-size: 14.5px; font-weight: 700;
+      margin: 0 0 6px;
+      color: var(--fg); line-height: 1.35;
+    }
+    .card-num {
+      font-size: 11.5px; color: var(--muted);
+      font-weight: 700; margin-right: 5px;
+      font-variant-numeric: tabular-nums;
+    }
+    .card-body {
+      font-size: 12.5px;
+      color: var(--fg);
+      line-height: 1.55;
+    }
+    .card-body strong { color: var(--accent); }
+    .card-body code {
+      background: var(--btn-hover);
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 11.5px;
+      font-family: 'JetBrains Mono', Consolas, monospace;
+    }
+    .card-meta {
+      margin-top: 8px;
+      padding-top: 6px;
+      border-top: 1px dashed var(--border);
+      font-size: 11px; color: var(--muted);
+    }
+    .cards-foot {
+      margin-top: 16px;
+      padding: 10px 14px;
+      background: var(--bg-soft);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 6px 6px 0;
+      font-size: 13px;
+      color: var(--fg); line-height: 1.55;
+    }
+    .cards-foot strong { color: var(--accent); }
     .slide-cover .tag {
       display: inline-block;
       padding: 4px 12px;
@@ -533,90 +620,102 @@ flowchart LR
 </div>
   </script>
 
-  <!-- ================== U2 — Agentic Engineer 4 大職責 ================== -->
+  <!-- ================== U2 — Agentic Engineer 4 大職責(卡片) ================== -->
   <script type="text/plain" id="arch-u2"
-          data-label="U2 — Agentic Engineer 4 大職責(★ 新增)"
+          data-label="U2 — Agentic Engineer 4 大職責"
           data-order="2"
           data-kind="architecture"
-          data-desc="<strong>Vibe Coding 公司的關鍵差異</strong> — Agentic Engineer 不是傳統 PM,也不是 Prompt Engineer,而是把<strong>『業務口語』翻成『可重複 Spec』</strong>並維護 Harness 底座的技術職。
-<ul>
-<li><strong>1. 定義目標</strong> — 把業務痛點翻成可量測 SLA(例「Triage 平均 ≤ 10 分鐘」)。</li>
-<li><strong>2. 設計工作流</strong> — 決定幾個 Agent、誰是 Leader、Memory 怎麼接。</li>
-<li><strong>3. 審查結果 ★</strong> — 這是<u>人類介入點,不可外包給 AI</u>(否則 Flywheel Reward 失準)。</li>
-<li><strong>4. 持續改善 Harness</strong> — 動 U4 底座(改 Sandbox 規則 / Tool 白名單 / Guardrails),不只調 Prompt。</li>
-</ul>
-<strong>Coolify 合規鏈中的角色:</strong>Agentic Engineer 是「人工核准」節點 — Prompt 改動 / 新工具上線 / Guardrails 放寬,都要他簽核。">
-%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
-flowchart LR
-  subgraph Eng ["② Agentic Engineer 🔵 (IT,跨 L1-L4)"]
-    direction TB
-    D1["1. 定義目標 / 需求<br><i>痛點 → 可量測 SLA</i>"]
-    D2["2. 設計工作流<br><i>幾 Agent / Leader / Worker</i>"]
-    D3["3. 審查結果 ★<br><i>人類介入,不可外包 AI</i>"]
-    D4["4. 持續改善 Harness<br><i>動底座,非只調 Prompt</i>"]
-  end
-
-  L1["L1 業務情境"]
-  L3["L3 上層工作流"]
-  L4["L4 執行底座"]
-  L45["L4.5 Flywheel"]
-
-  L1 <-->|"需求 / 約束<br>資料來源 / 驗證標準"| Eng
-  Eng <-->|"驅動需求 / 設定目標"| L3
-  Eng <-->|"改 Prompt / Tool<br>Sandbox 規則"| L4
-  Eng -.審查 + Reward 標記.- L45
-
-  classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
-  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
-  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
-  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
-  class L1 user
-  class D1,D2,D4,L3,L4 it
-  class D3 critical
-  class L45 shared
+          data-format="html"
+          data-desc="">
+<div class="cards-wrap">
+  <div class="cards-head">
+    <strong>U2 — Agentic Engineer 4 大職責</strong>
+    <span>· 🔵 IT 主導,跨 L1-L4 ·</span>
+    <span>Vibe Coding 公司關鍵差異</span>
+  </div>
+  <div class="cards-grid cols-2">
+    <div class="card it">
+      <span class="card-badge">🔵 IT 主導</span>
+      <div class="card-title"><span class="card-num">1.</span>定義目標 / 需求</div>
+      <div class="card-body">把業務痛點翻成<strong>可量測 SLA</strong>(例「Triage 平均 ≤ 10 分鐘」)。成功訊號餵 U4.5 飛輪 Reward 階段。</div>
+    </div>
+    <div class="card it">
+      <span class="card-badge">🔵 IT</span>
+      <div class="card-title"><span class="card-num">2.</span>設計工作流</div>
+      <div class="card-body">決定幾個 Agent、誰是 Leader、Memory 怎麼接、Tool Gateway 收口。<strong>不寫程式但要能畫工作流圖</strong>。</div>
+    </div>
+    <div class="card critical">
+      <span class="card-badge">🔴 ★ 人類介入</span>
+      <div class="card-title"><span class="card-num">3.</span>審查結果 ★</div>
+      <div class="card-body"><strong>不可外包給 AI</strong>。判斷可交付 / 打回 Failure Cases(餵 U4.5 飛輪)。否則 Reward 失準(self-reward bias)。</div>
+    </div>
+    <div class="card it">
+      <span class="card-badge">🔵 IT</span>
+      <div class="card-title"><span class="card-num">4.</span>持續改善 Harness</div>
+      <div class="card-body"><strong>動底座,非只調 Prompt</strong>。改 Sandbox / Tool 白名單 / Guardrails。這是與 Prompt Engineer 的最大差異。</div>
+    </div>
+  </div>
+  <div class="cards-foot">
+    <strong>角色定位:</strong>Agentic Engineer ≠ 傳統 PM ≠ Prompt Engineer ≠ SRE。是把「業務口語」翻成「可重複 Spec」並維護 Harness 底座的<strong>技術職</strong>。<br>
+    <strong>Coolify 簽核鏈:</strong>Prompt 改動 / 新工具上線 / Guardrails 放寬 → 都要 Agentic Engineer 人工核准(合規 #6 Audit Trail)。
+  </div>
+</div>
   </script>
 
-  <!-- ================== U3 — 上層工作流 ================== -->
+  <!-- ================== U3 — 6 種 Agent(卡片) ================== -->
   <script type="text/plain" id="arch-u3"
-          data-label="U3 — Agentic Engineering 上層工作流"
+          data-label="U3 — Agentic Engineering 6 種 Agent"
           data-order="3"
           data-kind="architecture"
-          data-desc="<strong>Control Plane(IT)+ 6 種 Agent 協作</strong>。
-<ul>
-<li><strong>染色更新:</strong>設計 Review / 測試驗證 Agent 改為共同(🟣) — 因為 Spec 對照 + Eval 標準都需要業務 ground truth,純 IT 不夠精準。</li>
-<li><strong>雙向箭頭:</strong>CP ↔ Agent — 強調 Agent 會回寫 Memory 形成資料 trajectory(餵 U4.5 飛輪)。</li>
-<li><strong>★ 維運 / 告警 Agent:</strong>直接接 Coolify webhook,自身告警鏈不可中斷(Coolify 合規第 4 條)。</li>
-</ul>
-詳見 <code>U3-Agentic-Engineering.md</code>。">
-%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
-flowchart LR
-  subgraph CP ["Control Plane / Leader Agent"]
-    direction LR
-    Task["<b>任務分派</b><br>切子任務"]
-    Mem["<b>Shared Memory</b><br>跨 Agent 上下文"]
-    Gate["<b>Tool Gateway</b><br>白名單 + 配額"]
-  end
-
-  subgraph AG ["6 種 Agent 分工"]
-    direction LR
-    A1["<b>1. 需求業務</b> 🟢<br>口語 → 結構化規格"]
-    A2["<b>2. 設計 Review</b> 🟣<br>對齊 Spec(業務 SME)"]
-    A3["<b>3. 測試 / 驗證</b> 🟣<br>Eval 標準需業務定"]
-    A4["<b>4. 品質 / NPI</b> 🟣<br>PLM/BOM 良率"]
-    A5["<b>5. 維運 / 告警 ★</b> 🔴<br>Coolify 告警鏈"]
-    A6["<b>6. 主管報告</b> 🟢<br>彙整 5 Agent 摘要"]
-  end
-
-  CP <-->|"派工 / 回寫 Memory"| AG
-
-  classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
-  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
-  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
-  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
-  class Task,Mem,Gate it
-  class A1,A6 user
-  class A2,A3,A4 shared
-  class A5 critical
+          data-format="html"
+          data-desc="">
+<div class="cards-wrap">
+  <div class="cards-head">
+    <strong>U3 — 6 種 Agent 分工</strong>
+    <span>· Control Plane(任務分派 / Memory 仲裁 / Tool Gateway)統籌 ·</span>
+  </div>
+  <div class="cards-grid cols-3">
+    <div class="card user">
+      <span class="card-badge">🟢 業務驅動</span>
+      <div class="card-title"><span class="card-num">1.</span>需求業務 Agent</div>
+      <div class="card-body">把口語需求 → 結構化規格 → 放到 Shared Memory。輸出 <code>docs/specs/&lt;feature&gt;.md</code>。</div>
+      <div class="card-meta">觸發:新需求 / PM 新 Spec · Eval:規格完整度</div>
+    </div>
+    <div class="card shared">
+      <span class="card-badge">🟣 共同</span>
+      <div class="card-title"><span class="card-num">2.</span>設計 Review Agent</div>
+      <div class="card-body">對照五大原則做 review。Agent 抓格式違規,<strong>人類抓商業邏輯</strong>。輸出設計變更摘要。</div>
+      <div class="card-meta">觸發:新 PR / 新 Spec</div>
+    </div>
+    <div class="card shared">
+      <span class="card-badge">🟣 共同</span>
+      <div class="card-title"><span class="card-num">3.</span>測試 / 驗證 Agent</div>
+      <div class="card-body">吃 Test Logs 做 Triage 與 Issue 歸類。<strong>Eval 標準需業務定義</strong>。</div>
+      <div class="card-meta">觸發:CI 完成 / QA 手動 · Eval:Triage 準確率</div>
+    </div>
+    <div class="card shared">
+      <span class="card-badge">🟣 共同</span>
+      <div class="card-title"><span class="card-num">4.</span>品質 / NPI Agent</div>
+      <div class="card-body">對照 PLM/BOM 做良率與品質分析。輸出良率報告 + 異常根因建議。</div>
+      <div class="card-meta">觸發:NPI 階段 / 品質會議前</div>
+    </div>
+    <div class="card critical">
+      <span class="card-badge">🔴 ★ Coolify 合規 #4</span>
+      <div class="card-title"><span class="card-num">5.</span>維運 / 告警 Agent ★</div>
+      <div class="card-body">接 Coolify webhook + Seq log + Dashboard metric。<strong>自身告警鏈不可中斷</strong>。</div>
+      <div class="card-meta">觸發:Coolify event / log 異常</div>
+    </div>
+    <div class="card user">
+      <span class="card-badge">🟢 業務驅動</span>
+      <div class="card-title"><span class="card-num">6.</span>主管報告 Agent</div>
+      <div class="card-body">把上述 5 Agent 的產出彙整成主管摘要。輸出 Markdown / Gamma 報表。</div>
+      <div class="card-meta">觸發:每週 / 每月排程</div>
+    </div>
+  </div>
+  <div class="cards-foot">
+    <strong>Control Plane / Leader Agent</strong>(🔵 IT)在這 6 個 Agent 之上,做<strong>任務分派</strong>(切子任務)、<strong>Shared Memory</strong>(讀寫仲裁)、<strong>Tool Gateway</strong>(白名單 + 配額)三件事 — Agent 不直接呼工具,所有 IO 經 Leader 收口。詳細 Breakdown 見 <code>U3-Agentic-Engineering.md</code>。
+  </div>
+</div>
   </script>
 
   <!-- ================== U3.1 — Control Plane 內部運作 ================== -->
@@ -654,41 +753,65 @@ flowchart LR
   class Done user
   </script>
 
-  <!-- ================== U4 — Harness 8 元件 ================== -->
+  <!-- ================== U4 — Harness 8 元件(卡片) ================== -->
   <script type="text/plain" id="arch-u4"
           data-label="U4 — Harness Engineering 8 元件"
           data-order="4"
           data-kind="architecture"
-          data-desc="<strong>Agent = Model + Harness</strong>。8 元件分管理面(設計時)+ 執行面(運行時)。
-<ul>
-<li><strong>分類更新:</strong>Tests / CI 是 Prompt 改動觸發,屬<u>設計時</u>已移到管理面(原圖放運維面不直覺)。</li>
-<li><strong>🔴 ★ 3 個 Critical 元件</strong>(Coolify 合規鑑定關鍵點):Sandbox(第 3 條)/ Logs(第 4 條)/ Audit(第 6 條)。</li>
-<li><strong>5 個 IT 元件</strong>:Prompts / Tools / Memory / Tests-CI / Hooks。</li>
-</ul>
-詳細 Breakdown 見 <code>U4-Harness-Engineering.md</code>。">
-%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
-flowchart LR
-  subgraph Manage ["管理面(設計時)"]
-    direction LR
-    C1["<b>4.1 Prompts / Spec</b><br>Git PR / 禁熱改"]
-    C2["<b>4.2 Tools / MCP / API</b><br>Gateway 收口"]
-    C3["<b>4.3 Memory</b><br>Redis + RAG"]
-    C4["<b>4.4 Sandbox ★</b><br>non-root / RO / tmpfs"]
-    C5["<b>4.5 Tests / CI</b><br>Prompt 改 = CI 跑"]
-    C7["<b>4.7 Hooks / Guardrails</b><br>PII / Token 過濾"]
-  end
-  subgraph Operate ["執行面(運行時)"]
-    direction LR
-    C6["<b>4.6 Logs / Traces ★</b><br>stdout / Trace ID"]
-    C8["<b>4.8 Audit Trail ★</b><br>合規必過"]
-  end
-
-  Manage --> Operate
-
-  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
-  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
-  class C1,C2,C3,C5,C7 it
-  class C4,C6,C8 critical
+          data-format="html"
+          data-desc="">
+<div class="cards-wrap">
+  <div class="cards-head">
+    <strong>U4 — Harness 8 元件</strong>
+    <span>· Agent = Model + Harness ·</span>
+    <span style="color:#dc2626;font-weight:700;">🔴 ★ 3 個 Coolify 合規關鍵點</span>
+  </div>
+  <div class="cards-grid cols-4">
+    <div class="card it">
+      <span class="card-badge">🔵 設計時</span>
+      <div class="card-title"><span class="card-num">4.1</span>Prompts / Spec</div>
+      <div class="card-body">Agent 的「程式碼」,Git PR + version。<strong>禁線上熱改</strong>(合規 #5)。</div>
+    </div>
+    <div class="card it">
+      <span class="card-badge">🔵 設計時</span>
+      <div class="card-title"><span class="card-num">4.2</span>Tools / MCP</div>
+      <div class="card-body">Tool Gateway 收口 + 白名單 + 配額。Token 走 Coolify env,不入 image。</div>
+    </div>
+    <div class="card it">
+      <span class="card-badge">🔵 設計時</span>
+      <div class="card-title"><span class="card-num">4.3</span>Memory</div>
+      <div class="card-body">短期 Redis + 長期 RAG。Agent 不直連 store,走 Gateway。</div>
+    </div>
+    <div class="card critical">
+      <span class="card-badge">🔴 ★ 合規 #3</span>
+      <div class="card-title"><span class="card-num">4.4</span>Sandbox ★</div>
+      <div class="card-body">non-root + read_only + tmpfs + 內網限定。<strong>6 條合規中最易踩雷</strong>。</div>
+    </div>
+    <div class="card it">
+      <span class="card-badge">🔵 設計時</span>
+      <div class="card-title"><span class="card-num">4.5</span>Tests / CI</div>
+      <div class="card-body">Prompt 改 = code 改。Lint + Eval ≥ 閾值才能 merge。</div>
+    </div>
+    <div class="card critical">
+      <span class="card-badge">🔴 ★ 合規 #4</span>
+      <div class="card-title"><span class="card-num">4.6</span>Logs / Traces ★</div>
+      <div class="card-body">stdout 結構化 → Coolify → Seq。<strong>Trace ID 跨 Agent 串聯</strong>。</div>
+    </div>
+    <div class="card it">
+      <span class="card-badge">🔵 設計時</span>
+      <div class="card-title"><span class="card-num">4.7</span>Hooks / Guardrails</div>
+      <div class="card-body">PII / Token 過濾 / Rate limit。放寬須 Agentic Engineer 簽核。</div>
+    </div>
+    <div class="card critical">
+      <span class="card-badge">🔴 ★ 合規 #6</span>
+      <div class="card-title"><span class="card-num">4.8</span>Audit Trail ★</div>
+      <div class="card-body">誰部署 / 改 Prompt / 核准模型。<strong>append-only,retention ≥ 1 年</strong>。</div>
+    </div>
+  </div>
+  <div class="cards-foot">
+    <strong>分類邏輯:</strong>6 個🔵<u>設計時</u>元件(4.1-4.5、4.7)= 改 Prompt / 調 Spec 時動;2 個🔴<u>執行時</u>元件(4.6 Logs、4.8 Audit)= 跑起來才產生資料。<strong>Critical 3 點對應 Coolify 合規 6 條中的 #3 / #4 / #6</strong>,沒過不可上線。詳見 <code>U4-Harness-Engineering.md</code>。
+  </div>
+</div>
   </script>
 
   <!-- ================== U4.1 — Sandbox 三層隔離 ================== -->
@@ -903,43 +1026,60 @@ flowchart LR
   class Anti critical
   </script>
 
-  <!-- ================== U5 — 基礎資源 ================== -->
+  <!-- ================== U5 — 基礎資源(卡片) ================== -->
   <script type="text/plain" id="arch-u5"
           data-label="U5 — 基礎資源 / 系統"
           data-order="6"
           data-kind="architecture"
-          data-desc="<strong>物質基礎,沒這層上面皆空談。</strong>7 個資源:
-<ul>
-<li><strong>Row 1 🔵 IT 平台</strong>(3 項):LLM / Repo ★ / Dashboard ★ — 後 2 個直連 Coolify。</li>
-<li><strong>Row 2 🟣 業務知識共同維護</strong>(4 項):PLM/BOM / SOP / TestLog / DataHub。</li>
-<li><strong>★ Repo + Dashboard</strong>是 Coolify 合規 4+5 條的兩個落腳點。</li>
-</ul>
-詳見 <code>U5-Foundation-Resources.md</code>。">
-%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
-flowchart LR
-  subgraph Row1 ["核心 / 平台(IT 主管)"]
-    direction LR
-    R1["<b>5.1 LLM</b><br>Claude / GPT / Ollama"]
-    R2["<b>5.2 Repo ★</b><br>push = deploy"]
-    R6["<b>5.6 Dashboard ★</b><br>Coolify + Seq"]
-  end
-  subgraph Row2 ["業務知識(業務 + IT)"]
-    direction LR
-    R3["<b>5.3 PLM / BOM</b><br>工程資料"]
-    R5["<b>5.5 SOP / 規格</b><br>RAG 來源"]
-    R4["<b>5.4 Test Logs</b><br>Triage 原料"]
-    R7["<b>5.7 Data Hub</b><br>主檔資料中心"]
-  end
-
-  Row1 --> Row2
-
-  classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
-  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
-  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
-  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
-  class R1 it
-  class R2,R6 critical
-  class R3,R4,R5,R7 shared
+          data-format="html"
+          data-desc="">
+<div class="cards-wrap">
+  <div class="cards-head">
+    <strong>U5 — 7 個基礎資源</strong>
+    <span>· 物質基礎 · 沒這層上面皆空談 ·</span>
+    <span style="color:#dc2626;font-weight:700;">🔴 ★ Repo + Dashboard 直連 Coolify</span>
+  </div>
+  <div class="cards-grid cols-4">
+    <div class="card it">
+      <span class="card-badge">🔵 IT 平台</span>
+      <div class="card-title"><span class="card-num">5.1</span>LLM</div>
+      <div class="card-body">Claude(主)/ GPT(備)/ Ollama(實驗)。由 U4.2 Tools/MCP 收口,<strong>Agent 不可直呼</strong>。</div>
+    </div>
+    <div class="card critical">
+      <span class="card-badge">🔴 ★ Coolify watch</span>
+      <div class="card-title"><span class="card-num">5.2</span>Repo / Code ★</div>
+      <div class="card-body">GitHub / GitLab。<strong>push = auto deploy</strong>(合規 #5)。整個 Harness 的事實來源。</div>
+    </div>
+    <div class="card shared">
+      <span class="card-badge">🟣 共同</span>
+      <div class="card-title"><span class="card-num">5.3</span>PLM / BOM</div>
+      <div class="card-body">工程資料。給 U3 品質/NPI Agent + U4.5 飛輪資料。走內網,<strong>不走公網</strong>。</div>
+    </div>
+    <div class="card shared">
+      <span class="card-badge">🟣 共同</span>
+      <div class="card-title"><span class="card-num">5.4</span>Test Logs</div>
+      <div class="card-body">CI raw + 結構化(Seq)。給測試 Agent Triage,給飛輪 Trajectory 當原料。</div>
+    </div>
+    <div class="card shared">
+      <span class="card-badge">🟣 共同</span>
+      <div class="card-title"><span class="card-num">5.5</span>SOP / 規格</div>
+      <div class="card-body">本 AI-Spec 倉庫 + 各部門 SOP。Agent 的外部記憶,<strong>RAG 索引主要來源</strong>。</div>
+    </div>
+    <div class="card critical">
+      <span class="card-badge">🔴 ★ Coolify collect</span>
+      <div class="card-title"><span class="card-num">5.6</span>Dashboard ★</div>
+      <div class="card-body">Coolify + Seq + Grafana。U4.6 Observability 可視化(合規 #4)。Agentic Engineer 審查介面。</div>
+    </div>
+    <div class="card shared">
+      <span class="card-badge">🟣 共同</span>
+      <div class="card-title"><span class="card-num">5.7</span>Data Hub</div>
+      <div class="card-body">主檔資料中心(對應 DataFlow §3.3)。組織 / 人員 / 客戶 / 物料,業務 SME 維護。</div>
+    </div>
+  </div>
+  <div class="cards-foot">
+    <strong>分組:</strong>🔵 3 項 IT 平台(LLM / Repo★ / Dashboard★)+ 🟣 4 項業務共同維護(PLM / Test Logs / SOP / Data Hub)。<strong>新專案啟動申請順序:</strong>Repo → LLM token → 資料中心唯讀帳號 → Coolify 空間 → Seq token → Dashboard 權限。詳見 <code>U5-Foundation-Resources.md</code>。
+  </div>
+</div>
   </script>
 
   <!-- ================== U5.1 — Coolify 連動 ================== -->
