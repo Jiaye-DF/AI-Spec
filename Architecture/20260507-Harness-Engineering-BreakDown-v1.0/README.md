@@ -1,10 +1,15 @@
-# Harness Engineering 架構 BreakDown v1.0
+# Harness Engineering 架構 BreakDown v1.0 — Vibe Coding 公司版
 
-> 定位:把 [`Harness Engineering Arch.` 架構圖](../../../../Harness%20Engineering%20Arch..jpg)拆成「**6 個學習單元 × 角色矩陣 × Coolify 合規對照**」,讓不同層級的人各自學該學的部分,且最終結果可順利通過公司 Coolify Deploy 合規門檻。
-> 目標讀者:全公司 IT(高層 / PM / Tech Lead / Backend / DevOps / QA / ML / 新人皆有對應路徑)。
+> 定位:把 [`Harness Engineering Arch.` 架構圖](../../../../Harness%20Engineering%20Arch..jpg)**公司化客製**為「**6 學習單元 × 三角色色碼 × Coolify 合規 × Data Hub 整合**」,讓 Vibe Coding 公司(業務人員以 AI 自然語言驅動開發、IT 建治理底座)各角色快速定位該讀的層。
+> **與原 Harness 架構的差異**:
+> 1. **三色角色碼**(diagram.html 內視覺強化):🟢 使用者 / 🔵 IT(含 Agentic Engineer)/ 🟣 共同 / 🔴 ★ Critical
+> 2. **加入 Data Hub**:L5 基礎資源新增主檔資料中心節點(對應 [`DataFlow v1.0 § 3.3`](../20260421-DataFlow-v1.0.md)),並單獨出圖 ⑤.2 表達跨層連動
+> 3. **Agentic Engineer 屬 IT**(非共同角色):這是 Vibe Coding 公司的定位 — Engineer 是「把業務口語變可重複 Spec」的技術職
+>
+> 目標讀者:全公司(業務 / PM / Tech Lead / Agentic Engineer / DevOps / QA / 新人皆有對應路徑)。
 > 互補文件:
 >  - [`20260421-DataFlow-v1.0.md`](../20260421-DataFlow-v1.0.md) — 公司資料流總藍圖
->  - [`Coolify-Deploy/Docker-Compose-Spec-v1.2.md`](../../Coolify-Deploy/Docker-Compose-Spec-v1.2.md) — Coolify 部署規格
+>  - [`Coolify-Deploy/Docker-Compose-Spec-v1.3.md`](../../Coolify-Deploy/Docker-Compose-Spec-v1.3.md) —Coolify 部署規格
 >  - [`Development/Project/spec/00-overview-v1.0.md`](../../Development/Project/spec/00-overview-v1.0.md) — 五大開發原則
 
 ---
@@ -41,6 +46,7 @@
 | ③.2 | U4 — Memory 雙層架構 | Redis 短期 + RAG 長期 + Tool Gateway 收口 |
 | ⑤ | U5 — 基礎資源 / 系統 | [U5-Foundation-Resources.md](U5-Foundation-Resources.md) |
 | ⑤.1 | U5 — Coolify 連動 2 個關鍵資源 | Repo + Dashboard 直連 Coolify |
+| ⑤.2 | U5 — Data Hub 跨層連動 | 主檔資料中心(對應 DataFlow v1.0 § 3.3),被 L3 / L4 / L4.5 同時消費 |
 
 ### 流程 / 迴路(picker「流程」群)
 
@@ -68,6 +74,21 @@
 | **U4.5** | ④.5 Domain Model Flywheel | Evals → Reward → Trajectories → Fine-tuning → Domain Model | 模型版本化 / 訓練資料 audit | [U4.5-Domain-Model-Flywheel.md](U4.5-Domain-Model-Flywheel.md) |
 | **U5** | ⑤ 基礎資源 | LLM / Repo / PLM / Test Logs / SOP / Dashboard | Repo + Dashboard 直連 Coolify | [U5-Foundation-Resources.md](U5-Foundation-Resources.md) |
 | **附件** | — | 6 條 Coolify 合規通則完整對照 | ★ 上線前必過 | [Coolify-Compliance-Mapping.md](Coolify-Compliance-Mapping.md) |
+
+---
+
+## 三、角色三色對照(Vibe Coding 公司專屬)
+
+`diagram.html` 內所有節點都依下表三色染色,工具列右上 legend 永遠顯示:
+
+| 色 | 角色 | 公司內對應 | 在架構中的位置 |
+| --- | --- | --- | --- |
+| 🟢 **使用者** | 業務人員 / 業務主管 / PM | 不寫傳統 code,用 AI 自然語言驅動工作 | L1 業務情境、需求 Agent / 主管報告 Agent、Audit Trail 可審計人物 |
+| 🔵 **IT** | Agentic Engineer / Backend / DevOps / Tech Lead | 建 Harness、定 Spec、跑 Eval、維運 Coolify | L2 Engineer、L3 Control Plane、L4 Harness 全 8 元件、L5 LLM/Repo/Dashboard |
+| 🟣 **共同** | 需要業務 ground truth + IT 工程化 | QA/NPI、業務 SME(SOP)、HR/採購(主檔維護) | 品質 Agent、L4.5 Flywheel(Reward 標記)、L5 PLM/SOP/Test Logs/Data Hub |
+| 🔴 ★ **Critical** | (顏色覆蓋,優先標示)| Coolify 合規關鍵點 | L4 Sandbox、L5 Repo/Dashboard、Reward 約束(LLM 不可自評)|
+
+> 「★ Critical」是**附加標記**,不是第四種角色 — 它表達「即使你是 IT,這個節點也必須**特別小心**」。
 
 ---
 

@@ -75,6 +75,20 @@
       font-weight: 600; min-width: 220px;
       border-color: var(--accent); color: var(--fg);
     }
+    .legend {
+      display: inline-flex; gap: 12px; align-items: center;
+      padding: 6px 12px; font-size: 12px;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 5px;
+    }
+    .legend .item { display: inline-flex; align-items: center; gap: 4px; }
+    .legend .sw {
+      display: inline-block; width: 14px; height: 14px; border-radius: 3px;
+      border: 1px solid currentColor;
+    }
+    .legend .u { background: #dcfce7; color: #16a34a; }
+    .legend .i { background: #dbeafe; color: #2563eb; }
+    .legend .s { background: #f3e8ff; color: #9333ea; }
+    .legend .c { background: #fee2e2; color: #dc2626; }
     main { height: calc(100vh - 64px); }
     .preview {
       width: 100%; height: 100%; overflow: auto;
@@ -115,29 +129,33 @@
   -->
 
   <script type="text/plain" id="arch" data-label="① 5 層架構總覽" data-kind="architecture"
-          data-desc="<strong>五層 + 飛輪:</strong>業務情境 → Agentic Engineer 角色 → Agentic Engineering(上層工作流)→ <strong>Harness Engineering ★(合規層)</strong>→ Flywheel(可延續經營)→ 基礎資源(物質基礎)。下層支撐上層。">
+          data-desc="<strong>Vibe Coding 公司架構:</strong>L1 業務發起(使用者)→ L2/L3/L4 工程化(IT,Agentic Engineer 屬 IT)→ L4.5 / L5 業務+IT 共同產物。<strong>★ Harness</strong> 是 Coolify 合規主層。">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart TB
   L1["① 公司 / 業務情境<br><i>提升交付效率 / 知識複用 / 跨部門協作</i>"]
-  L2["② Agentic Engineer 人類角色<br><i>定義目標 / 設計工作流 / 審查 / 持續改善</i>"]
+  L2["② Agentic Engineer<br><i>定義目標 / 設計工作流 / 審查 / 持續改善</i>"]
   L3["③ Agentic Engineering(上層工作流)<br><i>Control Plane + 6 種 Agent</i>"]
   L4["④ Harness Engineering ★<br><i>執行底座:8 元件 / Coolify 主合規層</i>"]
   L45["④.5 Domain Model Flywheel<br><i>Evals → Reward → Trajectory → Fine-tune → Domain Model</i>"]
-  L5["⑤ 基礎資源 / 系統<br><i>LLM / Repo / PLM / Test Logs / SOP / Dashboard</i>"]
+  L5["⑤ 基礎資源 / 系統<br><i>LLM / Repo / PLM / Test Logs / SOP / Dashboard / Data Hub</i>"]
 
   L1 --> L2 --> L3 --> L4
   L4 --> L45
   L4 --> L5
   L45 -.延伸學習.-> L5
 
+  classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
   classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
-  classDef flywheel fill:#fed7aa,stroke:#ea580c,color:#7c2d12
+  class L1 user
+  class L2,L3 it
   class L4 critical
-  class L45 flywheel
+  class L45,L5 shared
   </script>
 
   <script type="text/plain" id="arch-u3" data-label="② U3 — Agentic Engineering 上層工作流" data-kind="architecture"
-          data-desc="<strong>Control Plane / Leader Agent</strong>(任務分派 / Shared Memory / Tool Gateway)統籌 <strong>6 種 Agent</strong> 分工。Leader 自己也是 Agent;Tool Gateway 對接 U4 的 Tools/MCP。">
+          data-desc="<strong>Control Plane</strong>(IT)統籌 <strong>6 種 Agent</strong>。Agent 角色依輸入 / 輸出端區分:接業務需求 / 給主管看報告 = 使用者面;接 PLM / 品質 = 共同;純技術測試 / 設計 / 維運 = IT。">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart TB
   subgraph CP ["Control Plane / Leader Agent"]
@@ -159,10 +177,13 @@ flowchart TB
 
   CP -->|分派 + Memory 仲裁| AG
 
-  classDef leader fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
-  classDef devops fill:#fef3c7,stroke:#d97706,color:#78350f
-  class Task,Mem,Gate leader
-  class A5 devops
+  classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
+  class Task,Mem,Gate it
+  class A1,A6 user
+  class A2,A3,A5 it
+  class A4 shared
   </script>
 
   <script type="text/plain" id="arch-u3-s1" data-label="②.1 U3 — Control Plane 內部運作" data-kind="architecture"
@@ -185,12 +206,11 @@ flowchart TB
   Agent1 -->|寫結果 / log| Mem
   Mem --> Done([子任務完成])
 
-  classDef leader fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
-  classDef control fill:#fef3c7,stroke:#d97706,color:#78350f
-  classDef terminal fill:#dcfce7,stroke:#16a34a,color:#14532d
-  class Lead leader
-  class Task,Mem,Gate control
-  class In,Done terminal
+  classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  class In user
+  class Lead,Task,Mem,Gate,Agent1 it
+  class Done user
   </script>
 
   <script type="text/plain" id="arch-u4" data-label="③ U4 — Harness Engineering 8 元件 ★" data-kind="architecture"
@@ -217,8 +237,10 @@ flowchart TB
   Eq["Agent = Model + Harness<br><i>Harness 是承載 Agent 的 runtime / control substrate</i>"]
   H --- Eq
 
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
   classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
   classDef hint fill:#f3f4f6,stroke:#6b7280,color:#374151,font-style:italic
+  class C1,C2,C3,C5,C6,C7,C8 it
   class C4 critical
   class Eq hint
   </script>
@@ -247,9 +269,9 @@ flowchart TB
   Proc -.被約束於.-> L2
   Proc -.被約束於.-> L3
 
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
   classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
-  classDef process fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
-  class Proc process
+  class Proc it
   class NR,RO,TMP,NET critical
   </script>
 
@@ -281,10 +303,10 @@ flowchart LR
   TG --> ST
   TG --> LT
 
-  classDef gateway fill:#fef3c7,stroke:#d97706,color:#78350f
-  classDef process fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
-  class TG gateway
-  class Agent process
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
+  class TG,Agent,Redis,Emb,Vec it
+  class Doc shared
   </script>
 
   <script type="text/plain" id="flow-u4-s3" data-label="③.3 U4 — Verification / CI Pipeline" data-kind="flow"
@@ -302,12 +324,13 @@ flowchart LR
   Deploy --> Done([Prompt 上線])
   Block --> End([回退])
 
-  classDef terminal fill:#dcfce7,stroke:#16a34a,color:#14532d
-  classDef decision fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
-  classDef warn fill:#fef3c7,stroke:#d97706,color:#78350f
-  class Change,Done,End terminal
-  class Lint,Eval decision
-  class Block warn
+  classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
+  class Change shared
+  class PR,Lint,Eval,Merge,Hook,Deploy it
+  class Block,End it
+  class Done user
   </script>
 
   <script type="text/plain" id="flow-u4-s4" data-label="③.4 U4 — Audit Trail 軌跡" data-kind="flow"
@@ -327,12 +350,12 @@ flowchart TB
   Log --> Store[(Audit DB<br><i>append-only</i>)]
   Store --> Review[Reviewer 查詢<br><i>合規追溯</i>]
 
-  classDef append fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
-  classDef review fill:#dcfce7,stroke:#16a34a,color:#14532d
-  classDef hook fill:#fef3c7,stroke:#d97706,color:#78350f
-  class Store append
-  class Review review
-  class Hook hook
+  classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
+  class A1,A2,A3,A4 user
+  class Hook,Log,Store it
+  class Review shared
   </script>
 
   <script type="text/plain" id="flow-u4-5" data-label="④ U4.5 — Domain Model Flywheel 迴路" data-kind="flow"
@@ -347,12 +370,11 @@ flowchart LR
   F6 -.飛輪迴圈.-> F1
   F6 --> Harness["融合回 U4 Harness Engineering"]
 
-  classDef start fill:#dcfce7,stroke:#16a34a,color:#14532d
-  classDef end fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
-  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
-  class F1 start
-  class Harness end
-  class F3 critical
+  classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
+  class F1,F3 shared
+  class F2,F4,F5,F6,Harness it
   </script>
 
   <script type="text/plain" id="flow-u4-5-s1" data-label="④.1 U4.5 — Reward 標記循環" data-kind="flow"
@@ -369,37 +391,42 @@ flowchart LR
 
   Anti["⚠ 禁:LLM self-reward bias<br><i>不可由 LLM 自己評</i>"] -.約束.- Eng
 
-  classDef warn fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
-  classDef positive fill:#dcfce7,stroke:#16a34a,color:#14532d
-  classDef negative fill:#fef3c7,stroke:#d97706,color:#78350f
-  classDef model fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
-  class Anti warn
-  class Pos positive
-  class Neg negative
-  class Model model
+  classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
+  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  class Run,Train,Model it
+  class Eng,Pos,Neg shared
+  class Anti critical
   </script>
 
   <script type="text/plain" id="arch-u5" data-label="⑤ U5 — 基礎資源 / 系統" data-kind="architecture"
-          data-desc="<strong>物質基礎,沒這層上面皆空談。</strong>★ 標記者直接連動 Coolify(Repo / Dashboard);其他經 U4 Tools / Memory 收口接入。">
+          data-desc="<strong>物質基礎,沒這層上面皆空談。</strong>★ 標記者直接連動 Coolify(Repo / Dashboard);<strong>Data Hub</strong> 是公司主檔資料中心(對應 DataFlow v1.0 § 3.3);其他經 U4 Tools / Memory 收口接入。">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart TB
   subgraph U5 ["⑤ 基礎資源 / 系統"]
-    subgraph Row1 ["核心 / 模型 / 知識"]
+    subgraph Row1 ["核心 / 模型 / 平台"]
       direction LR
       R1["LLM / Coding Model<br><i>Claude / GPT / Ollama</i>"]
       R2["Repo / Code ★<br><i>連動 Coolify push 即部署</i>"]
-      R3["PLM / BOM<br><i>產品壽命 / 物料</i>"]
-    end
-    subgraph Row2 ["驗證 / 文件 / 觀測"]
-      direction LR
-      R4["Test Logs<br><i>歷史測試紀錄</i>"]
-      R5["SOP / 規格文件<br><i>作業標準</i>"]
       R6["Dashboard / Metrics ★<br><i>連動 Coolify 觀測</i>"]
+    end
+    subgraph Row2 ["業務知識 / 共同維護"]
+      direction LR
+      R3["PLM / BOM<br><i>產品壽命 / 物料</i>"]
+      R5["SOP / 規格文件<br><i>作業標準</i>"]
+      R4["Test Logs<br><i>歷史測試紀錄</i>"]
+      R7["Data Hub<br><i>主檔資料中心<br>員工/客戶/幣別/代碼</i>"]
     end
   end
 
-  classDef coolify fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
-  class R2,R6 coolify
+  classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
+  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  class R1 it
+  class R2,R6 critical
+  class R3,R4,R5,R7 shared
   </script>
 
   <script type="text/plain" id="arch-u5-s1" data-label="⑤.1 U5 — Coolify 連動 2 個關鍵資源" data-kind="architecture"
@@ -427,14 +454,54 @@ flowchart TB
   Coolify -.會 watch.- Repo
   Coolify -.會 collect.- Dash
 
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
   classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
-  classDef host fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
   class Repo,Dash critical
-  class Coolify host
+  class Coolify,Git,Hook,Auto,Stdout,Loki,Sentry it
+  </script>
+
+  <script type="text/plain" id="arch-u5-s2" data-label="⑤.2 U5 — Data Hub 跨層連動" data-kind="architecture"
+          data-desc="<strong>Data Hub = DataFlow v1.0 § 3.3 的企業中央資料中心。</strong>主檔由業務維護(HR/財務/業務/採購),IT 提供 ETL/CDC 基礎設施。Data Hub 被 L3 Agent / L4 Memory / L4.5 Flywheel 同時消費。">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart TB
+  subgraph DH ["Data Hub — 主檔資料中心(共同維護)"]
+    direction LR
+    Org["組織<br><i>HR / 財務</i>"]
+    Emp["人員<br><i>HR + AD</i>"]
+    Cust["客戶<br><i>業務 + 財務</i>"]
+    Code["代碼表 / 會計<br><i>財務</i>"]
+    Item["商品 / 物料<br><i>採購 / 業務</i>"]
+  end
+
+  subgraph Consumers ["跨層消費者(IT 角色)"]
+    direction LR
+    L3A[L3 Agent<br><i>需求 / 品質 / NPI</i>]
+    L4M[L4 Memory / RAG<br><i>長期知識</i>]
+    L45F[L4.5 Flywheel<br><i>Domain data</i>]
+  end
+
+  Eng[Agentic Engineer<br><i>建 ETL / CDC</i>]
+
+  DH -->|REST<br>/api/v1/master/*| L3A
+  DH -->|index<br>+ Embedding| L4M
+  DH -->|脫敏訓練資料| L45F
+  Eng -.建置 + 維運.-> DH
+
+  classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
+  class Org,Emp,Cust,Code,Item shared
+  class L3A,L4M,L45F,Eng it
   </script>
 
   <div class="toolbar">
     <h1 id="title">Harness Engineering — Breakdown v1.0</h1>
+    <div class="legend">
+      <span class="item"><span class="sw u"></span>使用者</span>
+      <span class="item"><span class="sw i"></span>IT</span>
+      <span class="item"><span class="sw s"></span>共同</span>
+      <span class="item"><span class="sw c"></span>★ Critical</span>
+    </div>
     <select id="picker" class="picker"></select>
     <label>主題
       <select id="theme">
