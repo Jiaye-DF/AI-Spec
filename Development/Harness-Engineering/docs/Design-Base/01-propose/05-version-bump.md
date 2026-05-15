@@ -13,7 +13,7 @@
 | **breaking change** — API 路徑 / 回應 schema 不相容 / DB schema 不可逆 | **major**(`v1.0.0 → v2.0.0`) | `/api/v1/users` → `/api/v2/users` 並改回應 schema |
 | 新功能 / 新 endpoint / 新表 / 向下相容的欄位新增 | **minor**(`v1.0.0 → v1.1.0`) | 加 `/api/v1/user-groups`;`/users` response 加 `groups` 欄位 |
 | bug fix / 非 user-facing 重構 / lint 修正 | **patch**(`v1.0.0 → v1.0.1`) | 修 N+1 / 改命名 / 補測試 |
-| **規範升級**(`docs/Design-Base/*`) | 走 Harness-Engineering tag(見 `plan-v1.0.md § 升級協議`),**不** bump 應用版號 | — |
+| **規範升級**(`docs/Design-Base/*`) | 走 Harness-Engineering git tag(`harness-engineering-vX.Y`),**不** bump 應用版號 | — |
 
 ## propose 與版號
 

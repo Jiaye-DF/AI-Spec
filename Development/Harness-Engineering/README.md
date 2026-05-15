@@ -48,9 +48,6 @@ Harness-Engineering/
 ├── README.md                本檔(Harness-Engineering index + 使用協議)
 ├── AGENTS.md                跨工具事實層(Commands / Code style / Just-in-time Loading 對照表)
 ├── CLAUDE.md                Claude 特化薄層(import AGENTS.md)
-├── plan/                    Harness-Engineering 自身演進
-│   ├── plan-v1.0.md         流程定義
-│   └── report.md            詳細優化建議
 ├── prompts/                 跨 agent skill(YAML frontmatter)
 │   ├── README.md
 │   ├── propose-to-tasks.md  agent — orchestrator(從 propose 拆 tasks)
@@ -101,7 +98,6 @@ Harness-Engineering/
 #### 不 cp 的東西(屬 Harness-Engineering 自身發行物,不進專案)
 
 - `skills/`(自包含 skill;由使用者步驟 3 拷貝到 `.claude/skills/` 後即不需要再進專案)
-- `plan/`(Harness-Engineering 自身演進史)
 - 本檔(`README.md`;專案的 README.md 由 `/init-project` 產)
 
 > 使用者步驟 3 之後,`<project>/Harness-Engineering/skills/` 仍留在專案內;skill 步驟 4a 會把整個 `Harness-Engineering/` 刪掉,所以這個重複副本最終不會留在專案裡。
@@ -130,4 +126,3 @@ Harness-Engineering/
 - 模板有版本演進 → 以 git tag 標記(`harness-engineering-v1.0` 等)
 - 採用方專案以 fork + cherry-pick 升級;**禁**直接覆寫已客製內容
 - 各專案可在自己的 `docs/Design-Base/` 加更嚴格條款,但**不可**降低本模板的規則
-- Harness-Engineering 自身演進記錄於 `plan/plan-v1.0.md` + `plan/report.md`
