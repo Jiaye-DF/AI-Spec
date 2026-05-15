@@ -283,11 +283,11 @@ LLM **可選擇性地**:
 
 ## 內建模板維護
 
-本 skill 內建的 `_template/` 是分發源,應與 Harness-Engineering 主庫 `Harness-Engineering/docs/Arch/diagrams/_template/` 內容一致(兩處同步),且格式對齊 `Architecture/<日期>-<...>-v*/diagram.html`(公司架構參考實作)。
+本 skill 內建的 `_template/` 是**單一分發源**(自包含,不依賴 bundle 任何外部目錄);格式對齊 `Architecture/<日期>-<...>-v*/diagram.html`(公司架構參考實作)。
 
 維護規則:
 
-- **更新模板**:同時改 `Harness-Engineering/Skills/create-arch-diagram/_template/` 與 `Harness-Engineering/docs/Arch/diagrams/_template/`,**禁**只改其中一處(會 drift)
+- **更新模板**:直接改 `Harness-Engineering/Skills/create-arch-diagram/_template/`(本 skill 內就是唯一一份,無同步成本)
 - **變更不影響既存使用者圖表**:既存 `<name>/` 不會自動跟進升級(那是使用者已客製的內容);新模板只影響「之後新建」的 bundle
 - **格式變動需對齊參考實作**:slide 規約(`data-order` / `data-format` / 三色 class / cards / raci / compare / cover CSS)以 `Architecture/` 下最新版本為準
 - **使用者專案中沒有 `docs/Arch/diagrams/_template/` 也沒關係**:本 skill cp source 永遠來自 `<skill-root>/_template/`,不依賴使用者專案

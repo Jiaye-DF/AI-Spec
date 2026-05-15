@@ -36,12 +36,8 @@ docs/Arch/
 │   ├── 0002-sqlalchemy-async-only.md
 │   ├── 0003-coolify-vs-k8s.md
 │   └── ...
-├── diagrams/                       # 圖 bundle(每張架構一個資料夾;主架構 + N 子流程同檔切換)
-│   ├── README.md                   # 模板用法 + Mermaid 語法 cheatsheet
-│   ├── _template/                  # 模板 bundle(cp -r 整個資料夾)
-│   │   ├── README.md               # Breakdown:層級 / 角色矩陣 / 流程清單
-│   │   └── diagram.html            # 1 主架構 + N 子流程,工具列切換
-│   ├── system-arch/                # ← cp -r _template/ 後產生
+├── diagrams/                       # 圖 bundle(由 `/create-arch-diagram` skill 從內建模板產生,每張架構一個資料夾;主架構 + N 子流程同檔切換)
+│   ├── system-arch/                # ← /create-arch-diagram 產生
 │   │   ├── README.md
 │   │   └── diagram.html
 │   └── payment-arch/
