@@ -107,11 +107,11 @@ ERP / CRM / BPM / 跨部門工具 ...
 | 面向 | 文件 |
 | --- | --- |
 | Claude / 人共同遵守 | `Development/Claude/CLAUDE-v1.0.md` |
-| 專案骨架與路由 | `Development/Project/spec/00-overview-v1.0.md` |
-| 前後端 / DB / 部署設計 | `Development/Project/spec/01-design-notes-v1.0.md` |
-| 自動化掃描規則 | `Development/Project/scan/scan-project-v1.0.md` |
+| 專案骨架與路由 | `Development/spec/00-overview-v1.0.md` |
+| 前後端 / DB / 部署設計 | `Development/spec/01-design-notes-v1.0.md` |
+| 自動化掃描規則 | `Development/spec/scan-project-v1.0.md` |
 | Coolify + Docker Compose | `Coolify-Deploy/Docker-Compose-Spec-v1.2.md` |
-| SSO 整合 | `Development/Project/sso-init/` |
+| SSO 整合 | `Development/Harness-Engineering/Skills/sso-init/` |
 
 **為什麼**
 - 新系統上線:從「重新設計架構」縮短為「套規範 → 寫業務邏輯」
@@ -372,7 +372,7 @@ ERP / CRM / BPM / 跨部門工具 ...
 
 1. **內部 review** — 把這份簡報投在每月 IT 會議,對齊各部門 IT 對口
 2. **個別 deep-dive** — Coolify Owner 排半天讀 U4 + U5 + Compliance Mapping,並對到自己負責的服務
-3. **新專案啟動** — 用 `Development/Project/Template/` 起骨架,跑 `/scan-project` 檢查 6 條合規
+3. **新專案啟動** — 用 `Development/Harness-Engineering/` 起骨架,跑 `/scan-project` 檢查 6 條合規
 4. **回饋進主分支** — 任何遇到的「規範 vs 實務」衝突,提 PR 改規範,不要改 code 繞過規範
 
 ---
@@ -385,7 +385,7 @@ ERP / CRM / BPM / 跨部門工具 ...
 | Harness BreakDown README | `Architecture/20260507-Harness-Engineering-BreakDown-v1.0/README.md` |
 | Coolify Compliance Mapping | 同上目錄下 `Coolify-Compliance-Mapping.md` |
 | 各學習單元 | 同上目錄 `U1` ~ `U5` |
-| 開發規範 | `Development/Project/spec/` |
+| 開發規範 | `Development/spec/` |
 | Coolify 部署規格 | `Coolify-Deploy/Docker-Compose-Spec-v1.3.md` |
 
 > **本簡報只是入口。每張投影片都對應一份原始文件,Tech Lead 與 DevOps 必須讀原文。**

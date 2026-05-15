@@ -84,7 +84,7 @@
 
 ### 4.5 Verification / Tests / CI
 - **作用**:Prompt / Agent 改動後的回歸測試。
-- **公司實作**:CI 跑 [`scan-project-v1.0.md`](../../Development/Project/scan/scan-project-v1.0.md) + Eval suite(走 U4.5 飛輪)。
+- **公司實作**:CI 跑 [`scan-project-v1.0.md`](../../Development/spec/scan-project-v1.0.md) + Eval suite(走 U4.5 飛輪)。
 - **Coolify 合規(★ 第 5 條)**:CI 不過 → Coolify 不部署;`/scan-project` 是必過項。
 
 ### 4.6 Logs / Traces / Observability ★
@@ -158,4 +158,4 @@
 - [U4.5 Domain Model Flywheel](U4.5-Domain-Model-Flywheel.md) — Eval / Reward / Trajectory 的延伸學習能力。
 - [Coolify-Compliance-Mapping.md](Coolify-Compliance-Mapping.md) ★ — 6 條合規的完整對照與 checklist。
 - [`Docker-Compose-Spec-v1.2.md`](../../Coolify-Deploy/Docker-Compose-Spec-v1.2.md) — 落實本單元的部署規格。
-- [`spec/00-overview-v1.0.md`](../../Development/Project/spec/00-overview-v1.0.md) 五大原則 §5(環境變數三階段)— 對應 4.2 Secret。
+- [`spec/00-overview-v1.0.md`](../../Development/spec/00-overview-v1.0.md) 五大原則 §5(環境變數三階段)— 對應 4.2 Secret。

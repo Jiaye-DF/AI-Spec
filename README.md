@@ -9,10 +9,10 @@
 ## 適用範圍
 
 > **適用** — 對外正式服務 / 多人協作 / 中長期維護專案。  
-> 規範偏嚴格(`Development/Project/Template/docs/Design-Base/`),目的是讓 AI agent 產出穩定、code review 有依據、debug 有對照基準。重複性 CRUD + AI 為主力的場景反而提速(decision fatigue 下降)。
+> 規範偏嚴格(`Development/Harness-Engineering/docs/Design-Base/`),目的是讓 AI agent 產出穩定、code review 有依據、debug 有對照基準。重複性 CRUD + AI 為主力的場景反而提速(decision fatigue 下降)。
 
 > **不適用** — POC / spike / 一次性個人工具。  
-> 嚴格規則在「明天就要丟」的程式碼上是純拖慢;這類專案改用 [`Development/Project/replit/`](Development/Project/replit/replit-spec-latest.md) 或不套規範。
+> 嚴格規則在「明天就要丟」的程式碼上是純拖慢;這類專案改用 [`replit/`](replit/replit-spec-latest.md) 或不套規範。
 
 ---
 
@@ -28,21 +28,16 @@ AI-Spec/
 ├── Development/
 │   ├── Claude/
 │   │   └── CLAUDE-v1.0.md           # 全專案共用的 Claude Code 基本規範
-│   ├── Git-Tools/
-│   │   ├── commit-all.md            # /commit-all 自訂指令
-│   │   └── merge-main.md            # /merge-main 自訂指令
-│   └── Project/
-│       ├── spec/
-│       │   ├── 00-overview-v1.0.md       # 專案通用架構(五大原則 / 路由 / 骨架)
-│       │   └── 01-design-notes-v1.0.md   # 前後端 / DB / 部署設計注意事項
-│       ├── scan/
-│       │   └── scan-project-v1.0.md      # /scan-project 掃描規則庫
-│       ├── sso-init/
-│       │   ├── sso-init-express.md       # Next.js / Express 的 DF-SSO 整合
-│       │   ├── sso-init-fastapi.md       # FastAPI 的 DF-SSO 整合
-│       │   └── sso-init-spring.md        # Spring Boot 的 DF-SSO 整合
-│       └── replit/
-│           └── replit-spec-latest.md     # Replit 手機優先 RWD Web App 規格
+│   └── Harness-Engineering/         # Harness Engineering 規範 + skills 整合包(可 fork 套用至新專案)
+│       ├── README.md                # 整合包索引 + 使用協議
+│       ├── AGENTS.md / CLAUDE.md    # 跨工具事實層 / Claude 特化薄層
+│       ├── Skills/                  # commit-all / merge-main / init-project / sso-init / start-dev / stop-dev / create-arch-diagram
+│       ├── docs/Design-Base/        # 開發規範(前端 / 後端 / DB / CI / Coolify / 三方服務 / code review)
+│       ├── prompts/                 # 跨 agent skill(scan-project / propose-to-tasks / reflect-rules)
+│       └── plan/                    # 整合包自身演進
+│
+├── replit/
+│   └── replit-spec-latest.md        # Replit 手機優先 RWD Web App 規格
 │
 └── Questions/                       # 部門遇到的問題紀錄與討論
     ├── 20260415-Questions-v1.0.md
@@ -58,10 +53,10 @@ AI-Spec/
 | 想做的事 | 看哪份文件 |
 | --- | --- |
 | 了解 Claude Code 在任何專案都該遵守的規矩 | [Development/Claude/CLAUDE-v1.0.md](Development/Claude/CLAUDE-v1.0.md) |
-| 新專案要先建什麼骨架 / 路由怎麼規劃 | [Development/Project/spec/00-overview-v1.0.md](Development/Project/spec/00-overview-v1.0.md) |
-| 前後端 / DB / 部署設計時要想到什麼 | [Development/Project/spec/01-design-notes-v1.0.md](Development/Project/spec/01-design-notes-v1.0.md) |
-| 接公司 DF-SSO 登入 | `Development/Project/sso-init/` 下對應框架的檔案 |
-| 在 Replit 做個人工具 | [Development/Project/replit/replit-spec-latest.md](Development/Project/replit/replit-spec-latest.md) |
+| 新專案要先建什麼骨架 / 路由怎麼規劃 | [Development/spec/00-overview-v1.0.md](Development/spec/00-overview-v1.0.md) |
+| 前後端 / DB / 部署設計時要想到什麼 | [Development/spec/01-design-notes-v1.0.md](Development/spec/01-design-notes-v1.0.md) |
+| 接公司 DF-SSO 登入 | `Development/Harness-Engineering/Skills/sso-init/` 下對應框架的檔案 |
+| 在 Replit 做個人工具 | [replit/replit-spec-latest.md](replit/replit-spec-latest.md) |
 
 ### 部署階段
 
@@ -74,7 +69,7 @@ AI-Spec/
 
 | 想做的事 | 看哪份文件 |
 | --- | --- |
-| 掃描專案找出架構 / 資安 / 部署違規 | [Development/Project/scan/scan-project-v1.0.md](Development/Project/scan/scan-project-v1.0.md) |
+| 掃描專案找出架構 / 資安 / 部署違規 | [Development/spec/scan-project-v1.0.md](Development/spec/scan-project-v1.0.md) |
 
 ### 教育訓練 / 跨部門共識
 
@@ -88,7 +83,7 @@ AI-Spec/
 
 ## 五大核心原則(所有專案都適用)
 
-擷取自 [spec/00-overview-v1.0.md](Development/Project/spec/00-overview-v1.0.md),完整定義請見原檔:
+擷取自 [spec/00-overview-v1.0.md](Development/spec/00-overview-v1.0.md),完整定義請見原檔:
 
 1. **首頁永遠是登入頁** — `/` 未登入顯示登入表單;已登入 302 `/dashboard`。
 2. **未通過驗證一律 302 `/?redirect=<原路徑>`** — 頁面與 API 行為一致,無例外。
@@ -102,9 +97,9 @@ AI-Spec/
 
 | 指令 | 說明 | 來源 |
 | --- | --- | --- |
-| `/commit-all` | 一鍵提交並推送當前分支所有變更(AI commit 自動加 `(AI)` 前綴) | [Development/Git-Tools/commit-all.md](Development/Git-Tools/commit-all.md) |
-| `/merge-main` | 合併當前分支至 `main` 並推送 | [Development/Git-Tools/merge-main.md](Development/Git-Tools/merge-main.md) |
-| `/scan-project` | 依規則庫掃描專案,結果寫入 `docs/Issues-Scan-Project.md` | [Development/Project/scan/scan-project-v1.0.md](Development/Project/scan/scan-project-v1.0.md) |
+| `/commit-all` | 一鍵提交並推送當前分支所有變更(AI commit 自動加 `(AI)` 前綴) | [Development/Harness-Engineering/Skills/commit-all/SKILL.md](Development/Harness-Engineering/Skills/commit-all/SKILL.md) |
+| `/merge-main` | 合併當前分支至 `main` 並推送 | [Development/Harness-Engineering/Skills/merge-main/SKILL.md](Development/Harness-Engineering/Skills/merge-main/SKILL.md) |
+| `/scan-project` | 依規則庫掃描專案,結果寫入 `docs/Issues-Scan-Project.md` | [Development/spec/scan-project-v1.0.md](Development/spec/scan-project-v1.0.md) |
 
 ---
 
@@ -112,14 +107,14 @@ AI-Spec/
 
 ### 新專案啟動
 
-1. 讀 [CLAUDE-v1.0.md](Development/Claude/CLAUDE-v1.0.md) 與 [00-overview-v1.0.md](Development/Project/spec/00-overview-v1.0.md) 建立骨架。
-2. 接 SSO → 依後端框架挑 `sso-init-*` 對應檔案執行初始化。
+1. 讀 [CLAUDE-v1.0.md](Development/Claude/CLAUDE-v1.0.md) 與 [00-overview-v1.0.md](Development/spec/00-overview-v1.0.md) 建立骨架。
+2. 接 SSO → 跑 `/sso-init` skill,依後端框架(FastAPI / Next.js / Spring）分流初始化。
 3. 寫 `docker-compose.yml` → 對照 [Docker-Compose-Spec-v1.2.md](Coolify-Deploy/Docker-Compose-Spec-v1.2.md)。
 4. 上線前 `/scan-project` 跑一次健檢。
 
 ### 既有專案健檢
 
-在專案目錄執行 `/scan-project`,Agent 會依 [scan-project-v1.0.md](Development/Project/scan/scan-project-v1.0.md) 的規則庫輸出違規清單、修正建議,並寫入 `docs/Issues-Scan-Project.md`(累積式追蹤,已修項目會從檔案移除、新增項會合併進來)。
+在專案目錄執行 `/scan-project`,Agent 會依 [scan-project-v1.0.md](Development/spec/scan-project-v1.0.md) 的規則庫輸出違規清單、修正建議,並寫入 `docs/Issues-Scan-Project.md`(累積式追蹤,已修項目會從檔案移除、新增項會合併進來)。
 
 ---
 
@@ -135,5 +130,5 @@ AI-Spec/
 ## 版本策略
 
 - 各規格檔以 `-vX.Y.md` 命名,重大變更升版並保留舊版。
-- `Coolify-Deploy/` 最新版為 **v1.2**;`Development/Project/` 各規格目前為 **v1.0**。
+- `Coolify-Deploy/` 最新版為 **v1.2**;`Development/spec/` 各規格目前為 **v1.0**。
 - 文件間互相參考時使用相對路徑連結,避免失聯。

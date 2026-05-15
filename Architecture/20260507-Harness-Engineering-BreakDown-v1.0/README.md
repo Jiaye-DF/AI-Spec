@@ -10,7 +10,7 @@
 > 互補文件:
 >  - [`20260421-DataFlow-v1.0.md`](../20260421-DataFlow-v1.0.md) — 公司資料流總藍圖
 >  - [`Coolify-Deploy/Docker-Compose-Spec-v1.3.md`](../../Coolify-Deploy/Docker-Compose-Spec-v1.3.md) —Coolify 部署規格
->  - [`Development/Project/spec/00-overview-v1.0.md`](../../Development/Project/spec/00-overview-v1.0.md) — 五大開發原則
+>  - [`Development/spec/00-overview-v1.0.md`](../../Development/spec/00-overview-v1.0.md) — 五大開發原則
 
 ---
 

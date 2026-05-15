@@ -3,7 +3,7 @@
 > 定位:把 6 條 Coolify 合規通則 × 6 個學習單元 × 對應現有規格文件,做成一張**可逐條打勾**的對照表。
 > 適用:任何 Agent / AI 系統要上 Coolify 之前,Owner 必須完成本檔的 checklist。
 > 公司前提:Coolify + Docker Compose 為主力部署平台,**無 K8s**;Serverless 僅限 GCP / AWS(模型訓練用,非主力)。
-> 互補文件:[`Docker-Compose-Spec-v1.2.md`](../../Coolify-Deploy/Docker-Compose-Spec-v1.2.md)、[`spec/00-overview-v1.0.md`](../../Development/Project/spec/00-overview-v1.0.md)、[`scan-project-v1.0.md`](../../Development/Project/scan/scan-project-v1.0.md)。
+> 互補文件:[`Docker-Compose-Spec-v1.2.md`](../../Coolify-Deploy/Docker-Compose-Spec-v1.2.md)、[`spec/00-overview-v1.0.md`](../../Development/spec/00-overview-v1.0.md)、[`scan-project-v1.0.md`](../../Development/spec/scan-project-v1.0.md)。
 
 ---
 
@@ -51,7 +51,7 @@ volumes:
 5. Token / Key 一律不入 image layer。
 
 **對應單元**:[U4.1 Prompts](U4-Harness-Engineering.md)、[U4.2 Tools/MCP](U4-Harness-Engineering.md)、[U5.1 LLM](U5-Foundation-Resources.md)、[U5.4 Test Logs(Seq token)](U5-Foundation-Resources.md)。
-**對應現有規範**:[`spec/00-overview-v1.0.md`](../../Development/Project/spec/00-overview-v1.0.md) 五大原則 §5。
+**對應現有規範**:[`spec/00-overview-v1.0.md`](../../Development/spec/00-overview-v1.0.md) 五大原則 §5。
 
 **違規範例**
 
