@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'><circle cx='3' cy='8' r='2' fill='%2316a34a'/><line x1='5' y1='8' x2='11' y2='8' stroke='%232563eb' stroke-width='1.6'/><circle cx='13' cy='8' r='2' fill='%23dc2626'/></svg>">
+  <title>自動 CI/CD 流程 v1.0 — 流程圖</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-soft: #f8fafc;
+      --fg: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --toolbar-bg: #f8fafc;
+      --btn-bg: #ffffff;
+      --btn-hover: #f1f5f9;
+      --accent: #2563eb;
+      --error: #dc2626;
+      --user: #16a34a;
+      --it: #2563eb;
+      --shared: #9333ea;
+      --critical: #dc2626;
+    }
+    [data-theme="dark"] {
+      --bg: #0f172a;
+      --bg-soft: #1e293b;
+      --fg: #f1f5f9;
+      --muted: #94a3b8;
+      --border: #334155;
+      --toolbar-bg: #1e293b;
+      --btn-bg: #1e293b;
+      --btn-hover: #334155;
+      --accent: #60a5fa;
+      --error: #f87171;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      font-family: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--fg);
+    }
+    body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+    /* ---- toolbar ---- */
+    .toolbar {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      padding: 12px 20px;
+      background: var(--toolbar-bg);
+      border-bottom: 2px solid var(--border);
+      align-items: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+      flex-shrink: 0;
+    }
+    .toolbar h1 {
+      font-size: 16px;
+      margin: 0;
+      margin-right: auto;
+      font-weight: 700;
+      color: var(--accent);
+      padding-left: 12px;
+      border-left: 4px solid var(--accent);
+      line-height: 1.3;
+      letter-spacing: 0.02em;
+      max-width: 40%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .toolbar .divider { width: 1px; height: 22px; background: var(--border); margin: 0 4px; }
+    .toolbar button, .toolbar select, .toolbar input {
+      padding: 6px 11px; font-size: 13px;
+      border: 1px solid var(--border);
+      background: var(--btn-bg); color: var(--fg);
+      border-radius: 5px; cursor: pointer; font-family: inherit;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .toolbar button:hover, .toolbar select:hover {
+      background: var(--btn-hover); border-color: var(--accent);
+    }
+    .toolbar button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .toolbar label {
+      font-size: 12px; color: var(--muted);
+      display: inline-flex; align-items: center; gap: 6px;
+      font-weight: 500;
+    }
+    .toolbar .picker {
+      font-weight: 600; min-width: 240px;
+      border-color: var(--accent); color: var(--fg);
+    }
+    .counter {
+      font-size: 12px; color: var(--muted); font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      padding: 0 8px;
+    }
+    .nav-btn {
+      width: 32px; height: 30px; padding: 0 !important;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 600;
+    }
+
+    /* ---- legend bar ---- */
+    .legend-bar {
+      display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+      padding: 8px 20px;
+      background: var(--bg-soft);
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .legend-bar .group { display: inline-flex; align-items: center; gap: 8px; }
+    .legend-bar .group-title { font-weight: 700; color: var(--muted); font-size: 11px; }
+    .legend-bar .item { display: inline-flex; align-items: center; gap: 4px; }
+    .legend-bar .sw {
+      display: inline-block; width: 14px; height: 14px; border-radius: 3px;
+      border: 1px solid currentColor;
+    }
+    .legend-bar .sw.u { background: #dcfce7; color: #16a34a; }
+    .legend-bar .sw.i { background: #dbeafe; color: #2563eb; }
+    .legend-bar .sw.s { background: #f3e8ff; color: #9333ea; }
+    .legend-bar .sw.c { background: #fee2e2; color: #dc2626; }
+    .legend-bar svg.line { color: var(--fg); }
+
+    /* ---- stage ---- */
+    main {
+      flex: 1; min-height: 0;
+      display: flex; flex-direction: column;
+    }
+    .preview {
+      flex: 1; min-height: 0;
+      overflow: auto;
+      padding: 28px 24px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+    .preview.zoomed { justify-content: flex-start; }
+    .preview.draggable { cursor: grab; user-select: none; }
+    .preview.draggable.dragging { cursor: grabbing; }
+    .preview.draggable.dragging * { pointer-events: none; }
+    .preview svg { display: block; margin: 0 auto; }
+    .preview .svg-wrap {
+      display: inline-block;
+      transform-origin: top left;
+      transition: transform 0.12s ease;
+    }
+    .preview.dragging .svg-wrap { transition: none; }
+    .zoom-label {
+      font-size: 12px; color: var(--muted); font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      min-width: 42px; text-align: center;
+      cursor: pointer;
+    }
+    .zoom-label:hover { color: var(--accent); }
+    .error {
+      color: var(--error); padding: 16px;
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 13px; white-space: pre-wrap; text-align: left;
+    }
+
+    /* ---- HTML slide:cards + 內嵌 mermaid 混排（對齊 presentation-datas SSO 樣式） ---- */
+    .cards-wrap { max-width: 1280px; width: 100%; }
+    .cards-head {
+      margin-bottom: 18px;
+      font-size: 15px; color: var(--muted);
+      display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center;
+    }
+    .cards-head strong { color: var(--accent); font-size: 19px; }
+    .cards-grid { display: grid; gap: 16px; }
+    .cards-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+    .cards-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .cards-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+    .card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-left-width: 5px;
+      border-radius: 10px;
+      padding: 16px 18px;
+      display: flex; flex-direction: column;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.1);
+    }
+    .card.user { border-left-color: #16a34a; }
+    .card.it { border-left-color: #2563eb; }
+    .card.shared { border-left-color: #9333ea; }
+    .card.critical { border-left-color: #dc2626; }
+    .card-badges {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      margin-bottom: 10px;
+    }
+    .card-badge {
+      display: inline-block;
+      font-size: 12.5px; font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 5px;
+      letter-spacing: 0.02em;
+    }
+    .card-tag {
+      display: inline-block;
+      font-size: 11.5px;
+      padding: 3px 8px;
+      border-radius: 5px;
+      background: var(--btn-hover);
+      color: var(--muted);
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    [data-theme="dark"] .card-tag { background: rgba(148, 163, 184, 0.15); }
+    .card.user .card-badge { background: #dcfce7; color: #14532d; }
+    .card.it .card-badge { background: #dbeafe; color: #1e3a8a; }
+    .card.shared .card-badge { background: #f3e8ff; color: #581c87; }
+    .card.critical .card-badge { background: #fee2e2; color: #7f1d1d; }
+    [data-theme="dark"] .card.user .card-badge { background: rgba(34,197,94,0.2); color: #86efac; }
+    [data-theme="dark"] .card.it .card-badge { background: rgba(96,165,250,0.2); color: #93c5fd; }
+    [data-theme="dark"] .card.shared .card-badge { background: rgba(168,85,247,0.2); color: #d8b4fe; }
+    [data-theme="dark"] .card.critical .card-badge { background: rgba(248,113,113,0.2); color: #fca5a5; }
+    .card-title {
+      font-size: 17.5px; font-weight: 700;
+      margin: 0 0 9px;
+      color: var(--fg); line-height: 1.35;
+    }
+    .card-body {
+      font-size: 15px;
+      color: var(--fg);
+      line-height: 1.6;
+    }
+    .card-body strong { color: var(--accent); }
+    .card-body code {
+      background: var(--btn-hover);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13.5px;
+      font-family: 'JetBrains Mono', Consolas, monospace;
+    }
+    .cards-foot {
+      margin-top: 20px;
+      padding: 14px 18px;
+      background: var(--bg-soft);
+      border-left: 4px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      font-size: 15px;
+      color: var(--fg); line-height: 1.6;
+    }
+    .cards-foot strong { color: var(--accent); }
+
+    /* 內嵌 mermaid 區塊 */
+    .preview pre.mermaid {
+      background: var(--bg);
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: auto;
+    }
+    .flow-section-title {
+      font-size: 18px; color: var(--muted);
+      margin: 18px 0 6px;
+    }
+    .flow-section-title strong { color: var(--fg); }
+    .flow-legend {
+      font-size: 14px; color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.6;
+    }
+    .flow-legend strong { color: var(--fg); }
+  </style>
+</head>
+<body>
+  <!--
+    一個檔案內可放 N 張 slide。
+    新增 slide → 複製一份 <script type="text/plain"> 區塊，改 id / data-label / data-order。
+    data-format = "mermaid"（預設） | "html"(HTML 內嵌 mermaid 混排）
+    鍵盤：← / → 翻頁；+ / − 縮放；0 重設；F 符合視窗；Ctrl+滾輪也可 zoom。
+  -->
+
+  <!-- ================== 1. 主流程（三服務拆分） ================== -->
+  <script type="text/plain" id="main-flow"
+          data-label="1. 主流程（三服務拆分）"
+          data-order="1"
+          data-kind="flow"
+          data-format="html">
+<div class="cards-wrap">
+  <div class="cards-head">
+    <strong>自動 CI/CD — 三服務拆分，人類只收信</strong>
+    <span>· GitHub 工作流引擎 × OpenRouter Dispatch（派工系統）× 寄信服務 ·</span>
+  </div>
+
+  <div class="cards-grid cols-3" style="margin-bottom: 16px;">
+    <div class="card user">
+      <div class="card-badges"><span class="card-badge">🟢 對開發者</span></div>
+      <div class="card-title">推合併請求就可以收工</div>
+      <div class="card-body">持續整合 / 程式碼審查 / 合併 / 部署全部自動，結果寄信通知。</div>
+    </div>
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">🔵 對 IT</span><span class="card-tag">對齊 Harness 規範</span></div>
+      <div class="card-title">三系統解耦 + 檢查並行</div>
+      <div class="card-body">工作流引擎 / 派工系統 / 寄信服務各自獨立部署，5 個檢查任務並行。</div>
+    </div>
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">🔴 ★ 對資安 / 合規</span></div>
+      <div class="card-title">四態判決 + 稽核軌跡</div>
+      <div class="card-body">4 種判決（可合併 / 衝突 / 人工 / 拒絕）,保護路徑強制走人工，事件留存 ≥ 2 年。</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="flow-section-title"><strong>事件流程</strong> &nbsp;—&nbsp; 開發者推合併請求 → 檢查 → AI 審查 → 判斷 → 部署 → 寄信</div>
+    <pre class="mermaid">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart TB
+  Dev([開發者<br>推合併請求到主幹]):::user
+
+  subgraph GH[GitHub 工作流引擎]
+    direction TB
+    Trigger[2. 工作流自動觸發]:::it
+    subgraph CI[3. 並行 5 個檢查任務]
+      direction TB
+      JFront[前端檢查]:::it
+      JBack[後端檢查]:::it
+      JAudit[套件漏洞稽核]:::it
+      JSec[機密外洩掃描]:::critical
+      JSecsc[原始碼安全掃描]:::critical
+    end
+    Fanin([全部通過？]):::it
+    Health{4-A. 派工系統存活檢查}:::it
+    Call[4. 送出審查請求]:::it
+    Skip[4-B. 跳過 AI 審查<br>降級走人工]:::shared
+    Gate{6. 判斷系統<br>四態判決}:::critical
+    Merge[7. 可合併<br>壓縮合併]:::it
+    Conflict[衝突<br>請作者重新接上主幹]:::shared
+    Manual[人工<br>合併請求改成草稿]:::shared
+    Reject[拒絕<br>關閉合併請求]:::critical
+    Webhook[8. 通知部署平台]:::it
+  end
+
+  Dispatch[OpenRouter Dispatch 派工系統<br>內含 5 個模組，詳見下一張]:::it
+  Coolify[Coolify 部署平台<br>建置 → 部署 → 健康檢查<br>失敗自動回滾]:::critical
+  Notifier[寄信服務<br>訂閱三方事件 → 彙整 → 寄信]:::it
+  Human([收件人]):::user
+
+  Dev --> Trigger
+  Trigger ==>|並行觸發| JFront
+  Trigger ==>|並行觸發| JBack
+  Trigger ==>|並行觸發| JAudit
+  Trigger ==>|並行觸發| JSec
+  Trigger ==>|並行觸發| JSecsc
+  JFront --> Fanin
+  JBack --> Fanin
+  JAudit --> Fanin
+  JSec --> Fanin
+  JSecsc --> Fanin
+  Fanin -->|全部通過| Health
+  Fanin -.任一失敗.-> Gate
+  Health -->|健康| Call
+  Health -.不健康.-> Skip
+  Skip --> Gate
+  Call ==>|送程式碼差異| Dispatch
+  Dispatch ==>|判決回傳| Gate
+  Gate ==>|可合併| Merge
+  Gate -->|衝突| Conflict
+  Gate -->|人工| Manual
+  Gate -->|拒絕| Reject
+  Merge --> Webhook
+  Webhook ==>|通知| Coolify
+
+  GH -.->|"檢查完成<br>合併完成事件"| Notifier
+  Dispatch -.->|審查完成事件| Notifier
+  Coolify -.->|"部署完成<br>回滾事件"| Notifier
+  Conflict --> Notifier
+  Manual --> Notifier
+  Reject --> Notifier
+  Notifier ==>|寄信| Human
+
+  classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
+  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+    </pre>
+  </div>
+
+  <div class="cards-foot">
+    <strong>適用範圍：</strong>&nbsp;&nbsp;內部工具 / 中低風險服務。對外正式服務 / 金流 / 法遵敏感系統不適用。
+  </div>
+</div>
+  </script>
+
+  <!-- ================== 1.5 OpenRouter Dispatch 內部拆解 ================== -->
+  <script type="text/plain" id="dispatch-internals"
+          data-label="1.5 Dispatch 內部拆解"
+          data-order="1.5"
+          data-kind="flow"
+          data-format="html">
+<div class="cards-wrap">
+  <div class="cards-head">
+    <strong>OpenRouter Dispatch ▸ 內部 5 模組</strong>
+    <span>· 每個模組單一職責 · 可獨立替換 · 任一失敗統一回人工 ·</span>
+  </div>
+
+  <div class="cards-grid cols-3" style="margin-bottom: 16px;">
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">1. 接收入口</span></div>
+      <div class="card-title">接請求 + 驗憑證 + 限流</div>
+      <div class="card-body">驗證失敗即回拒，不進後面模組。</div>
+    </div>
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">2. 機密過濾</span></div>
+      <div class="card-title">第三道機密偵測</div>
+      <div class="card-body">發現密碼 / 憑證仍在 → 拒收，避免送進語言模型。</div>
+    </div>
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">3. 模型路由</span></div>
+      <div class="card-title">依大小 / 類型挑語言模型</div>
+      <div class="card-body">配額 / 退路集中管理。</div>
+    </div>
+    <div class="card shared">
+      <div class="card-badges"><span class="card-badge">4. 判決引擎</span></div>
+      <div class="card-title">呼語言模型 + 套規則庫</div>
+      <div class="card-body">產四態判決 + 問題清單。規則改動視同程式碼。</div>
+    </div>
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">5. 發布器</span></div>
+      <div class="card-title">寫合併請求評論 + 發事件</div>
+      <div class="card-body">失敗只影響通知，不影響判決（已寫稽核）。</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="flow-section-title"><strong>內部資料流</strong> &nbsp;—&nbsp; 管線式串接，任一模組失敗即回人工</div>
+    <pre class="mermaid">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart LR
+  Ext([GitHub 工作流<br>送審查請求]):::it
+
+  subgraph DSP[OpenRouter Dispatch 派工系統]
+    direction LR
+    M1[1. 接收入口]:::it
+    M2[2. 機密過濾]:::critical
+    M3[3. 模型路由]:::it
+    M4[4. 判決引擎]:::shared
+    M5[5. 發布器]:::it
+  end
+
+  GH([GitHub<br>寫合併請求評論]):::it
+  Notifier([寄信服務]):::it
+  Fail([任一失敗<br>回人工]):::shared
+
+  Ext ==> M1
+  M1 ==> M2
+  M2 ==> M3
+  M3 ==> M4
+  M4 ==> M5
+  M5 ==>|寫評論| GH
+  M5 -.->|審查完成事件| Notifier
+
+  M1 -.失敗.-> Fail
+  M2 -.失敗.-> Fail
+  M3 -.失敗.-> Fail
+  M4 -.失敗.-> Fail
+  M5 -.失敗.-> Fail
+
+  classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
+  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+    </pre>
+  </div>
+
+  <div class="cards-foot">
+    <strong>未來擴充：</strong>&nbsp;&nbsp;邏輯變複雜時模型路由或判決引擎可升級為獨立服務；目前 5 模組同進程足夠。
+  </div>
+</div>
+  </script>
+
+  <!-- ================== 2. 判斷系統四態邏輯 ================== -->
+  <script type="text/plain" id="gate-logic"
+          data-label="2. 判斷系統四態邏輯"
+          data-order="2"
+          data-kind="flow"
+          data-format="html">
+<div class="cards-wrap">
+  <div class="cards-head">
+    <strong>判斷系統 — 四態判決</strong>
+    <span>· 自動合併規則庫 · 由上往下命中即停 ·</span>
+  </div>
+
+  <div class="cards-grid cols-4" style="margin-bottom: 16px;">
+    <div class="card user">
+      <div class="card-badges"><span class="card-badge">🟢 可合併</span></div>
+      <div class="card-title">所有檢查通過 + 沒有嚴重問題</div>
+      <div class="card-body">壓縮合併後觸發部署。</div>
+    </div>
+    <div class="card shared">
+      <div class="card-badges"><span class="card-badge">🟣 衝突</span></div>
+      <div class="card-title">檢查失敗 / 與主幹有衝突</div>
+      <div class="card-body">合併請求不關，請作者修或重新接上主幹。</div>
+    </div>
+    <div class="card shared">
+      <div class="card-badges"><span class="card-badge">🟣 人工</span></div>
+      <div class="card-title">AI 找到嚴重問題 / 保護路徑 / 健康檢查掛</div>
+      <div class="card-body">合併請求改成草稿，加標籤等技術主管處理。</div>
+    </div>
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">🔴 拒絕</span></div>
+      <div class="card-title">機密外洩 / 高危漏洞 / AI 明確拒絕</div>
+      <div class="card-body">關閉合併請求，需另開新合併請求修正。</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="flow-section-title"><strong>判決流程</strong> &nbsp;—&nbsp; 由上往下命中即停，最後一條兜底</div>
+    <pre class="mermaid">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart TB
+  Start([6. 判斷觸發<br>檢查結果 + 派工系統判決]):::it
+
+  Q1{機密掃描失敗？}:::critical
+  Q2{安全掃描失敗<br>含高危漏洞？}:::critical
+  Q3{派工系統判 = 拒絕？}:::it
+  Q4{檢查失敗或<br>與主幹有衝突？}:::it
+  Q5{派工系統判 = 人工？}:::it
+  Q6{含保護路徑？}:::critical
+  Q7{派工系統判 = 可合併<br>且檢查全綠？}:::it
+
+  Reject[拒絕<br>關閉合併請求]:::critical
+  Conflict[衝突<br>請作者修]:::shared
+  Manual[人工<br>合併請求改草稿]:::shared
+  Mergeable[可合併<br>壓縮合併]:::user
+  Fallback[兜底走人工]:::shared
+
+  Start --> Q1
+  Q1 -->|是| Reject
+  Q1 -->|否| Q2
+  Q2 -->|是| Reject
+  Q2 -->|否| Q3
+  Q3 -->|是| Reject
+  Q3 -->|否| Q4
+  Q4 -->|是| Conflict
+  Q4 -->|否| Q5
+  Q5 -->|是| Manual
+  Q5 -->|否| Q6
+  Q6 -->|是| Manual
+  Q6 -->|否| Q7
+  Q7 -->|是| Mergeable
+  Q7 -->|否| Fallback
+
+  classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
+  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+    </pre>
+  </div>
+
+  <div class="cards-foot">
+    <strong>規則特性：</strong>&nbsp;&nbsp;規則寫在設定檔內，可稽核可單元測試，不靠語言模型推理判決。
+  </div>
+</div>
+  </script>
+
+  <!-- ================== 3. 失敗 / 回滾 / 熔斷 ================== -->
+  <script type="text/plain" id="failure-handling"
+          data-label="3. 失敗 / 回滾 / 熔斷"
+          data-order="3"
+          data-kind="flow"
+          data-format="html">
+<div class="cards-wrap">
+  <div class="cards-head">
+    <strong>失敗復原 — 自動回滾 + 熔斷</strong>
+    <span>· 全自動下「補償控制」更重要 · 連續失敗自動熔斷 ·</span>
+  </div>
+
+  <div class="cards-grid cols-3" style="margin-bottom: 16px;">
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">🔵 軟性降級</span></div>
+      <div class="card-title">AI / 健康檢查失敗</div>
+      <div class="card-body">重試 2 次後改走人工，不冒險合併。</div>
+    </div>
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">🔴 自動回滾</span></div>
+      <div class="card-title">部署平台健康檢查失敗</div>
+      <div class="card-body">保留前一版 + 觸發回滾 + 通知維運。</div>
+    </div>
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">🔴 ★ 熔斷</span></div>
+      <div class="card-title">連續失敗強制人類介入</div>
+      <div class="card-body">1 小時內部署失敗 ≥ 3 次或 24 小時內回滾 ≥ 2 次 → 關閉自動合併。</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="flow-section-title"><strong>失敗 → 自動回應 → 通知</strong> &nbsp;—&nbsp; 5 種失敗來源各自的處理路徑</div>
+    <pre class="mermaid">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart LR
+  subgraph F[❌ 失敗來源]
+    direction TB
+    F1[派工系統失敗]:::it
+    F2[合併後檢查失敗<br>語意衝突]:::it
+    F3[部署平台失敗]:::critical
+    F4[連續失敗熔斷]:::critical
+    F5[稽核寫入失敗]:::critical
+  end
+
+  subgraph R[🔁 自動回應]
+    direction TB
+    R1[改走人工]:::shared
+    R2[建撤銷合併請求<br>重走流程]:::it
+    R3[保留前一版<br>+ 回滾]:::critical
+    R4[關閉自動合併]:::critical
+    R5[流程立即中斷]:::critical
+  end
+
+  subgraph N[📧 通知]
+    direction TB
+    N1[開發者<br>+ 技術主管]:::user
+    N2[技術主管<br>+ 維運]:::user
+    N3[技術主管<br>需手動恢復]:::user
+  end
+
+  F1 --> R1 --> N1
+  F2 --> R2 --> N1
+  F3 --> R3 --> N2
+  F4 --> R4 --> N3
+  F5 --> R5 --> N2
+
+  classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
+  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+    </pre>
+  </div>
+
+  <div class="cards-foot">
+    <strong>人類缺位的代償：</strong>&nbsp;&nbsp;稽核留存 2 年 + 全事件只增不改 + 自動回滾 + 熔斷強制介入。
+  </div>
+</div>
+  </script>
+
+  <!-- ================== 工具列 + 圖例 + 舞台 ================== -->
+  <header class="toolbar">
+    <h1 id="title">自動 CI/CD 流程 v1.0</h1>
+    <button id="prev" class="nav-btn" title="上一頁（←)">‹</button>
+    <span id="counter" class="counter">0 / 0</span>
+    <button id="next" class="nav-btn" title="下一頁（→)">›</button>
+    <select id="picker" class="picker"></select>
+    <span class="divider"></span>
+    <label>主題
+      <select id="theme">
+        <option value="default">Light</option>
+        <option value="dark">Dark</option>
+        <option value="neutral">Neutral</option>
+        <option value="forest">Forest</option>
+      </select>
+    </label>
+    <label>字體
+      <input type="number" id="font-size" value="18" min="10" max="32" step="1" style="width: 56px;">
+      <span>px</span>
+    </label>
+    <span class="divider"></span>
+    <button id="zoom-out" class="nav-btn" title="縮小（- 鍵）">−</button>
+    <span id="zoom-label" class="zoom-label" title="點擊重設為 100%(0 鍵）">100%</span>
+    <button id="zoom-in" class="nav-btn" title="放大（+ 鍵）">+</button>
+    <button id="zoom-fit" title="符合視窗（F 鍵）">Fit</button>
+    <span class="divider"></span>
+    <button id="copy-svg" title="複製 SVG 到剪貼簿">複製 SVG</button>
+    <button id="download-svg" title="下載 SVG 檔">下載 SVG</button>
+    <button id="download-png" title="下載 PNG(2× 解析度）">下載 PNG</button>
+  </header>
+
+  <main>
+    <div class="preview" id="preview"></div>
+  </main>
+
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+
+    const preview = document.getElementById('preview');
+    const themeSelect = document.getElementById('theme');
+    const fontSizeInput = document.getElementById('font-size');
+    const picker = document.getElementById('picker');
+    const counterEl = document.getElementById('counter');
+    const prevBtn = document.getElementById('prev');
+    const nextBtn = document.getElementById('next');
+    const titleEl = document.getElementById('title');
+    const zoomLabel = document.getElementById('zoom-label');
+    const zoomIn = document.getElementById('zoom-in');
+    const zoomOut = document.getElementById('zoom-out');
+    const zoomFitBtn = document.getElementById('zoom-fit');
+
+    let zoom = 1;
+    const ZOOM_STEPS = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.15, 1.3, 1.5, 1.75, 2.0, 2.5, 3.0];
+
+    function findZoomIdx(z) {
+      let best = 0, diff = Infinity;
+      ZOOM_STEPS.forEach((v, i) => {
+        const d = Math.abs(v - z);
+        if (d < diff) { diff = d; best = i; }
+      });
+      return best;
+    }
+    function setZoom(z) {
+      zoom = Math.max(0.3, Math.min(4, z));
+      const wrap = preview.querySelector('.svg-wrap');
+      if (wrap) {
+        wrap.style.transform = `scale(${zoom})`;
+        const svg = wrap.querySelector('svg');
+        if (svg) {
+          const w = parseFloat(svg.dataset.origW || svg.getBoundingClientRect().width / zoom);
+          const h = parseFloat(svg.dataset.origH || svg.getBoundingClientRect().height / zoom);
+          wrap.style.width = (w * zoom) + 'px';
+          wrap.style.height = (h * zoom) + 'px';
+        }
+      }
+      preview.classList.toggle('zoomed', zoom > 1.01);
+      zoomLabel.textContent = Math.round(zoom * 100) + '%';
+    }
+    function zoomStep(dir) {
+      const idx = findZoomIdx(zoom);
+      const ni = Math.max(0, Math.min(ZOOM_STEPS.length - 1, idx + dir));
+      setZoom(ZOOM_STEPS[ni]);
+    }
+    function zoomFit() {
+      const svg = preview.querySelector('svg');
+      if (!svg) { setZoom(1); return; }
+      const w = parseFloat(svg.dataset.origW);
+      const h = parseFloat(svg.dataset.origH);
+      if (!w || !h) { setZoom(1); return; }
+      const pad = 56;
+      const fitX = (preview.clientWidth - pad) / w;
+      const fitY = (preview.clientHeight - pad) / h;
+      setZoom(Math.min(fitX, fitY, 4));
+    }
+
+    const slides = Array.from(document.querySelectorAll('script[type="text/plain"][id]'))
+      .map(el => ({
+        el,
+        id: el.id,
+        label: el.dataset.label || el.id,
+        order: parseFloat(el.dataset.order || '99'),
+        format: el.dataset.format || 'mermaid',
+      }))
+      .sort((a, b) => a.order - b.order);
+
+    let currentIndex = 0;
+    let renderToken = 0;
+
+    function buildPicker() {
+      picker.innerHTML = '';
+      slides.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.label;
+        picker.appendChild(opt);
+      });
+    }
+
+    function updateCounter() {
+      counterEl.textContent = `${currentIndex + 1} / ${slides.length}`;
+      prevBtn.disabled = currentIndex === 0;
+      nextBtn.disabled = currentIndex === slides.length - 1;
+    }
+
+    function initMermaid() {
+      const theme = themeSelect.value;
+      mermaid.initialize({
+        startOnLoad: false, theme,
+        themeVariables: {
+          fontFamily: '"Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif',
+          fontSize: fontSizeInput.value + 'px',
+        },
+        flowchart: { useMaxWidth: true, htmlLabels: true },
+        securityLevel: 'loose',
+      });
+      document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
+    }
+
+    async function render() {
+      const slide = slides[currentIndex];
+      if (!slide) return;
+      const code = slide.el.textContent.trim();
+      const token = ++renderToken;
+
+      titleEl.textContent = slide.label;
+      zoom = 1;
+
+      try {
+        if (slide.format === 'html') {
+          initMermaid();
+          preview.innerHTML = code;
+          preview.scrollTop = 0; preview.scrollLeft = 0;
+          preview.classList.remove('zoomed', 'draggable', 'dragging');
+          zoomLabel.textContent = '100%';
+          // 渲染嵌入於 HTML slide 內的 <pre class="mermaid"> 區塊
+          const inlineMermaid = preview.querySelectorAll('pre.mermaid, div.mermaid');
+          if (inlineMermaid.length > 0) {
+            try { await mermaid.run({ nodes: inlineMermaid }); } catch (e) { /* 個別塊失敗不影響其他文字 */ }
+          }
+        } else {
+          initMermaid();
+          const { svg } = await mermaid.render('diagram-' + token, code);
+          if (token !== renderToken) return;
+          preview.innerHTML = '<div class="svg-wrap">' + svg + '</div>';
+          preview.classList.add('draggable');
+          const svgEl = preview.querySelector('svg');
+          if (svgEl) {
+            const vb = svgEl.viewBox && svgEl.viewBox.baseVal;
+            const origW = (vb && vb.width) || svgEl.getBoundingClientRect().width;
+            const origH = (vb && vb.height) || svgEl.getBoundingClientRect().height;
+            svgEl.dataset.origW = origW;
+            svgEl.dataset.origH = origH;
+            svgEl.removeAttribute('style');
+          }
+          elevateClusterLabels(svgEl);
+          setZoom(1);
+        }
+      } catch (e) {
+        if (token !== renderToken) return;
+        const msg = (e && (e.message || e.str)) || String(e);
+        preview.innerHTML = '<div class="error">' + escapeHtml(msg) + '</div>';
+      }
+    }
+
+    function elevateClusterLabels(svg) {
+      if (!svg) return;
+      const root = svg.firstElementChild && svg.firstElementChild.tagName.toLowerCase() === 'g'
+        ? svg.firstElementChild : svg;
+      const labels = Array.from(svg.querySelectorAll('.cluster-label'));
+      if (!labels.length) return;
+      const pageBg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#ffffff';
+
+      const entries = labels.map(label => {
+        const text = (label.textContent || '').trim();
+        if (!text) { label.style.opacity = '0'; return null; }
+        const cluster = label.closest('.cluster');
+        const clusterRect = cluster && cluster.querySelector(':scope > rect');
+        let stroke = '#cbd5e1';
+        if (clusterRect) {
+          stroke = clusterRect.getAttribute('stroke')
+                || getComputedStyle(clusterRect).stroke
+                || stroke;
+        }
+        return { label, ctm: label.getCTM(), bbox: label.getBBox(), stroke };
+      }).filter(Boolean);
+
+      for (const { label, ctm, bbox, stroke } of entries) {
+        if (!ctm) continue;
+        const wrapper = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        wrapper.setAttribute('transform', `matrix(${ctm.a} ${ctm.b} ${ctm.c} ${ctm.d} ${ctm.e} ${ctm.f})`);
+
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', bbox.x - 8);
+        rect.setAttribute('y', bbox.y - 2);
+        rect.setAttribute('width', bbox.width + 16);
+        rect.setAttribute('height', bbox.height + 4);
+        rect.setAttribute('fill', pageBg);
+        rect.setAttribute('fill-opacity', '0.78');
+        rect.setAttribute('stroke', stroke);
+        rect.setAttribute('stroke-width', '1');
+        rect.setAttribute('stroke-opacity', '0.6');
+        rect.setAttribute('rx', '4');
+        wrapper.appendChild(rect);
+
+        const clone = label.cloneNode(true);
+        clone.removeAttribute('transform');
+        wrapper.appendChild(clone);
+
+        label.style.opacity = '0';
+        root.appendChild(wrapper);
+      }
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    }
+
+    function goTo(idx) {
+      currentIndex = Math.max(0, Math.min(slides.length - 1, idx));
+      picker.value = slides[currentIndex].id;
+      updateCounter();
+      render();
+    }
+
+    function goToId(id) {
+      const idx = slides.findIndex(s => s.id === id);
+      if (idx >= 0) goTo(idx);
+    }
+
+    function downloadSVG() {
+      const svg = preview.querySelector('svg');
+      if (!svg) { flash('沒有 SVG 可下載'); return; }
+      const blob = new Blob([svg.outerHTML], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      triggerDownload(url, slides[currentIndex].id + '.svg');
+      URL.revokeObjectURL(url);
+    }
+
+    async function downloadPNG() {
+      const svg = preview.querySelector('svg');
+      if (!svg) { flash('沒有 SVG 可下載'); return; }
+      const serialized = new XMLSerializer().serializeToString(svg);
+      const blob = new Blob([serialized], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve; img.onerror = reject; img.src = url;
+      });
+      const scale = 2;
+      const w = svg.viewBox.baseVal.width || svg.clientWidth;
+      const h = svg.viewBox.baseVal.height || svg.clientHeight;
+      const canvas = document.createElement('canvas');
+      canvas.width = w * scale; canvas.height = h * scale;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = themeSelect.value === 'dark' ? '#0f172a' : '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.scale(scale, scale);
+      ctx.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      triggerDownload(canvas.toDataURL('image/png'), slides[currentIndex].id + '.png');
+    }
+
+    async function copySVG() {
+      const svg = preview.querySelector('svg');
+      if (!svg) { flash('沒有 SVG 可複製'); return; }
+      try {
+        await navigator.clipboard.writeText(svg.outerHTML);
+        flash('已複製 SVG');
+      } catch (e) {
+        flash('複製失敗：' + e.message);
+      }
+    }
+
+    function triggerDownload(href, filename) {
+      const a = document.createElement('a');
+      a.href = href; a.download = filename; a.click();
+    }
+
+    function flash(msg) {
+      const original = titleEl.textContent;
+      titleEl.textContent = msg;
+      setTimeout(() => { titleEl.textContent = original; }, 1500);
+    }
+
+    buildPicker();
+    picker.addEventListener('change', e => goToId(e.target.value));
+    themeSelect.addEventListener('change', render);
+    fontSizeInput.addEventListener('input', render);
+    prevBtn.addEventListener('click', () => goTo(currentIndex - 1));
+    nextBtn.addEventListener('click', () => goTo(currentIndex + 1));
+    document.getElementById('download-svg').addEventListener('click', downloadSVG);
+    document.getElementById('download-png').addEventListener('click', downloadPNG);
+    document.getElementById('copy-svg').addEventListener('click', copySVG);
+
+    zoomIn.addEventListener('click', () => zoomStep(1));
+    zoomOut.addEventListener('click', () => zoomStep(-1));
+    zoomFitBtn.addEventListener('click', zoomFit);
+    zoomLabel.addEventListener('click', () => setZoom(1));
+
+    preview.addEventListener('wheel', e => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      zoomStep(e.deltaY < 0 ? 1 : -1);
+    }, { passive: false });
+
+    let drag = null;
+    preview.addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
+      if (!preview.classList.contains('draggable')) return;
+      drag = {
+        startX: e.clientX, startY: e.clientY,
+        scrollX: preview.scrollLeft, scrollY: preview.scrollTop,
+        moved: false,
+      };
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', e => {
+      if (!drag) return;
+      const dx = e.clientX - drag.startX;
+      const dy = e.clientY - drag.startY;
+      if (!drag.moved && Math.abs(dx) + Math.abs(dy) > 3) {
+        drag.moved = true;
+        preview.classList.add('dragging');
+      }
+      if (drag.moved) {
+        preview.scrollLeft = drag.scrollX - dx;
+        preview.scrollTop = drag.scrollY - dy;
+      }
+    });
+    document.addEventListener('mouseup', () => {
+      if (!drag) return;
+      drag = null;
+      preview.classList.remove('dragging');
+    });
+    document.addEventListener('mouseleave', () => {
+      if (!drag) return;
+      drag = null;
+      preview.classList.remove('dragging');
+    });
+
+    document.addEventListener('keydown', e => {
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+        e.preventDefault(); goTo(currentIndex + 1);
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault(); goTo(currentIndex - 1);
+      } else if (e.key === 'Home') {
+        e.preventDefault(); goTo(0);
+      } else if (e.key === 'End') {
+        e.preventDefault(); goTo(slides.length - 1);
+      } else if (e.key === '+' || e.key === '=') {
+        e.preventDefault(); zoomStep(1);
+      } else if (e.key === '-' || e.key === '_') {
+        e.preventDefault(); zoomStep(-1);
+      } else if (e.key === '0') {
+        e.preventDefault(); setZoom(1);
+      } else if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault(); zoomFit();
+      }
+    });
+
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      themeSelect.value = 'dark';
+    }
+
+    goTo(0);
+  </script>
+</body>
+</html>
