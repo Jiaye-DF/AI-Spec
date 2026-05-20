@@ -276,16 +276,16 @@
     鍵盤：← / → 翻頁；+ / − 縮放；0 重設；F 符合視窗；Ctrl+滾輪也可 zoom。
   -->
 
-  <!-- ================== 1. 主流程（三服務拆分） ================== -->
+  <!-- ================== 1. Auto CI + CD 任務流程 ================== -->
   <script type="text/plain" id="main-flow"
-          data-label="1. 主流程（三服務拆分）"
+          data-label="1. Auto CI + CD 任務流程"
           data-order="1"
           data-kind="flow"
           data-format="html">
 <div class="cards-wrap">
   <div class="cards-head">
-    <strong>自動 CI/CD — 三服務拆分，人類只收信</strong>
-    <span>· GitHub 工作流引擎 × OpenRouter Dispatch（派工系統）× 寄信服務 ·</span>
+    <strong>自動 CI/CD — 基於 Coolify 自動部署上，新增專案安全檢查</strong>
+    <span>· GitHub 工作流引擎 × Agent Platform（Agent 管理系統）× 寄信服務 ·</span>
   </div>
 
   <div class="cards-grid cols-3" style="margin-bottom: 16px;">
@@ -296,13 +296,13 @@
     </div>
     <div class="card it">
       <div class="card-badges"><span class="card-badge">🔵 對 IT</span><span class="card-tag">對齊 Harness 規範</span></div>
-      <div class="card-title">三系統解耦 + 檢查並行</div>
-      <div class="card-body">工作流引擎 / 派工系統 / 寄信服務各自獨立部署，5 個檢查任務並行。</div>
+      <div class="card-title">安全審查流程解耦合</div>
+      <div class="card-body">工作流引擎 / Agent 管理系統 / 寄信服務各自獨立部署，5 個檢查任務並行。</div>
     </div>
     <div class="card critical">
       <div class="card-badges"><span class="card-badge">🔴 ★ 對資安 / 合規</span></div>
-      <div class="card-title">四態判決 + 稽核軌跡</div>
-      <div class="card-body">4 種判決（可合併 / 衝突 / 人工 / 拒絕）,保護路徑強制走人工，事件留存 ≥ 2 年。</div>
+      <div class="card-title">稽核流程狀態管理 + 保護措施</div>
+      <div class="card-body">4 種狀態（合併 / 刪除 / 衝突 / 人工），專案事件紀錄留存。</div>
     </div>
   </div>
 
@@ -311,7 +311,7 @@
     <pre class="mermaid">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart TB
-  Dev([開發者<br>推合併請求到主幹]):::user
+  Dev([開發者<br>推合併請求到 main]):::user
 
   subgraph GH[GitHub 工作流引擎]
     direction TB
@@ -325,18 +325,18 @@ flowchart TB
       JSecsc[原始碼安全掃描]:::critical
     end
     Fanin([全部通過？]):::it
-    Health{4-A. 派工系統存活檢查}:::it
+    Health{4-A. Agent 管理系統存活檢查}:::it
     Call[4. 送出審查請求]:::it
     Skip[4-B. 跳過 AI 審查<br>降級走人工]:::shared
     Gate{6. 判斷系統<br>四態判決}:::critical
     Merge[7. 可合併<br>壓縮合併]:::it
-    Conflict[衝突<br>請作者重新接上主幹]:::shared
+    Conflict[衝突<br>請作者重新接上 main]:::shared
     Manual[人工<br>合併請求改成草稿]:::shared
     Reject[拒絕<br>關閉合併請求]:::critical
     Webhook[8. 通知部署平台]:::it
   end
 
-  Dispatch[OpenRouter Dispatch 派工系統<br>內含 5 個模組，詳見下一張]:::it
+  Dispatch[Agent Platform（Agent 管理系統）<br>內含 5 個模組，詳見下一張]:::it
   Coolify[Coolify 部署平台<br>建置 → 部署 → 健康檢查<br>失敗自動回滾]:::critical
   Notifier[寄信服務<br>訂閱三方事件 → 彙整 → 寄信]:::it
   Human([收件人]):::user
@@ -387,15 +387,15 @@ flowchart TB
 </div>
   </script>
 
-  <!-- ================== 1.5 OpenRouter Dispatch 內部拆解 ================== -->
+  <!-- ================== 1.5 Agent Platform 內部拆解 ================== -->
   <script type="text/plain" id="dispatch-internals"
-          data-label="1.5 Dispatch 內部拆解"
+          data-label="1.5 Agent Platform 內部拆解"
           data-order="1.5"
           data-kind="flow"
           data-format="html">
 <div class="cards-wrap">
   <div class="cards-head">
-    <strong>OpenRouter Dispatch ▸ 內部 5 模組</strong>
+    <strong>Agent Platform ▸ 內部 5 模組</strong>
     <span>· 每個模組單一職責 · 可獨立替換 · 任一失敗統一回人工 ·</span>
   </div>
 
@@ -411,7 +411,7 @@ flowchart TB
       <div class="card-body">發現密碼 / 憑證仍在 → 拒收，避免送進語言模型。</div>
     </div>
     <div class="card it">
-      <div class="card-badges"><span class="card-badge">3. 模型路由</span></div>
+      <div class="card-badges"><span class="card-badge">3. OpenRouter Dispatch</span><span class="card-tag">獨立服務</span></div>
       <div class="card-title">依大小 / 類型挑語言模型</div>
       <div class="card-body">配額 / 退路集中管理。</div>
     </div>
@@ -434,11 +434,11 @@ flowchart TB
 flowchart LR
   Ext([GitHub 工作流<br>送審查請求]):::it
 
-  subgraph DSP[OpenRouter Dispatch 派工系統]
+  subgraph DSP[Agent Platform（Agent 管理系統）]
     direction LR
     M1[1. 接收入口]:::it
     M2[2. 機密過濾]:::critical
-    M3[3. 模型路由]:::it
+    M3[3. OpenRouter Dispatch]:::it
     M4[4. 判決引擎]:::shared
     M5[5. 發布器]:::it
   end
@@ -469,20 +469,20 @@ flowchart LR
   </div>
 
   <div class="cards-foot">
-    <strong>未來擴充：</strong>&nbsp;&nbsp;邏輯變複雜時模型路由或判決引擎可升級為獨立服務；目前 5 模組同進程足夠。
+    <strong>未來擴充：</strong>&nbsp;&nbsp;OpenRouter Dispatch 已獨立部署為服務；判決引擎邏輯變複雜時可比照拆出，其餘模組同進程足夠。
   </div>
 </div>
   </script>
 
-  <!-- ================== 2. 判斷系統四態邏輯 ================== -->
+  <!-- ================== 2. 稽核系統狀態機 ================== -->
   <script type="text/plain" id="gate-logic"
-          data-label="2. 判斷系統四態邏輯"
+          data-label="2. 稽核系統狀態機"
           data-order="2"
           data-kind="flow"
           data-format="html">
 <div class="cards-wrap">
   <div class="cards-head">
-    <strong>判斷系統 — 四態判決</strong>
+    <strong>稽核系統狀態機 — 四態判決</strong>
     <span>· 自動合併規則庫 · 由上往下命中即停 ·</span>
   </div>
 
@@ -494,8 +494,8 @@ flowchart LR
     </div>
     <div class="card shared">
       <div class="card-badges"><span class="card-badge">🟣 衝突</span></div>
-      <div class="card-title">檢查失敗 / 與主幹有衝突</div>
-      <div class="card-body">合併請求不關，請作者修或重新接上主幹。</div>
+      <div class="card-title">檢查失敗 / 與 main 有衝突</div>
+      <div class="card-body">合併請求不關，請作者修或重新接上 main。</div>
     </div>
     <div class="card shared">
       <div class="card-badges"><span class="card-badge">🟣 人工</span></div>
@@ -513,37 +513,44 @@ flowchart LR
     <div class="flow-section-title"><strong>判決流程</strong> &nbsp;—&nbsp; 由上往下命中即停，最後一條兜底</div>
     <pre class="mermaid">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
-flowchart TB
-  Start([6. 判斷觸發<br>檢查結果 + 派工系統判決]):::it
+flowchart LR
+  Start([6. 判斷觸發<br>檢查結果 + Agent 管理系統判決]):::it
 
-  Q1{機密掃描失敗？}:::critical
-  Q2{安全掃描失敗<br>含高危漏洞？}:::critical
-  Q3{派工系統判 = 拒絕？}:::it
-  Q4{檢查失敗或<br>與主幹有衝突？}:::it
-  Q5{派工系統判 = 人工？}:::it
-  Q6{含保護路徑？}:::critical
-  Q7{派工系統判 = 可合併<br>且檢查全綠？}:::it
+  subgraph GATE[判決規則鏈]
+    direction TB
+    Q1{機密掃描失敗？}:::critical
+    Q2{安全掃描失敗<br>含高危漏洞？}:::critical
+    Q3{Agent 管理系統判 = 拒絕？}:::it
+    Q4{檢查失敗或<br>與 main 有衝突？}:::it
+    Q5{Agent 管理系統判 = 人工？}:::it
+    Q6{含保護路徑？}:::critical
+    Q7{Agent 管理系統判 = 可合併<br>且檢查全綠？}:::it
+  end
 
-  Reject[拒絕<br>關閉合併請求]:::critical
-  Conflict[衝突<br>請作者修]:::shared
-  Manual[人工<br>合併請求改草稿]:::shared
-  Mergeable[可合併<br>壓縮合併]:::user
-  Fallback[兜底走人工]:::shared
+  subgraph STATE[終局狀態]
+    direction TB
+    Reject[拒絕<br>關閉合併請求]:::critical
+    Conflict[衝突<br>請作者修]:::shared
+    Manual[人工<br>合併請求改草稿]:::shared
+    Mergeable[可合併<br>壓縮合併]:::user
+    Fallback[兜底走人工]:::shared
+  end
 
-  Start --> Q1
+  Start ==> Q1
+  Q1 ==>|否| Q2
+  Q2 ==>|否| Q3
+  Q3 ==>|否| Q4
+  Q4 ==>|否| Q5
+  Q5 ==>|否| Q6
+  Q6 ==>|否| Q7
+  Q7 ==>|是| Mergeable
+
   Q1 -->|是| Reject
-  Q1 -->|否| Q2
   Q2 -->|是| Reject
-  Q2 -->|否| Q3
   Q3 -->|是| Reject
-  Q3 -->|否| Q4
   Q4 -->|是| Conflict
-  Q4 -->|否| Q5
   Q5 -->|是| Manual
-  Q5 -->|否| Q6
   Q6 -->|是| Manual
-  Q6 -->|否| Q7
-  Q7 -->|是| Mergeable
   Q7 -->|否| Fallback
 
   classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
@@ -594,16 +601,16 @@ flowchart TB
     <pre class="mermaid">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart LR
-  subgraph F[❌ 失敗來源]
+  subgraph F[失敗來源]
     direction TB
-    F1[派工系統失敗]:::it
+    F1[Agent 管理系統失敗]:::it
     F2[合併後檢查失敗<br>語意衝突]:::it
     F3[部署平台失敗]:::critical
     F4[連續失敗熔斷]:::critical
     F5[稽核寫入失敗]:::critical
   end
 
-  subgraph R[🔁 自動回應]
+  subgraph R[自動回應]
     direction TB
     R1[改走人工]:::shared
     R2[建撤銷合併請求<br>重走流程]:::it
@@ -612,18 +619,18 @@ flowchart LR
     R5[流程立即中斷]:::critical
   end
 
-  subgraph N[📧 通知]
+  subgraph N[通知]
     direction TB
     N1[開發者<br>+ 技術主管]:::user
     N2[技術主管<br>+ 維運]:::user
     N3[技術主管<br>需手動恢復]:::user
   end
 
-  F1 --> R1 --> N1
-  F2 --> R2 --> N1
-  F3 --> R3 --> N2
-  F4 --> R4 --> N3
-  F5 --> R5 --> N2
+  F1 ==> R1 ==> N1
+  F2 ==> R2 ==> N1
+  F3 ==> R3 ==> N2
+  F4 ==> R4 ==> N3
+  F5 ==> R5 ==> N2
 
   classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
   classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
@@ -795,7 +802,13 @@ flowchart LR
           // 渲染嵌入於 HTML slide 內的 <pre class="mermaid"> 區塊
           const inlineMermaid = preview.querySelectorAll('pre.mermaid, div.mermaid');
           if (inlineMermaid.length > 0) {
-            try { await mermaid.run({ nodes: inlineMermaid }); } catch (e) { /* 個別塊失敗不影響其他文字 */ }
+            try {
+              await mermaid.run({ nodes: inlineMermaid });
+              inlineMermaid.forEach(node => {
+                const svgEl = node.querySelector('svg');
+                if (svgEl) { liftEdgeLabelsOffNodes(svgEl); backdropEdgeLabels(svgEl); elevateClusterLabels(svgEl); }
+              });
+            } catch (e) { /* 個別塊失敗不影響其他文字 */ }
           }
         } else {
           initMermaid();
@@ -812,6 +825,8 @@ flowchart LR
             svgEl.dataset.origH = origH;
             svgEl.removeAttribute('style');
           }
+          liftEdgeLabelsOffNodes(svgEl);
+          backdropEdgeLabels(svgEl);
           elevateClusterLabels(svgEl);
           setZoom(1);
         }
@@ -868,6 +883,69 @@ flowchart LR
 
         label.style.opacity = '0';
         root.appendChild(wrapper);
+      }
+    }
+
+    function backdropEdgeLabels(svg) {
+      if (!svg) return;
+      const pageBg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#ffffff';
+      const labels = Array.from(svg.querySelectorAll('g.edgeLabel'));
+      for (const label of labels) {
+        if (!(label.textContent || '').trim()) continue;
+        if (label.querySelector(':scope > rect.label-backdrop')) continue;
+        let bbox;
+        try { bbox = label.getBBox(); } catch (e) { continue; }
+        if (!bbox.width || !bbox.height) continue;
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('class', 'label-backdrop');
+        rect.setAttribute('x', bbox.x - 4);
+        rect.setAttribute('y', bbox.y - 2);
+        rect.setAttribute('width', bbox.width + 8);
+        rect.setAttribute('height', bbox.height + 4);
+        rect.setAttribute('fill', pageBg);
+        rect.setAttribute('rx', '3');
+        label.insertBefore(rect, label.firstChild);
+      }
+    }
+
+    function liftEdgeLabelsOffNodes(svg) {
+      if (!svg || typeof svg.createSVGTransform !== 'function') return;
+      const rootBox = el => {
+        let bbox, ctm;
+        try { bbox = el.getBBox(); ctm = el.getCTM(); } catch (e) { return null; }
+        if (!ctm || !bbox || !bbox.width) return null;
+        let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+        for (const px of [bbox.x, bbox.x + bbox.width]) {
+          for (const py of [bbox.y, bbox.y + bbox.height]) {
+            const x = ctm.a * px + ctm.c * py + ctm.e;
+            const y = ctm.b * px + ctm.d * py + ctm.f;
+            x1 = Math.min(x1, x); y1 = Math.min(y1, y);
+            x2 = Math.max(x2, x); y2 = Math.max(y2, y);
+          }
+        }
+        return { x1, y1, x2, y2 };
+      };
+      const nodeBoxes = Array.from(svg.querySelectorAll('g.node')).map(rootBox).filter(Boolean);
+      if (!nodeBoxes.length) return;
+      const GAP = 6, MAX_LIFT = 44;
+      for (const label of svg.querySelectorAll('g.edgeLabel')) {
+        if (!(label.textContent || '').trim()) continue;
+        const lb = rootBox(label);
+        if (!lb) continue;
+        const lbCy = (lb.y1 + lb.y2) / 2;
+        let lift = 0;
+        for (const nb of nodeBoxes) {
+          const overlapX = Math.min(lb.x2, nb.x2) - Math.max(lb.x1, nb.x1);
+          const overlapY = Math.min(lb.y2, nb.y2) - Math.max(lb.y1, nb.y1);
+          if (overlapX > 2 && overlapY > 2 && lbCy <= (nb.y1 + nb.y2) / 2) {
+            lift = Math.max(lift, lb.y2 - nb.y1 + GAP);
+          }
+        }
+        if (lift > 0) {
+          const t = svg.createSVGTransform();
+          t.setTranslate(0, -Math.min(lift, MAX_LIFT));
+          label.transform.baseVal.insertItemBefore(t, 0);
+        }
       }
     }
 
