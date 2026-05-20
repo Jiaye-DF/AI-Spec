@@ -366,7 +366,6 @@ flowchart TB
   Merge --> Webhook
   Webhook ==>|通知| Coolify
 
-  GH -.->|"檢查完成<br>合併完成事件"| Notifier
   Dispatch -.->|審查完成事件| Notifier
   Coolify -.->|"部署完成<br>回滾事件"| Notifier
   Conflict --> Notifier
@@ -670,10 +669,6 @@ flowchart LR
     <span id="zoom-label" class="zoom-label" title="點擊重設為 100%(0 鍵）">100%</span>
     <button id="zoom-in" class="nav-btn" title="放大（+ 鍵）">+</button>
     <button id="zoom-fit" title="符合視窗（F 鍵）">Fit</button>
-    <span class="divider"></span>
-    <button id="copy-svg" title="複製 SVG 到剪貼簿">複製 SVG</button>
-    <button id="download-svg" title="下載 SVG 檔">下載 SVG</button>
-    <button id="download-png" title="下載 PNG(2× 解析度）">下載 PNG</button>
   </header>
 
   <main>
@@ -777,7 +772,7 @@ flowchart LR
           fontFamily: '"Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif',
           fontSize: fontSizeInput.value + 'px',
         },
-        flowchart: { useMaxWidth: true, htmlLabels: true },
+        flowchart: { useMaxWidth: false, htmlLabels: true },
         securityLevel: 'loose',
       });
       document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
@@ -964,70 +959,12 @@ flowchart LR
       if (idx >= 0) goTo(idx);
     }
 
-    function downloadSVG() {
-      const svg = preview.querySelector('svg');
-      if (!svg) { flash('沒有 SVG 可下載'); return; }
-      const blob = new Blob([svg.outerHTML], { type: 'image/svg+xml;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      triggerDownload(url, slides[currentIndex].id + '.svg');
-      URL.revokeObjectURL(url);
-    }
-
-    async function downloadPNG() {
-      const svg = preview.querySelector('svg');
-      if (!svg) { flash('沒有 SVG 可下載'); return; }
-      const serialized = new XMLSerializer().serializeToString(svg);
-      const blob = new Blob([serialized], { type: 'image/svg+xml;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const img = new Image();
-      await new Promise((resolve, reject) => {
-        img.onload = resolve; img.onerror = reject; img.src = url;
-      });
-      const scale = 2;
-      const w = svg.viewBox.baseVal.width || svg.clientWidth;
-      const h = svg.viewBox.baseVal.height || svg.clientHeight;
-      const canvas = document.createElement('canvas');
-      canvas.width = w * scale; canvas.height = h * scale;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = themeSelect.value === 'dark' ? '#0f172a' : '#ffffff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.scale(scale, scale);
-      ctx.drawImage(img, 0, 0, w, h);
-      URL.revokeObjectURL(url);
-      triggerDownload(canvas.toDataURL('image/png'), slides[currentIndex].id + '.png');
-    }
-
-    async function copySVG() {
-      const svg = preview.querySelector('svg');
-      if (!svg) { flash('沒有 SVG 可複製'); return; }
-      try {
-        await navigator.clipboard.writeText(svg.outerHTML);
-        flash('已複製 SVG');
-      } catch (e) {
-        flash('複製失敗：' + e.message);
-      }
-    }
-
-    function triggerDownload(href, filename) {
-      const a = document.createElement('a');
-      a.href = href; a.download = filename; a.click();
-    }
-
-    function flash(msg) {
-      const original = titleEl.textContent;
-      titleEl.textContent = msg;
-      setTimeout(() => { titleEl.textContent = original; }, 1500);
-    }
-
     buildPicker();
     picker.addEventListener('change', e => goToId(e.target.value));
     themeSelect.addEventListener('change', render);
     fontSizeInput.addEventListener('input', render);
     prevBtn.addEventListener('click', () => goTo(currentIndex - 1));
     nextBtn.addEventListener('click', () => goTo(currentIndex + 1));
-    document.getElementById('download-svg').addEventListener('click', downloadSVG);
-    document.getElementById('download-png').addEventListener('click', downloadPNG);
-    document.getElementById('copy-svg').addEventListener('click', copySVG);
 
     zoomIn.addEventListener('click', () => zoomStep(1));
     zoomOut.addEventListener('click', () => zoomStep(-1));
