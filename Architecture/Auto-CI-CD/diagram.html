@@ -512,28 +512,22 @@ flowchart LR
     <div class="flow-section-title"><strong>判決流程</strong> &nbsp;—&nbsp; 由上往下命中即停，最後一條兜底</div>
     <pre class="mermaid">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
-flowchart LR
+flowchart TB
   Start([6. 判斷觸發<br>檢查結果 + Agent 管理系統判決]):::it
 
-  subgraph GATE[判決規則鏈]
-    direction TB
-    Q1{機密掃描失敗？}:::critical
-    Q2{安全掃描失敗<br>含高危漏洞？}:::critical
-    Q3{Agent 管理系統判 = 拒絕？}:::it
-    Q4{檢查失敗或<br>與 main 有衝突？}:::it
-    Q5{Agent 管理系統判 = 人工？}:::it
-    Q6{含保護路徑？}:::critical
-    Q7{Agent 管理系統判 = 可合併<br>且檢查全綠？}:::it
-  end
+  Q1{機密掃描失敗？}:::critical
+  Q2{安全掃描失敗<br>含高危漏洞？}:::critical
+  Q3{Agent 管理系統判 = 拒絕？}:::it
+  Q4{檢查失敗或<br>與 main 有衝突？}:::it
+  Q5{Agent 管理系統判 = 人工？}:::it
+  Q6{含保護路徑？}:::critical
+  Q7{Agent 管理系統判 = 可合併<br>且檢查全綠？}:::it
 
-  subgraph STATE[終局狀態]
-    direction TB
-    Reject[拒絕<br>關閉合併請求]:::critical
-    Conflict[衝突<br>請作者修]:::shared
-    Manual[人工<br>合併請求改草稿]:::shared
-    Mergeable[可合併<br>壓縮合併]:::user
-    Fallback[兜底走人工]:::shared
-  end
+  Reject[拒絕<br>關閉合併請求]:::critical
+  Conflict[衝突<br>請作者修]:::shared
+  Manual[人工<br>合併請求改草稿]:::shared
+  Mergeable[可合併<br>壓縮合併]:::user
+  Fallback[兜底走人工]:::shared
 
   Start ==> Q1
   Q1 ==>|否| Q2
@@ -772,7 +766,7 @@ flowchart LR
           fontFamily: '"Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif',
           fontSize: fontSizeInput.value + 'px',
         },
-        flowchart: { useMaxWidth: false, htmlLabels: true },
+        flowchart: { useMaxWidth: true, htmlLabels: true },
         securityLevel: 'loose',
       });
       document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
