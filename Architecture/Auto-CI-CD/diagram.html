@@ -342,11 +342,11 @@ flowchart TB
   Human([收件人]):::user
 
   Dev --> Trigger
-  Trigger ==>|並行觸發| JFront
-  Trigger ==>|並行觸發| JBack
-  Trigger ==>|並行觸發| JAudit
-  Trigger ==>|並行觸發| JSec
-  Trigger ==>|並行觸發| JSecsc
+  Trigger ==> JFront
+  Trigger ==> JBack
+  Trigger ==> JAudit
+  Trigger ==> JSec
+  Trigger ==> JSecsc
   JFront --> Fanin
   JBack --> Fanin
   JAudit --> Fanin
@@ -927,17 +927,16 @@ flowchart LR
       };
       const nodeBoxes = Array.from(svg.querySelectorAll('g.node')).map(rootBox).filter(Boolean);
       if (!nodeBoxes.length) return;
-      const GAP = 6, MAX_LIFT = 44;
+      const GAP = 8, MAX_LIFT = 200;
       for (const label of svg.querySelectorAll('g.edgeLabel')) {
         if (!(label.textContent || '').trim()) continue;
         const lb = rootBox(label);
         if (!lb) continue;
-        const lbCy = (lb.y1 + lb.y2) / 2;
         let lift = 0;
         for (const nb of nodeBoxes) {
           const overlapX = Math.min(lb.x2, nb.x2) - Math.max(lb.x1, nb.x1);
           const overlapY = Math.min(lb.y2, nb.y2) - Math.max(lb.y1, nb.y1);
-          if (overlapX > 2 && overlapY > 2 && lbCy <= (nb.y1 + nb.y2) / 2) {
+          if (overlapX > 2 && overlapY > 2) {
             lift = Math.max(lift, lb.y2 - nb.y1 + GAP);
           }
         }
