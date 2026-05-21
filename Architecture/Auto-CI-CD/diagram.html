@@ -482,7 +482,7 @@ flowchart LR
 <div class="cards-wrap">
   <div class="cards-head">
     <strong>稽核系統狀態機 — 四態判決</strong>
-    <span>· 自動合併規則庫 · 由上往下命中即停 ·</span>
+    <span>· 自動合併規則庫 · 依 ①②③④ 優先序，取第一個命中 ·</span>
   </div>
 
   <div class="cards-grid cols-4" style="margin-bottom: 16px;">
@@ -509,42 +509,34 @@ flowchart LR
   </div>
 
   <div>
-    <div class="flow-section-title"><strong>判決流程</strong> &nbsp;—&nbsp; 由上往下命中即停，最後一條兜底</div>
+    <div class="flow-section-title"><strong>檢查流程</strong> &nbsp;—&nbsp; 機密/安全 → 衝突 → 人工條件 → 可合併，一條管線依序評估，命中即停</div>
     <pre class="mermaid">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
-flowchart TB
+flowchart LR
   Start([6. 判斷觸發<br>檢查結果 + Agent 管理系統判決]):::it
 
-  Q1{機密掃描失敗？}:::critical
-  Q2{安全掃描失敗<br>含高危漏洞？}:::critical
-  Q3{Agent 管理系統判 = 拒絕？}:::it
-  Q4{檢查失敗或<br>與 main 有衝突？}:::it
-  Q5{Agent 管理系統判 = 人工？}:::it
-  Q6{含保護路徑？}:::critical
-  Q7{Agent 管理系統判 = 可合併<br>且檢查全綠？}:::it
+  subgraph CHK[檢查過程 · 依 ①②③④ 序評估，命中即停]
+    direction LR
+    C1[① 機密 / 安全掃描]:::critical
+    C2[② 衝突檢查]:::it
+    C3[③ 人工條件檢查]:::shared
+    C4[④ 可合併判定]:::it
+    C1 ==>|通過| C2
+    C2 ==>|無衝突| C3
+    C3 ==>|未命中| C4
+  end
 
   Reject[拒絕<br>關閉合併請求]:::critical
   Conflict[衝突<br>請作者修]:::shared
   Manual[人工<br>合併請求改草稿]:::shared
   Mergeable[可合併<br>壓縮合併]:::user
-  Fallback[兜底走人工]:::shared
 
-  Start ==> Q1
-  Q1 ==>|否| Q2
-  Q2 ==>|否| Q3
-  Q3 ==>|否| Q4
-  Q4 ==>|否| Q5
-  Q5 ==>|否| Q6
-  Q6 ==>|否| Q7
-  Q7 ==>|是| Mergeable
-
-  Q1 -->|是| Reject
-  Q2 -->|是| Reject
-  Q3 -->|是| Reject
-  Q4 -->|是| Conflict
-  Q5 -->|是| Manual
-  Q6 -->|是| Manual
-  Q7 -->|否| Fallback
+  Start ==> C1
+  C1 -->|機密外洩 / 高危漏洞| Reject
+  C2 -->|檢查失敗 / 與 main 衝突| Conflict
+  C3 -->|AI 判人工 / 含保護路徑| Manual
+  C4 ==>|全綠 + AI 判可合併| Mergeable
+  C4 -->|未通過兜底| Manual
 
   classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
   classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
