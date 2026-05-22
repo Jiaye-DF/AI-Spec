@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  frontend:
+  frontend-test:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -28,7 +28,7 @@ jobs:
       - run: npm run test -- --run
       - run: npm run build
 
-  backend:
+  backend-test:
     runs-on: ubuntu-latest
     defaults:
       run:

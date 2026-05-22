@@ -25,8 +25,8 @@
 
 加入 ci.yml 所有 jobs(對齊 `00-overview.md`):
 
-- `frontend`
-- `backend`
+- `frontend-test`
+- `backend-test`
 - `dependency-audit`(`continue-on-error: false` 後加入)
 - `secret-scan`(永遠 required)
 - `security-scan`

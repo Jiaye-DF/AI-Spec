@@ -11,7 +11,7 @@ checkout → setup-node → npm ci → lint → typecheck → test → build
 ```
 
 ```yaml
-frontend:
+frontend-test:
   runs-on: ubuntu-latest
   defaults:
     run:

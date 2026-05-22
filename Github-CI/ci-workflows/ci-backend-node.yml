@@ -1,0 +1,32 @@
+# ci-workflows 中央 reusable — 後端 CI(Node.js)
+#
+# 契約:專案根目錄有 backend/,backend/package.json 定義 lint / typecheck / test scripts。
+# test script 須為 CI 模式(非 watch);TS 專案 typecheck 走 tsc --noEmit。
+name: ci-backend-node (reusable)
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  backend-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: backend/package.json
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test
+      - name: npm audit
+        run: npm audit --audit-level=high
+        continue-on-error: true        # 過渡期;成熟後改 false(見 Harness 05-CI/03)

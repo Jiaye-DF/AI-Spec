@@ -11,7 +11,7 @@ checkout → setup-python → setup-uv → uv sync --frozen → ruff → mypy �
 ```
 
 ```yaml
-backend:
+backend-test:
   runs-on: ubuntu-latest
   defaults:
     run:

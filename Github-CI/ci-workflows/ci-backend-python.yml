@@ -1,0 +1,66 @@
+# ci-workflows 中央 reusable — 後端 CI(Python:FastAPI 等)
+#
+# 對齊 Harness 05-CI/02-backend-jobs。
+# 契約:專案根目錄有 backend/,backend/pyproject.toml 鎖 requires-python,uv.lock 存在。
+# run_migrations 預設 true(FastAPI + SQLAlchemy + Alembic);
+# 非 alembic 的 Python 專案(純 API / Jinja2 server-rendered 等),caller 傳 with: run_migrations: false。
+name: ci-backend-python (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      run_migrations:
+        description: "是否跑 alembic round-trip(FastAPI + SQLAlchemy 用)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    services:
+      postgres:
+        image: postgres:17.2
+        env:
+          POSTGRES_PASSWORD: ci-only
+          POSTGRES_DB: ci_test
+          TZ: Asia/Taipei
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      APP_ENV: development
+      DATABASE_URL: postgresql+asyncpg://postgres:ci-only@localhost:5432/ci_test
+      JWT_SECRET_KEY: ci-only-not-for-production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: backend/pyproject.toml
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "0.5.18"
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy app
+      - if: inputs.run_migrations
+        run: uv run alembic upgrade head
+      - if: inputs.run_migrations
+        run: uv run alembic downgrade -1
+      - if: inputs.run_migrations
+        run: uv run alembic upgrade head
+      - run: uv run pytest -q
+      - name: pip-audit
+        run: |
+          uv tool install pip-audit
+          uv run pip-audit
+        continue-on-error: true

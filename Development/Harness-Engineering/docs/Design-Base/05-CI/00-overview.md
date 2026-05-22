@@ -16,8 +16,8 @@ GitHub Actions 為唯一 CI(企業現況);workflow 走 `.github/workflows/*.yml`
 ```
 
 `ci.yml` 必含 jobs:
-- `frontend`(npm ci → lint → typecheck → test → build)— 細節見 `01-frontend-jobs.md`
-- `backend`(uv sync → ruff → mypy → pytest → alembic round-trip)— 細節見 `02-backend-jobs.md`
+- `frontend-test`(npm ci → lint → typecheck → test → build)— 細節見 `01-frontend-jobs.md`
+- `backend-test`(uv sync → ruff → mypy → pytest → alembic round-trip)— 細節見 `02-backend-jobs.md`
 - `dependency-audit`(npm audit / pip-audit)— 見 `03-dependency-audit.md`
 - `secret-scan`(gitleaks)— 見 `04-secret-scan.md`
 - `security-scan`(semgrep / trivy)— 見 `05-security-scan.md`
@@ -26,9 +26,9 @@ GitHub Actions 為唯一 CI(企業現況);workflow 走 `.github/workflows/*.yml`
 
 ```yaml
 on:
-  push:
-    branches: [main]
   pull_request:
+    branches: [main]
+  push:
     branches: [main]
 ```
 
@@ -40,7 +40,7 @@ on:
 ## Job 命名與並行
 
 - job 名一律 kebab-case(`frontend-test` / `backend-test`)
-- 獨立 area 必並行(`frontend` / `backend` / `dependency-audit` 同層)
+- 獨立 area 必並行(`frontend-test` / `backend-test` / `dependency-audit` 同層)
 - 有依賴用 `needs:`(例:`build` 需要 `lint` + `test`)
 
 ## 容忍度(統一原則)

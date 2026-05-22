@@ -1,0 +1,427 @@
+# ci-workflows 中央 reusable — Auto-CI-CD 後續流程(步驟 ④~⑦,與技術棧無關)
+#
+# 接在分棧 CI 之後:caller 端先挑對應的 ci-frontend-* / ci-backend-* reusable 跑完 CI,
+# 再把各自的 job result 以 inputs.frontend_result / inputs.backend_result 傳進來,本檔據此走後續。
+#
+# 含:機密掃描 → 原始碼安全掃描 → CI 彙整 → AI 審查 → 四態判決自動合併 → CD 觸發。
+# 對齊 Architecture/Auto-CI-CD/workflow-v1.0.md §一 步驟 ④~⑦ + §二 保護路徑 + §四.5 熔斷 + §五 Audit。
+#
+# 【部署】放中央 repo「ci-workflows」的 .github/workflows/auto-cicd.yml。
+name: auto-cicd (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      frontend_result:
+        description: "前端 CI job 的 result(success / failure / skipped);無前端的專案省略即可"
+        type: string
+        default: skipped
+      backend_result:
+        description: "後端 CI job 的 result(success / failure / skipped)"
+        type: string
+        default: skipped
+
+permissions:
+  contents: read
+
+jobs:
+  # ── 機密外洩掃描(與技術棧無關) ──
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0               # gitleaks 需完整歷史
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+        with:
+          config-path: .gitleaks.toml
+
+  # ── 原始碼安全掃描 SAST(semgrep 自動偵測語言,config 用泛用 ruleset) ──
+  security-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write           # 上傳 SARIF 到 GitHub Code Scanning
+    steps:
+      - uses: actions/checkout@v4
+      - uses: returntocorp/semgrep-action@v1
+        with:
+          # 全語言 ruleset — semgrep 依各檔案語言自動套用對應規則,多帶不影響;
+          # 涵蓋 React / Vue / Node(js, ts)/ FastAPI(python)/ Java。
+          config: >-
+            p/owasp-top-ten
+            p/security-audit
+            p/secrets
+            p/python
+            p/javascript
+            p/typescript
+            p/react
+            p/java
+          generateSarif: "1"
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: semgrep.sarif
+
+  # ── 步驟③ 末 — CI 結果彙整成 ci-report.json artifact ──
+  ci-report:
+    needs: [secret-scan, security-scan]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build ci-report.json
+        env:
+          R_FRONT: ${{ inputs.frontend_result }}
+          R_BACK: ${{ inputs.backend_result }}
+          R_SECRET: ${{ needs.secret-scan.result }}
+          R_SEC: ${{ needs.security-scan.result }}
+        run: |
+          overall=pass
+          case "$R_FRONT" in failure|cancelled) overall=fail ;; esac
+          case "$R_BACK"  in failure|cancelled) overall=fail ;; esac
+          [ "$R_SECRET" = success ] || overall=fail
+          [ "$R_SEC" = success ] || overall=fail
+          cat > ci-report.json <<EOF
+          {
+            "source": "github-actions",
+            "event": "ci.completed",
+            "stage": "ci",
+            "pr_number": "${{ github.event.pull_request.number }}",
+            "commit_sha": "${{ github.sha }}",
+            "result": "$overall",
+            "jobs": {
+              "frontend": "$R_FRONT",
+              "backend": "$R_BACK",
+              "secret-scan": "$R_SECRET",
+              "security-scan": "$R_SEC"
+            }
+          }
+          EOF
+          cat ci-report.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ci-report
+          path: ci-report.json
+          retention-days: 7
+      # § 五 Audit — append-only,寫入失敗 fail-fast
+      - name: Audit — stage ci
+        if: vars.AUDIT_URL != ''
+        run: |
+          curl --fail -X POST "${{ vars.AUDIT_URL }}/events" \
+            -H "Authorization: Bearer ${{ secrets.AUDIT_KEY }}" \
+            -H "Content-Type: application/json" \
+            --data @ci-report.json
+      # 步驟 ⑧ Notifier — best-effort,掛了不卡 merge / deploy
+      - name: Notify — ci.completed
+        if: vars.NOTIFIER_URL != ''
+        continue-on-error: true
+        run: |
+          curl -X POST "${{ vars.NOTIFIER_URL }}/events" \
+            -H "Content-Type: application/json" \
+            --data @ci-report.json
+
+  # ───────────────────────────────────────────────
+  # 步驟 ④⑤ — 打 Agent Platform 做 AI code review(僅 pull_request 且 CI 全綠)
+  # ───────────────────────────────────────────────
+  ai-review:
+    needs: [secret-scan, security-scan]
+    if: >-
+      github.event_name == 'pull_request' &&
+      (inputs.frontend_result == 'success' || inputs.frontend_result == 'skipped') &&
+      (inputs.backend_result == 'success' || inputs.backend_result == 'skipped')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
+    outputs:
+      verdict: ${{ steps.verdict.outputs.verdict }}
+      review_skipped: ${{ steps.health.outputs.skipped }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0               # git diff origin/main...HEAD 需完整歷史
+
+      # ④.0 Agent Platform 健康檢查(連線 5s + 讀取 10s timeout)
+      - name: Agent Platform health check
+        id: health
+        env:
+          PLATFORM_URL: ${{ vars.AGENT_PLATFORM_URL }}
+        run: |
+          code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                      --connect-timeout 5 --max-time 10 \
+                      "$PLATFORM_URL/health" || echo "000")
+          echo "Agent Platform /health => HTTP $code"
+          if [ "$code" = "200" ]; then
+            echo "skipped=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Agent Platform unhealthy (HTTP $code) → 跳過 AI Review,降級走人工"
+            echo "skipped=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ④ 健康時才打 /review
+      - name: Prepare diff
+        if: steps.health.outputs.skipped == 'false'
+        run: git diff origin/main...HEAD > /tmp/pr.diff
+      - name: Secret pre-check before送審
+        if: steps.health.outputs.skipped == 'false'
+        # 第二道遮罩;Agent Platform 機密過濾模組為第三道(authoritative)
+        run: gitleaks detect --no-git --source /tmp/pr.diff --redact --no-banner || true
+      - name: Call Agent Platform /review
+        id: review
+        if: steps.health.outputs.skipped == 'false'
+        env:
+          PLATFORM_URL: ${{ vars.AGENT_PLATFORM_URL }}
+          PLATFORM_KEY: ${{ secrets.AGENT_PLATFORM_KEY }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          jq -n \
+            --argjson pr_number "${{ github.event.pull_request.number }}" \
+            --arg commit_sha "${{ github.sha }}" \
+            --arg diff "$(cat /tmp/pr.diff)" \
+            --arg pr_body "$PR_BODY" \
+            '{pr_number:$pr_number, commit_sha:$commit_sha, diff:$diff,
+              pr_body:$pr_body, rules_ref:"99-code-review/v1.0"}' > /tmp/req.json
+          # §四.2:Agent Platform 失敗重試 2 次
+          curl --fail --retry 2 -X POST "$PLATFORM_URL/review" \
+            -H "Authorization: Bearer $PLATFORM_KEY" \
+            -H "Content-Type: application/json" \
+            --data @/tmp/req.json > /tmp/review.json
+          echo "verdict=$(jq -r .verdict /tmp/review.json)" >> "$GITHUB_OUTPUT"
+
+      # ⑤ 寫 PR 評論(健康時)
+      - name: Post review comment
+        if: steps.health.outputs.skipped == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const r = JSON.parse(fs.readFileSync('/tmp/review.json', 'utf8'));
+            const findings = (r.findings || [])
+              .map(f => `- \`${f.severity}\` ${f.file}:${f.line} — ${f.suggestion}`)
+              .join('\n') || '_無 findings_';
+            await github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: context.issue.number,
+              body: `## 🤖 AI Review — ${r.verdict_zh || r.verdict}\n\n${r.summary || ''}\n\n${findings}`,
+            });
+
+      # ④.skip — 不健康:通知 Notifier 走 manual 路徑
+      - name: Notify — review.skipped
+        if: steps.health.outputs.skipped == 'true' && vars.NOTIFIER_URL != ''
+        continue-on-error: true
+        run: |
+          curl -X POST "${{ vars.NOTIFIER_URL }}/events" \
+            -H "Content-Type: application/json" \
+            -d '{"source":"github-actions","event":"review.skipped",
+                 "pr_number":"${{ github.event.pull_request.number }}",
+                 "commit_sha":"${{ github.sha }}","verdict":"manual",
+                 "reason":"platform_unhealthy"}'
+
+      # verdict 統一輸出(健康 → review 結果;不健康 → manual)
+      - name: Resolve verdict
+        id: verdict
+        run: |
+          if [ "${{ steps.health.outputs.skipped }}" = "true" ]; then
+            echo "verdict=manual" >> "$GITHUB_OUTPUT"
+          else
+            echo "verdict=${{ steps.review.outputs.verdict }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ⑤ 設 GitHub status check(讓 branch protection 看得到 ai-review)
+      - name: Set status check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          state=success
+          if [ "${{ steps.verdict.outputs.verdict }}" = "reject" ]; then state=failure; fi
+          gh api "repos/${{ github.repository }}/statuses/${{ github.sha }}" \
+            -f state="$state" -f context="ai-review" \
+            -f description="${{ steps.verdict.outputs.verdict }}"
+
+      # § 五 Audit — stage ai-review
+      - name: Audit — stage ai-review
+        if: vars.AUDIT_URL != ''
+        run: |
+          curl --fail -X POST "${{ vars.AUDIT_URL }}/events" \
+            -H "Authorization: Bearer ${{ secrets.AUDIT_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"source":"github-actions","stage":"ai-review",
+                 "pr_number":"${{ github.event.pull_request.number }}",
+                 "commit_sha":"${{ github.sha }}",
+                 "verdict":"${{ steps.verdict.outputs.verdict }}",
+                 "review_skipped":"${{ steps.health.outputs.skipped }}"}'
+
+  # ───────────────────────────────────────────────
+  # 步驟 ⑥ — 四態判決 + 自動合併(僅 pull_request)
+  #   判決規則寫在 yaml,由上而下命中即停,對齊 workflow-v1.0.md §一.⑥ row1~row9
+  # ───────────────────────────────────────────────
+  auto-merge:
+    needs: [secret-scan, security-scan, ai-review]
+    if: always() && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute final verdict
+        id: final
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          AI_VERDICT: ${{ needs.ai-review.outputs.verdict }}
+          R_SECRET: ${{ needs.secret-scan.result }}
+          R_SEC: ${{ needs.security-scan.result }}
+          R_FRONT: ${{ inputs.frontend_result }}
+          R_BACK: ${{ inputs.backend_result }}
+        run: |
+          # 保護路徑檢查(§二)— 規範 / workflow / infra / migration 強制走 manual
+          protected=no
+          changed=$(git diff --name-only origin/main...HEAD)
+          if echo "$changed" | grep -qE '^(docs/Design-Base/|\.github/workflows/|infra/|coolify/|.*migrations/)'; then
+            protected=yes
+          fi
+          case "$PR_TITLE" in SECURITY:*|BREAKING:*) protected=yes ;; esac
+          mergeable=$(gh pr view "$PR" --json mergeable -q .mergeable || echo UNKNOWN)
+
+          # 前 / 後端 CI 是否失敗(失敗或取消都算)
+          frontfail=no; case "$R_FRONT" in failure|cancelled) frontfail=yes ;; esac
+          backfail=no;  case "$R_BACK"  in failure|cancelled) backfail=yes ;; esac
+
+          # 四態判決:由上而下命中即停,最後一條兜底
+          if [ "$R_SECRET" != "success" ]; then
+            v=reject;   rule=row1   # 機密掃描失敗
+          elif [ "$R_SEC" != "success" ]; then
+            v=reject;   rule=row2   # 安全掃描失敗(含高危漏洞)
+          elif [ "$AI_VERDICT" = "reject" ]; then
+            v=reject;   rule=row3   # Agent Platform 判 reject
+          elif [ "$frontfail" = "yes" ] || [ "$backfail" = "yes" ]; then
+            v=conflict; rule=row4   # 前 / 後端檢查失敗
+          elif [ "$mergeable" = "CONFLICTING" ]; then
+            v=conflict; rule=row5   # 與 main 有 git conflict
+          elif [ "$AI_VERDICT" = "manual" ]; then
+            v=manual;   rule=row6   # Agent Platform 判 manual
+          elif [ "$protected" = "yes" ]; then
+            v=manual;   rule=row7   # 改動含保護路徑
+          elif [ "$AI_VERDICT" = "mergeable" ]; then
+            v=mergeable; rule=row8  # AI 判 mergeable 且 CI 全綠
+          else
+            v=manual;   rule=row9   # 防呆兜底(例:verdict 缺欄位)
+          fi
+          echo "verdict=$v" >> "$GITHUB_OUTPUT"
+          echo "matched_rule=auto-merge#$rule" >> "$GITHUB_OUTPUT"
+          echo "判決:$v(命中 auto-merge#$rule)"
+
+      # § 四.5 熔斷 — repo / org variable AUTO_MERGE_ENABLED=false 時一律降級走 manual
+      - name: Circuit breaker
+        id: breaker
+        run: |
+          if [ "${{ vars.AUTO_MERGE_ENABLED }}" = "false" ]; then
+            echo "::warning::AUTO_MERGE_ENABLED=false(熔斷中)→ 強制走 manual"
+            echo "tripped=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "tripped=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Action by verdict
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # 用 PAT 合併,讓 push:main 能再觸發 caller workflow → 步驟 ⑦ CD
+          MERGE_TOKEN: ${{ secrets.AUTO_MERGE_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          verdict="${{ steps.final.outputs.verdict }}"
+          if [ "${{ steps.breaker.outputs.tripped }}" = "true" ]; then verdict=manual; fi
+          case "$verdict" in
+            mergeable)
+              if [ -z "$MERGE_TOKEN" ]; then
+                echo "::warning::未設 AUTO_MERGE_TOKEN,合併用預設 token;push:main 不會再觸發 workflow(步驟 ⑦ CD 不會自動跑)"
+                gh pr merge "$PR" --squash --delete-branch
+              else
+                GH_TOKEN="$MERGE_TOKEN" gh pr merge "$PR" --squash --delete-branch
+              fi ;;
+            conflict)
+              gh pr comment "$PR" --body "⚠️ CI 失敗或與 main 有衝突,請修正 / rebase 後重 push" ;;
+            manual)
+              gh pr ready "$PR" --undo
+              gh pr edit "$PR" --add-label needs-tech-lead ;;
+            reject)
+              gh pr close "$PR" --comment "❌ 不接受此變更(理由見 AI Review 評論)" ;;
+          esac
+
+      # § 五 Audit — stage judgement(matched_rule_id 必填)
+      - name: Audit — stage judgement
+        if: vars.AUDIT_URL != ''
+        run: |
+          curl --fail -X POST "${{ vars.AUDIT_URL }}/events" \
+            -H "Authorization: Bearer ${{ secrets.AUDIT_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"source":"github-actions","stage":"judgement",
+                 "pr_number":"${{ github.event.pull_request.number }}",
+                 "commit_sha":"${{ github.sha }}",
+                 "verdict":"${{ steps.final.outputs.verdict }}",
+                 "matched_rule_id":"${{ steps.final.outputs.matched_rule }}"}'
+
+      # 步驟 ⑧ Notifier — merge.done(best-effort)
+      - name: Notify — merge.done
+        if: vars.NOTIFIER_URL != ''
+        continue-on-error: true
+        run: |
+          curl -X POST "${{ vars.NOTIFIER_URL }}/events" \
+            -H "Content-Type: application/json" \
+            -d '{"source":"github-actions","event":"merge.done",
+                 "pr_number":"${{ github.event.pull_request.number }}",
+                 "commit_sha":"${{ github.sha }}",
+                 "verdict":"${{ steps.final.outputs.verdict }}"}'
+
+  # ───────────────────────────────────────────────
+  # 步驟 ⑦ — 觸發 CD(僅 push:main;CI 全綠後發 Coolify webhook)
+  #   Coolify 自拉 git build,image tag 綁 commit SHA(禁 latest)
+  # ───────────────────────────────────────────────
+  cd-trigger:
+    needs: [secret-scan, security-scan]
+    if: >-
+      github.event_name == 'push' &&
+      inputs.frontend_result != 'failure' && inputs.frontend_result != 'cancelled' &&
+      inputs.backend_result != 'failure' && inputs.backend_result != 'cancelled'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Coolify deploy
+        env:
+          COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_DEPLOY_WEBHOOK }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          curl --fail -X POST "$COOLIFY_WEBHOOK" \
+            -H "Authorization: Bearer $COOLIFY_TOKEN"
+      - name: Build cd-report.json
+        run: |
+          cat > cd-report.json <<EOF
+          {
+            "source": "github-actions",
+            "event": "cd.triggered",
+            "stage": "deploy",
+            "commit_sha": "${{ github.sha }}",
+            "result": "triggered"
+          }
+          EOF
+          cat cd-report.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cd-report
+          path: cd-report.json
+          retention-days: 7
+      - name: Audit — stage deploy
+        if: vars.AUDIT_URL != ''
+        run: |
+          curl --fail -X POST "${{ vars.AUDIT_URL }}/events" \
+            -H "Authorization: Bearer ${{ secrets.AUDIT_KEY }}" \
+            -H "Content-Type: application/json" \
+            --data @cd-report.json
