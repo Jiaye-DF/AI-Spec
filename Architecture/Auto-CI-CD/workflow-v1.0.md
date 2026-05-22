@@ -16,7 +16,7 @@
 ```mermaid
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart TB
-  Dev([開發者<br>推合併請求到 main]):::user
+  Dev([1. 開發者<br>推合併請求到 main]):::user
 
   subgraph GH[GitHub 工作流引擎]
     direction TB
@@ -30,9 +30,9 @@ flowchart TB
       JSecsc[原始碼安全掃描]:::critical
     end
     Fanin([全部通過？]):::it
-    Health{4-A. Agent 管理系統存活檢查}:::it
-    Call[4. 送出審查請求]:::it
-    Skip[4-B. 跳過 AI 審查<br>降級走人工]:::shared
+    Health{4. Agent 管理系統存活檢查}:::it
+    Call[5. 送出審查請求]:::it
+    Skip[降級｜跳過 AI 審查<br>改走人工]:::shared
     Gate{6. 判斷系統<br>四態判決}:::critical
     Merge[7. 可合併<br>壓縮合併]:::it
     Conflict[衝突<br>請作者重新接上 main]:::shared
@@ -73,6 +73,7 @@ flowchart TB
 
   Dispatch -.->|審查完成事件| Notifier
   Coolify -.->|"部署完成<br>回滾事件"| Notifier
+  Merge -.->|merge 完成事件| Notifier
   Conflict --> Notifier
   Manual --> Notifier
   Reject --> Notifier

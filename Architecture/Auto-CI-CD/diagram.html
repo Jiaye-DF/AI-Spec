@@ -311,7 +311,7 @@
     <pre class="mermaid">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart TB
-  Dev([開發者<br>推合併請求到 main]):::user
+  Dev([1. 開發者<br>推合併請求到 main]):::user
 
   subgraph GH[GitHub 工作流引擎]
     direction TB
@@ -325,9 +325,9 @@ flowchart TB
       JSecsc[原始碼安全掃描]:::critical
     end
     Fanin([全部通過？]):::it
-    Health{4-A. Agent 管理系統存活檢查}:::it
-    Call[4. 送出審查請求]:::it
-    Skip[4-B. 跳過 AI 審查<br>降級走人工]:::shared
+    Health{4. Agent 管理系統存活檢查}:::it
+    Call[5. 送出審查請求]:::it
+    Skip[降級｜跳過 AI 審查<br>改走人工]:::shared
     Gate{6. 判斷系統<br>四態判決}:::critical
     Merge[7. 可合併<br>壓縮合併]:::it
     Conflict[衝突<br>請作者重新接上 main]:::shared
@@ -368,6 +368,7 @@ flowchart TB
 
   Dispatch -.->|審查完成事件| Notifier
   Coolify -.->|"部署完成<br>回滾事件"| Notifier
+  Merge -.->|merge 完成事件| Notifier
   Conflict --> Notifier
   Manual --> Notifier
   Reject --> Notifier
@@ -509,7 +510,7 @@ flowchart LR
   </div>
 
   <div>
-    <div class="flow-section-title"><strong>檢查流程</strong> &nbsp;—&nbsp; 機密/安全 → 衝突 → 人工條件 → 可合併，一條管線依序評估，命中即停</div>
+    <div class="flow-section-title"><strong>檢查流程</strong> &nbsp;—&nbsp; 機密/安全/AI 拒絕 → 衝突 → 人工條件 → 可合併，一條管線依序評估，命中即停</div>
     <pre class="mermaid">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart LR
@@ -517,7 +518,7 @@ flowchart LR
 
   subgraph CHK[檢查過程 · 依 ①②③④ 序評估，命中即停]
     direction LR
-    C1[① 機密 / 安全掃描]:::critical
+    C1[① 機密 / 安全 / AI 拒絕]:::critical
     C2[② 衝突檢查]:::it
     C3[③ 人工條件檢查]:::shared
     C4[④ 可合併判定]:::it
@@ -532,9 +533,9 @@ flowchart LR
   Mergeable[可合併<br>壓縮合併]:::user
 
   Start ==> C1
-  C1 -->|機密外洩 / 高危漏洞| Reject
+  C1 -->|機密外洩 / 高危漏洞 / AI 明確拒絕| Reject
   C2 -->|檢查失敗 / 與 main 衝突| Conflict
-  C3 -->|AI 判人工 / 含保護路徑| Manual
+  C3 -->|AI 判人工 / 保護路徑 / 降級| Manual
   C4 ==>|全綠 + AI 判可合併| Mergeable
   C4 -->|未通過兜底| Manual
 
