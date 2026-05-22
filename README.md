@@ -23,7 +23,9 @@ AI-Spec/
 ├── Coolify-Deploy/                  # Coolify + Docker Compose 部署規範
 │   ├── Docker-Compose-Spec-v1.0.md
 │   ├── Docker-Compose-Spec-v1.1.md
-│   └── Docker-Compose-Spec-v1.2.md  # 最新版(Adminer / Seq 納入標準服務,強制 map 語法)
+│   ├── Docker-Compose-Spec-v1.2.md
+│   ├── Docker-Compose-Spec-v1.3.md
+│   └── Docker-Compose-Spec-v1.4.md  # 最新版(一次性 migration container 強制 restart: "no")
 │
 ├── Development/
 │   ├── Claude/
@@ -62,7 +64,7 @@ AI-Spec/
 
 | 想做的事 | 看哪份文件 |
 | --- | --- |
-| 寫 Coolify 用的 docker-compose.yml | [Coolify-Deploy/Docker-Compose-Spec-v1.2.md](Coolify-Deploy/Docker-Compose-Spec-v1.2.md) |
+| 寫 Coolify 用的 docker-compose.yml | [Coolify-Deploy/Docker-Compose-Spec-v1.4.md](Coolify-Deploy/Docker-Compose-Spec-v1.4.md) |
 | 環境變數三階段(`.env.example` / `.env` / Coolify 後台)怎麼安排 | spec/00-overview + design-notes 的 `[DEP]` 章節 |
 
 ### 健檢
@@ -109,7 +111,7 @@ AI-Spec/
 
 1. 讀 [CLAUDE-v1.0.md](Development/Claude/CLAUDE-v1.0.md) 與 [00-overview-v1.0.md](Development/spec/00-overview-v1.0.md) 建立骨架。
 2. 接 SSO → 跑 `/sso-init` skill,依後端框架(FastAPI / Next.js / Spring）分流初始化。
-3. 寫 `docker-compose.yml` → 對照 [Docker-Compose-Spec-v1.2.md](Coolify-Deploy/Docker-Compose-Spec-v1.2.md)。
+3. 寫 `docker-compose.yml` → 對照 [Docker-Compose-Spec-v1.4.md](Coolify-Deploy/Docker-Compose-Spec-v1.4.md)。
 4. 上線前 `/scan-project` 跑一次健檢。
 
 ### 既有專案健檢
@@ -130,5 +132,5 @@ AI-Spec/
 ## 版本策略
 
 - 各規格檔以 `-vX.Y.md` 命名,重大變更升版並保留舊版。
-- `Coolify-Deploy/` 最新版為 **v1.2**;`Development/spec/` 各規格目前為 **v1.0**。
+- `Coolify-Deploy/` 最新版為 **v1.4**;`Development/spec/` 各規格目前為 **v1.0**。
 - 文件間互相參考時使用相對路徑連結,避免失聯。
