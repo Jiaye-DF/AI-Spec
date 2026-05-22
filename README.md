@@ -2,7 +2,7 @@
 
 > AI 輔助開發的規格文件集 — 給 Claude Code 等 AI Agent 以及專案開發者共用的規範骨架。
 
-本倉庫集中收錄公司專案在「**開發**」與「**部署至 Coolify**」兩個階段的通用規則。新專案啟動時依此建立骨架;既有專案可透過 `/scan-project` 針對這些規則進行健檢,輸出修正建議。
+本倉庫集中收錄公司專案在「**開發**」「**CI/CD**」與「**部署至 Coolify**」三個階段的通用規則。新專案啟動時依此建立骨架;既有專案可透過 `/scan-project` 針對這些規則進行健檢,輸出修正建議。
 
 ---
 
@@ -20,30 +20,35 @@
 
 ```
 AI-Spec/
+├── Architecture/
+│   └── Auto-CI-CD/                  # Auto-CI-CD 流程規格 + 全貌圖
+│       ├── workflow-v1.0.md
+│       └── diagram.html
+│
 ├── Coolify-Deploy/                  # Coolify + Docker Compose 部署規範
-│   ├── Docker-Compose-Spec-v1.0.md
-│   ├── Docker-Compose-Spec-v1.1.md
-│   ├── Docker-Compose-Spec-v1.2.md
-│   ├── Docker-Compose-Spec-v1.3.md
+│   ├── Docker-Compose-Spec-v1.0.md ~ v1.3.md
 │   └── Docker-Compose-Spec-v1.4.md  # 最新版(一次性 migration container 強制 restart: "no")
 │
 ├── Development/
-│   ├── Claude/
-│   │   └── CLAUDE-v1.0.md           # 全專案共用的 Claude Code 基本規範
+│   ├── spec/                        # 通用開發規格
+│   │   ├── 00-overview-v1.0.md      # 專案基本架構 / 五大原則 / 路由規則
+│   │   ├── 01-design-notes-v1.0.md  # 前後端 / DB / 部署設計筆記
+│   │   └── scan-project-v1.0.md     # /scan-project 健檢規則庫
+│   │
 │   └── Harness-Engineering/         # Harness Engineering 規範 + skills 整合包(可 fork 套用至新專案)
 │       ├── README.md                # 整合包索引 + 使用協議
 │       ├── AGENTS.md / CLAUDE.md    # 跨工具事實層 / Claude 特化薄層
 │       ├── Skills/                  # commit-all / merge-main / init-project / sso-init / start-dev / stop-dev / create-arch-diagram
-│       ├── docs/Design-Base/        # 開發規範(前端 / 後端 / DB / CI / Coolify / 三方服務 / code review)
 │       ├── prompts/                 # 跨 agent skill(scan-project / propose-to-tasks / reflect-rules)
-│       └── plan/                    # 整合包自身演進
+│       └── docs/                    # Design-Base(開發硬規則)/ Arch / Tasks
 │
-├── replit/
-│   └── replit-spec-latest.md        # Replit 手機優先 RWD Web App 規格
+├── Github-CI/                       # Auto-CI-CD 的 GitHub 實作
+│   ├── Github-CI.md                 # 兩端架構說明(中央 reusable ↔ User caller)
+│   ├── ci-workflows/                # 中央 repo:reusable workflow(分棧 CI 積木 + auto-cicd + e2e)
+│   └── user-template/               # 給 User 的 skill:掃技術棧 → 產 caller
 │
-└── Questions/                       # 部門遇到的問題紀錄與討論
-    ├── 20260415-Questions-v1.0.md
-    └── 20260415-Questions-v1.0-Gamma.md
+└── replit/
+    └── replit-spec-latest.md        # Replit 手機優先 RWD Web App 規格
 ```
 
 ---
@@ -54,11 +59,18 @@ AI-Spec/
 
 | 想做的事 | 看哪份文件 |
 | --- | --- |
-| 了解 Claude Code 在任何專案都該遵守的規矩 | [Development/Claude/CLAUDE-v1.0.md](Development/Claude/CLAUDE-v1.0.md) |
 | 新專案要先建什麼骨架 / 路由怎麼規劃 | [Development/spec/00-overview-v1.0.md](Development/spec/00-overview-v1.0.md) |
 | 前後端 / DB / 部署設計時要想到什麼 | [Development/spec/01-design-notes-v1.0.md](Development/spec/01-design-notes-v1.0.md) |
+| 套用 React + FastAPI 嚴格規範整合包 | [Development/Harness-Engineering/README.md](Development/Harness-Engineering/README.md) |
 | 接公司 DF-SSO 登入 | `Development/Harness-Engineering/Skills/sso-init/` 下對應框架的檔案 |
 | 在 Replit 做個人工具 | [replit/replit-spec-latest.md](replit/replit-spec-latest.md) |
+
+### CI/CD 階段
+
+| 想做的事 | 看哪份文件 |
+| --- | --- |
+| 把專案接上公司 Auto-CI-CD(產 GitHub Actions caller) | [Github-CI/Github-CI.md](Github-CI/Github-CI.md) → 跑 `user-template` skill |
+| 了解 Auto-CI-CD 流程全貌(機密掃描 → AI 審查 → 自動合併 → CD) | [Architecture/Auto-CI-CD/workflow-v1.0.md](Architecture/Auto-CI-CD/workflow-v1.0.md)、[diagram.html](Architecture/Auto-CI-CD/diagram.html) |
 
 ### 部署階段
 
@@ -72,14 +84,6 @@ AI-Spec/
 | 想做的事 | 看哪份文件 |
 | --- | --- |
 | 掃描專案找出架構 / 資安 / 部署違規 | [Development/spec/scan-project-v1.0.md](Development/spec/scan-project-v1.0.md) |
-
-### 教育訓練 / 跨部門共識
-
-| 想做的事 | 看哪份文件 |
-| --- | --- |
-| 學「公司資料流」總藍圖(登入 → 開發 → 資料 → 部署 → AI) | [Architecture/20260421-DataFlow-v1.0.md](Architecture/20260421-DataFlow-v1.0.md) |
-| 學 Harness Engineering 架構(分 6 個學習單元 × 角色矩陣 × Coolify 合規) | [Architecture/20260507-Harness-Engineering-BreakDown-v1.0/](Architecture/20260507-Harness-Engineering-BreakDown-v1.0/README.md) |
-| 上 Coolify 前的 6 條合規 checklist | [Architecture/20260507-Harness-Engineering-BreakDown-v1.0/Coolify-Compliance-Mapping.md](Architecture/20260507-Harness-Engineering-BreakDown-v1.0/Coolify-Compliance-Mapping.md) |
 
 ---
 
@@ -102,6 +106,7 @@ AI-Spec/
 | `/commit-all` | 一鍵提交並推送當前分支所有變更(AI commit 自動加 `(AI)` 前綴) | [Development/Harness-Engineering/Skills/commit-all/SKILL.md](Development/Harness-Engineering/Skills/commit-all/SKILL.md) |
 | `/merge-main` | 合併當前分支至 `main` 並推送 | [Development/Harness-Engineering/Skills/merge-main/SKILL.md](Development/Harness-Engineering/Skills/merge-main/SKILL.md) |
 | `/scan-project` | 依規則庫掃描專案,結果寫入 `docs/Issues-Scan-Project.md` | [Development/spec/scan-project-v1.0.md](Development/spec/scan-project-v1.0.md) |
+| `user-template` | 掃技術棧產出 Auto-CI-CD caller(`.github/workflows/`) | [Github-CI/user-template/SKILL.md](Github-CI/user-template/SKILL.md) |
 
 ---
 
@@ -109,10 +114,11 @@ AI-Spec/
 
 ### 新專案啟動
 
-1. 讀 [CLAUDE-v1.0.md](Development/Claude/CLAUDE-v1.0.md) 與 [00-overview-v1.0.md](Development/spec/00-overview-v1.0.md) 建立骨架。
-2. 接 SSO → 跑 `/sso-init` skill,依後端框架(FastAPI / Next.js / Spring）分流初始化。
-3. 寫 `docker-compose.yml` → 對照 [Docker-Compose-Spec-v1.4.md](Coolify-Deploy/Docker-Compose-Spec-v1.4.md)。
-4. 上線前 `/scan-project` 跑一次健檢。
+1. 讀 [00-overview-v1.0.md](Development/spec/00-overview-v1.0.md) 與 [01-design-notes-v1.0.md](Development/spec/01-design-notes-v1.0.md) 建立骨架。
+2. 接 SSO → 跑 `/sso-init` skill,依後端框架(FastAPI / Next.js / Spring)分流初始化。
+3. 接 Auto-CI-CD → 把 [Github-CI/user-template/](Github-CI/user-template/) 複製進 `.claude/skills/`,跑該 skill 產出 `.github/workflows/` caller。
+4. 寫 `docker-compose.yml` → 對照 [Docker-Compose-Spec-v1.4.md](Coolify-Deploy/Docker-Compose-Spec-v1.4.md)。
+5. 上線前 `/scan-project` 跑一次健檢。
 
 ### 既有專案健檢
 
@@ -132,5 +138,6 @@ AI-Spec/
 ## 版本策略
 
 - 各規格檔以 `-vX.Y.md` 命名,重大變更升版並保留舊版。
-- `Coolify-Deploy/` 最新版為 **v1.4**;`Development/spec/` 各規格目前為 **v1.0**。
+- `Coolify-Deploy/` 最新版為 **v1.4**;`Development/spec/` 與 `Architecture/Auto-CI-CD/` 各規格目前為 **v1.0**。
+- `Github-CI/` 工作流範本對接中央 `ci-workflows` repo,中央與 User 端偵測表兩邊同步演進。
 - 文件間互相參考時使用相對路徑連結,避免失聯。
