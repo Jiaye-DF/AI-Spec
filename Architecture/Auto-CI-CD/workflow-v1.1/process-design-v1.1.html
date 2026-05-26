@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'><circle cx='3' cy='8' r='2' fill='%2316a34a'/><line x1='5' y1='8' x2='11' y2='8' stroke='%232563eb' stroke-width='1.6'/><circle cx='13' cy='8' r='2' fill='%23dc2626'/></svg>">
+  <title>Auto CI/CD 流程設計 v1.1 — Process Design</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-soft: #f8fafc;
+      --fg: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --toolbar-bg: #f8fafc;
+      --btn-bg: #ffffff;
+      --btn-hover: #f1f5f9;
+      --accent: #2563eb;
+      --error: #dc2626;
+      --user: #16a34a;
+      --it: #2563eb;
+      --shared: #9333ea;
+      --critical: #dc2626;
+    }
+    [data-theme="dark"] {
+      --bg: #0f172a;
+      --bg-soft: #1e293b;
+      --fg: #f1f5f9;
+      --muted: #94a3b8;
+      --border: #334155;
+      --toolbar-bg: #1e293b;
+      --btn-bg: #1e293b;
+      --btn-hover: #334155;
+      --accent: #60a5fa;
+      --error: #f87171;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      font-family: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--fg);
+    }
+    body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+    .toolbar {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      padding: 12px 20px;
+      background: var(--toolbar-bg);
+      border-bottom: 2px solid var(--border);
+      align-items: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+      flex-shrink: 0;
+    }
+    .toolbar h1 {
+      font-size: 16px;
+      margin: 0;
+      margin-right: auto;
+      font-weight: 700;
+      color: var(--accent);
+      padding-left: 12px;
+      border-left: 4px solid var(--accent);
+      line-height: 1.3;
+      letter-spacing: 0.02em;
+      max-width: 40%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .toolbar .divider { width: 1px; height: 22px; background: var(--border); margin: 0 4px; }
+    .toolbar button, .toolbar select, .toolbar input {
+      padding: 6px 11px; font-size: 13px;
+      border: 1px solid var(--border);
+      background: var(--btn-bg); color: var(--fg);
+      border-radius: 5px; cursor: pointer; font-family: inherit;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .toolbar button:hover, .toolbar select:hover {
+      background: var(--btn-hover); border-color: var(--accent);
+    }
+    .toolbar button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .toolbar label {
+      font-size: 12px; color: var(--muted);
+      display: inline-flex; align-items: center; gap: 6px;
+      font-weight: 500;
+    }
+    .toolbar .picker {
+      font-weight: 600; min-width: 280px;
+      border-color: var(--accent); color: var(--fg);
+    }
+    .counter {
+      font-size: 12px; color: var(--muted); font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      padding: 0 8px;
+    }
+    .nav-btn {
+      width: 32px; height: 30px; padding: 0 !important;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 600;
+    }
+
+    main {
+      flex: 1; min-height: 0;
+      display: flex; flex-direction: column;
+    }
+    .preview {
+      flex: 1; min-height: 0;
+      overflow: auto;
+      padding: 28px 24px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+    .preview.zoomed { justify-content: flex-start; }
+    .preview.draggable { cursor: grab; user-select: none; }
+    .preview.draggable.dragging { cursor: grabbing; }
+    .preview.draggable.dragging * { pointer-events: none; }
+    .preview svg { display: block; margin: 0 auto; }
+    .preview .svg-wrap {
+      display: inline-block;
+      transform-origin: top left;
+      transition: transform 0.12s ease;
+    }
+    .preview.dragging .svg-wrap { transition: none; }
+    .zoom-label {
+      font-size: 12px; color: var(--muted); font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      min-width: 42px; text-align: center;
+      cursor: pointer;
+    }
+    .zoom-label:hover { color: var(--accent); }
+    .error {
+      color: var(--error); padding: 16px;
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 13px; white-space: pre-wrap; text-align: left;
+    }
+
+    .cards-wrap { max-width: 1280px; width: 100%; }
+    .cards-head {
+      margin-bottom: 18px;
+      font-size: 15px; color: var(--muted);
+      display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center;
+    }
+    .cards-head strong { color: var(--accent); font-size: 19px; }
+    .cards-grid { display: grid; gap: 16px; }
+    .cards-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+    .cards-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .cards-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+    .cards-grid.cols-5 { grid-template-columns: repeat(5, 1fr); }
+    .card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-left-width: 5px;
+      border-radius: 10px;
+      padding: 16px 18px;
+      display: flex; flex-direction: column;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.1);
+    }
+    .card.user { border-left-color: #16a34a; }
+    .card.it { border-left-color: #2563eb; }
+    .card.shared { border-left-color: #9333ea; }
+    .card.critical { border-left-color: #dc2626; }
+    .card-badges {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      margin-bottom: 10px;
+    }
+    .card-badge {
+      display: inline-block;
+      font-size: 12.5px; font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 5px;
+      letter-spacing: 0.02em;
+    }
+    .card-tag {
+      display: inline-block;
+      font-size: 11.5px;
+      padding: 3px 8px;
+      border-radius: 5px;
+      background: var(--btn-hover);
+      color: var(--muted);
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    [data-theme="dark"] .card-tag { background: rgba(148, 163, 184, 0.15); }
+    .card.user .card-badge { background: #dcfce7; color: #14532d; }
+    .card.it .card-badge { background: #dbeafe; color: #1e3a8a; }
+    .card.shared .card-badge { background: #f3e8ff; color: #581c87; }
+    .card.critical .card-badge { background: #fee2e2; color: #7f1d1d; }
+    [data-theme="dark"] .card.user .card-badge { background: rgba(34,197,94,0.2); color: #86efac; }
+    [data-theme="dark"] .card.it .card-badge { background: rgba(96,165,250,0.2); color: #93c5fd; }
+    [data-theme="dark"] .card.shared .card-badge { background: rgba(168,85,247,0.2); color: #d8b4fe; }
+    [data-theme="dark"] .card.critical .card-badge { background: rgba(248,113,113,0.2); color: #fca5a5; }
+    .card-title {
+      font-size: 16px; font-weight: 700;
+      margin: 0 0 9px;
+      color: var(--fg); line-height: 1.35;
+    }
+    .card-body {
+      font-size: 14px;
+      color: var(--fg);
+      line-height: 1.6;
+    }
+    .card-body strong { color: var(--accent); }
+    .card-body code {
+      background: var(--btn-hover);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-family: 'JetBrains Mono', Consolas, monospace;
+    }
+    .card-body ul {
+      margin: 6px 0 0;
+      padding-left: 20px;
+    }
+    .card-body li {
+      margin-bottom: 3px;
+    }
+    .card-tech {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--border);
+      font-size: 12.5px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .card-tech-title {
+      font-weight: 700;
+      color: var(--fg);
+      margin-bottom: 6px;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+    }
+    .card-tech ul { margin: 4px 0 0; padding-left: 16px; }
+    .card-tech li { margin-bottom: 4px; }
+    .card-tech strong { color: var(--fg); font-weight: 700; }
+    .card-tech code {
+      background: var(--btn-hover);
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 11.5px;
+      font-family: 'JetBrains Mono', Consolas, monospace;
+    }
+    .cards-foot {
+      margin-top: 20px;
+      padding: 14px 18px;
+      background: var(--bg-soft);
+      border-left: 4px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      font-size: 15px;
+      color: var(--fg); line-height: 1.6;
+    }
+    .cards-foot strong { color: var(--accent); }
+
+    .preview pre.mermaid {
+      background: var(--bg);
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: auto;
+    }
+    .flow-section-title {
+      font-size: 18px; color: var(--muted);
+      margin: 18px 0 6px;
+    }
+    .flow-section-title strong { color: var(--fg); }
+    .flow-legend {
+      font-size: 14px; color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.6;
+    }
+    .flow-legend strong { color: var(--fg); }
+  </style>
+</head>
+<body>
+  <!--
+    process-design-v1.1.html
+    SA 視角 — 系統技術結構流程圖 + 資料狀態流轉
+    每張 slide = 一個設計步驟
+    鍵盤: ← / → 翻頁 ; + / − 縮放 ; 0 重設 ; F 符合視窗
+  -->
+
+  <!-- ================== Step 1 · 並行檢查階段狀態機 ================== -->
+  <script type="text/plain" id="step1-ci-fsm"
+          data-label="Step 1 · 並行檢查階段狀態機"
+          data-order="1"
+          data-kind="flow"
+          data-format="html">
+<div class="cards-wrap">
+  <div class="cards-head">
+    <strong>Step 1 · 並行檢查階段狀態機</strong>
+    <span>· 5 種檢查同步啟動 · 各自獨立結束 · 聚合後決定 PR 走向 ·</span>
+  </div>
+
+  <div class="cards-grid cols-3" style="margin-bottom: 16px;">
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">前端檢查</span></div>
+      <div class="card-title">前端程式碼能跑、依賴沒有已揭露漏洞</div>
+      <div class="card-body">確認程式碼風格、型別、單元測試、建置都過,所引用的套件沒有已揭露的漏洞。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">技術細節</div>
+        <ul>
+          <li><strong>風格 / 型別</strong> — <code>ESLint</code> + <code>tsc --noEmit</code>(TypeScript strict),不允許 implicit any;PR 不應新增 lint warning。</li>
+          <li><strong>單元測試</strong> — <code>vitest</code> / <code>jest</code>,建議覆蓋率 ≥ 80%。</li>
+          <li><strong>建置</strong> — <code>next build</code> / <code>vite build</code>,捕捉 import 路徑錯、循環引用、syntax 錯。</li>
+          <li><strong>套件漏洞稽核</strong> — <code>npm audit</code> 讀 GitHub Advisory DB;high+ 視為 fail、medium 視為 warning。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">後端檢查</span></div>
+      <div class="card-title">後端程式碼能跑、依賴沒有已揭露漏洞</div>
+      <div class="card-body">同前端,只是換成後端語言對應的工具。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">技術細節</div>
+        <ul>
+          <li><strong>Python</strong> — <code>ruff</code>(lint)+ <code>mypy --strict</code>(型別)+ <code>pytest</code>(測試)。</li>
+          <li><strong>Java</strong> — <code>checkstyle</code> + <code>spotbugs</code> + <code>mvn test</code>;<code>OWASP Dependency-Check</code> 讀 NVD CVE 資料庫。</li>
+          <li><strong>Go</strong> — <code>golangci-lint</code> + <code>go test ./...</code> + <code>govulncheck</code>。</li>
+          <li><strong>套件漏洞稽核</strong> — Python 用 <code>pip-audit</code>(讀 PyPI Advisory DB);Java 用 OWASP DC;漏洞等級判定同前端。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">資料庫變更檢查</span></div>
+      <div class="card-title">結構變更可以套上、也可以還原</div>
+      <div class="card-body">PR 有動到資料庫結構檔案時才跑;失敗時會區分「工具自己出錯」和「變更內容不合規」兩種,走向不同。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">技術細節</div>
+        <ul>
+          <li><strong>啟用條件</strong> — Workflow <code>paths:</code> filter,只在 PR 改到 <code>**/migrations/**</code> 才執行;沒改就 skip,不消耗 runner。</li>
+          <li><strong>可逆性檢查</strong> — 跑 up → down → up 三步;沒有 down(undo)腳本的 migration 直接視為不合規。</li>
+          <li><strong>工具錯(走 manual)</strong> — Postgres / MySQL container 啟不來、Flyway / Alembic 連不上 DB、runner 自己 OOM 等基建類問題,由 tech-lead 重跑。</li>
+          <li><strong>不合規(走 reject)</strong> — up 跑不過、缺 down、down 跑回去後 schema 不一致;作者必須重新設計 migration 而非小修。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">機密外洩掃描</span></div>
+      <div class="card-title">PR 沒把密碼 / 憑證寫進程式碼</div>
+      <div class="card-body">命中即視為高風險,後續走向直接拒絕。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">技術細節</div>
+        <ul>
+          <li><strong>掃描範圍</strong> — 整個 git 歷史,不只當前 diff。GHA checkout 預設只拉最近一個 commit,所以強制 <code>fetch-depth: 0</code> 拉完整 history;機密一旦曾出現在 commit log,即使後續被刪掉也已外洩。</li>
+          <li><strong>規則庫</strong> — <code>.gitleaks.toml</code> 內含 AWS Access Key、GitHub PAT、JWT、SSH 私鑰、DB 連線字串、Stripe / OpenAI API Token 等正則;沿用 gitleaks 內建 + 公司自訂 pattern(例:DF 內部域名 token)。</li>
+          <li><strong>為何放第一道</strong> — 機密一旦進入下一階段的 LLM 審查就回不來;同時避免在 PR 評論裡誤揭露。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">原始碼安全掃描</span></div>
+      <div class="card-title">PR 沒引入常見的安全漏洞模式</div>
+      <div class="card-body">高風險 → 拒絕;中風險 → 請作者修正後重 push。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">技術細節</div>
+        <ul>
+          <li><strong>原始碼模式比對</strong> — <code>semgrep</code> 跑 <code>p/security-audit</code> + <code>p/owasp-top-ten</code> 規則包;專抓 SQL injection、XSS、SSRF、不安全反序列化、硬編碼弱亂數種子等程式碼模式。</li>
+          <li><strong>檔案系統 / 設定掃描</strong> — <code>trivy fs</code> 同時掃套件 CVE、Dockerfile 不安全寫法(如 ADD URL、root 執行)、K8s manifest 缺資源限制等。</li>
+          <li><strong>風險分級</strong> — semgrep ERROR 或 trivy HIGH/CRITICAL → reject;semgrep WARNING 或 trivy MEDIUM → conflict,留評論請作者修。</li>
+          <li><strong>SARIF 上傳</strong> — 結果上傳到 GitHub Code Scanning,PR 頁可以直接看每個 finding 對應的行。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card shared">
+      <div class="card-badges"><span class="card-badge">★ 共通輸出</span></div>
+      <div class="card-title">每個檢查留下「結果 + 分類」</div>
+      <div class="card-body">下一階段依各檢查的結束狀態,聚合成整個 PR 的四種走向之一。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">技術細節</div>
+        <ul>
+          <li><strong>結果欄位</strong> — <code>needs.&lt;job&gt;.result</code> ∈ <code>success</code> / <code>failure</code> / <code>cancelled</code> / <code>skipped</code>。</li>
+          <li><strong>分類欄位</strong> — <code>needs.&lt;job&gt;.outputs.*</code> 由各 job 自設,例如:<br><code>has_high_cve=true</code>、<code>migration_fail_kind=tooling|policy</code>、<code>secret_hit_count=3</code>。</li>
+          <li><strong>聚合 job</strong> — 用 <code>needs:[…] + if: always()</code> 等到 5 個 job 全部結束(不論成功失敗)才啟動;讀完所有欄位後決定整個 PR 進哪一態。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="flow-section-title"><strong>系統流程圖</strong> &nbsp;—&nbsp; 元件之間的觸發與資料流向</div>
+    <pre class="mermaid">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart TB
+  Dev([開發者<br>push PR → main]):::user
+
+  Trigger[GitHub Workflow 自動觸發<br>同一 PR 取消舊跑]:::it
+
+  subgraph CI[5 個獨立檢查 · 並行 · 無相依]
+    direction LR
+    Front[前端檢查<br>風格 / 型別 / 測試 / 建置 / 依賴]:::it
+    Back[後端檢查<br>風格 / 型別 / 測試 / 建置 / 依賴]:::it
+    Mig[資料庫變更檢查<br>動到結構檔才跑<br>可逆性驗證]:::it
+    Sec[機密外洩掃描<br>掃整個 git 歷史]:::critical
+    SecSc[原始碼安全掃描<br>程式碼模式 + 套件 CVE]:::critical
+  end
+
+  Fanin[聚合節點<br>讀各檢查的 result + outputs]:::shared
+
+  Next([→ Step 2 收斂判決]):::user
+
+  Dev ==> Trigger
+  Trigger ==> Front
+  Trigger ==> Back
+  Trigger ==> Mig
+  Trigger ==> Sec
+  Trigger ==> SecSc
+
+  Front --> Fanin
+  Back --> Fanin
+  Mig --> Fanin
+  Sec --> Fanin
+  SecSc --> Fanin
+
+  Fanin ==> Next
+
+  classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
+  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+    </pre>
+  </div>
+
+  <div>
+    <div class="flow-section-title"><strong>狀態機</strong> &nbsp;—&nbsp; 5 個並行子狀態 → 聚合成 4 種結束狀態</div>
+    <pre class="mermaid">
+stateDiagram-v2
+  direction TB
+  [*] --> 工作流觸發
+  工作流觸發 --> 並行檢查中 : 5 種檢查同步啟動
+
+  state 並行檢查中 {
+    direction LR
+    [*] --> 前端等待
+    前端等待 --> 前端通過
+    前端等待 --> 前端失敗
+    --
+    [*] --> 後端等待
+    後端等待 --> 後端通過
+    後端等待 --> 後端失敗
+    --
+    [*] --> 變更檔等待
+    變更檔等待 --> 變更檔跳過 : 沒動到結構檔
+    變更檔等待 --> 變更檔通過
+    變更檔等待 --> 變更檔工具錯
+    變更檔等待 --> 變更檔不合規
+    --
+    [*] --> 機密等待
+    機密等待 --> 機密通過
+    機密等待 --> 機密命中
+    --
+    [*] --> 安全等待
+    安全等待 --> 安全通過
+    安全等待 --> 安全中風險
+    安全等待 --> 安全高風險
+  }
+
+  並行檢查中 --> 全綠通過 : 5 項皆通過 / 跳過
+  並行檢查中 --> 待作者修正 : 前後端失敗 或 安全中風險
+  並行檢查中 --> 需人工介入 : 變更檔工具錯
+  並行檢查中 --> 直接拒絕 : 機密命中 或 安全高風險 或 變更檔不合規
+
+  全綠通過 --> [*]
+  待作者修正 --> [*]
+  需人工介入 --> [*]
+  直接拒絕 --> [*]
+    </pre>
+  </div>
+
+  <div class="cards-foot">
+    <strong>設計重點:</strong>&nbsp;&nbsp;5 個子狀態彼此獨立,失敗只影響自己;聚合層才決定整個 PR 的下一步。
+  </div>
+</div>
+  </script>
+
+
+  <!-- ================== 工具列 + 舞台 ================== -->
+  <header class="toolbar">
+    <h1 id="title">Auto CI/CD 流程設計 v1.1</h1>
+    <button id="prev" class="nav-btn" title="上一頁(←)">‹</button>
+    <span id="counter" class="counter">0 / 0</span>
+    <button id="next" class="nav-btn" title="下一頁(→)">›</button>
+    <select id="picker" class="picker"></select>
+    <span class="divider"></span>
+    <label>主題
+      <select id="theme">
+        <option value="default">Light</option>
+        <option value="dark">Dark</option>
+        <option value="neutral">Neutral</option>
+        <option value="forest">Forest</option>
+      </select>
+    </label>
+    <label>字體
+      <input type="number" id="font-size" value="18" min="10" max="32" step="1" style="width: 56px;">
+      <span>px</span>
+    </label>
+    <span class="divider"></span>
+    <button id="zoom-out" class="nav-btn" title="縮小(- 鍵)">−</button>
+    <span id="zoom-label" class="zoom-label" title="點擊重設為 100%(0 鍵)">100%</span>
+    <button id="zoom-in" class="nav-btn" title="放大(+ 鍵)">+</button>
+    <button id="zoom-fit" title="符合視窗(F 鍵)">Fit</button>
+  </header>
+
+  <main>
+    <div class="preview" id="preview"></div>
+  </main>
+
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+
+    const preview = document.getElementById('preview');
+    const themeSelect = document.getElementById('theme');
+    const fontSizeInput = document.getElementById('font-size');
+    const picker = document.getElementById('picker');
+    const counterEl = document.getElementById('counter');
+    const prevBtn = document.getElementById('prev');
+    const nextBtn = document.getElementById('next');
+    const titleEl = document.getElementById('title');
+    const zoomLabel = document.getElementById('zoom-label');
+    const zoomIn = document.getElementById('zoom-in');
+    const zoomOut = document.getElementById('zoom-out');
+    const zoomFitBtn = document.getElementById('zoom-fit');
+
+    let zoom = 1;
+    const ZOOM_STEPS = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.15, 1.3, 1.5, 1.75, 2.0, 2.5, 3.0];
+
+    function findZoomIdx(z) {
+      let best = 0, diff = Infinity;
+      ZOOM_STEPS.forEach((v, i) => {
+        const d = Math.abs(v - z);
+        if (d < diff) { diff = d; best = i; }
+      });
+      return best;
+    }
+    function setZoom(z) {
+      zoom = Math.max(0.3, Math.min(4, z));
+      const wrap = preview.querySelector('.svg-wrap');
+      if (wrap) {
+        wrap.style.transform = `scale(${zoom})`;
+        const svg = wrap.querySelector('svg');
+        if (svg) {
+          const w = parseFloat(svg.dataset.origW || svg.getBoundingClientRect().width / zoom);
+          const h = parseFloat(svg.dataset.origH || svg.getBoundingClientRect().height / zoom);
+          wrap.style.width = (w * zoom) + 'px';
+          wrap.style.height = (h * zoom) + 'px';
+        }
+      }
+      preview.classList.toggle('zoomed', zoom > 1.01);
+      zoomLabel.textContent = Math.round(zoom * 100) + '%';
+    }
+    function zoomStep(dir) {
+      const idx = findZoomIdx(zoom);
+      const ni = Math.max(0, Math.min(ZOOM_STEPS.length - 1, idx + dir));
+      setZoom(ZOOM_STEPS[ni]);
+    }
+    function zoomFit() {
+      const svg = preview.querySelector('svg');
+      if (!svg) { setZoom(1); return; }
+      const w = parseFloat(svg.dataset.origW);
+      const h = parseFloat(svg.dataset.origH);
+      if (!w || !h) { setZoom(1); return; }
+      const pad = 56;
+      const fitX = (preview.clientWidth - pad) / w;
+      const fitY = (preview.clientHeight - pad) / h;
+      setZoom(Math.min(fitX, fitY, 4));
+    }
+
+    const slides = Array.from(document.querySelectorAll('script[type="text/plain"][id]'))
+      .map(el => ({
+        el,
+        id: el.id,
+        label: el.dataset.label || el.id,
+        order: parseFloat(el.dataset.order || '99'),
+        format: el.dataset.format || 'mermaid',
+      }))
+      .sort((a, b) => a.order - b.order);
+
+    let currentIndex = 0;
+    let renderToken = 0;
+
+    function buildPicker() {
+      picker.innerHTML = '';
+      slides.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.label;
+        picker.appendChild(opt);
+      });
+    }
+
+    function updateCounter() {
+      counterEl.textContent = `${currentIndex + 1} / ${slides.length}`;
+      prevBtn.disabled = currentIndex === 0;
+      nextBtn.disabled = currentIndex === slides.length - 1;
+    }
+
+    function initMermaid() {
+      const theme = themeSelect.value;
+      mermaid.initialize({
+        startOnLoad: false, theme,
+        themeVariables: {
+          fontFamily: '"Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif',
+          fontSize: fontSizeInput.value + 'px',
+        },
+        flowchart: { useMaxWidth: true, htmlLabels: true },
+        securityLevel: 'loose',
+      });
+      document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
+    }
+
+    async function render() {
+      const slide = slides[currentIndex];
+      if (!slide) return;
+      const code = slide.el.textContent.trim();
+      const token = ++renderToken;
+
+      titleEl.textContent = slide.label;
+      zoom = 1;
+
+      try {
+        if (slide.format === 'html') {
+          initMermaid();
+          preview.innerHTML = code;
+          preview.scrollTop = 0; preview.scrollLeft = 0;
+          preview.classList.remove('zoomed', 'draggable', 'dragging');
+          zoomLabel.textContent = '100%';
+          const inlineMermaid = preview.querySelectorAll('pre.mermaid, div.mermaid');
+          if (inlineMermaid.length > 0) {
+            try {
+              await mermaid.run({ nodes: inlineMermaid });
+              inlineMermaid.forEach(node => {
+                const svgEl = node.querySelector('svg');
+                if (svgEl) { liftEdgeLabelsOffNodes(svgEl); backdropEdgeLabels(svgEl); elevateClusterLabels(svgEl); }
+              });
+            } catch (e) { /* 個別塊失敗不影響其他文字 */ }
+          }
+        } else {
+          initMermaid();
+          const { svg } = await mermaid.render('diagram-' + token, code);
+          if (token !== renderToken) return;
+          preview.innerHTML = '<div class="svg-wrap">' + svg + '</div>';
+          preview.classList.add('draggable');
+          const svgEl = preview.querySelector('svg');
+          if (svgEl) {
+            const vb = svgEl.viewBox && svgEl.viewBox.baseVal;
+            const origW = (vb && vb.width) || svgEl.getBoundingClientRect().width;
+            const origH = (vb && vb.height) || svgEl.getBoundingClientRect().height;
+            svgEl.dataset.origW = origW;
+            svgEl.dataset.origH = origH;
+            svgEl.removeAttribute('style');
+          }
+          liftEdgeLabelsOffNodes(svgEl);
+          backdropEdgeLabels(svgEl);
+          elevateClusterLabels(svgEl);
+          setZoom(1);
+        }
+      } catch (e) {
+        if (token !== renderToken) return;
+        const msg = (e && (e.message || e.str)) || String(e);
+        preview.innerHTML = '<div class="error">' + escapeHtml(msg) + '</div>';
+      }
+    }
+
+    function elevateClusterLabels(svg) {
+      if (!svg) return;
+      const root = svg.firstElementChild && svg.firstElementChild.tagName.toLowerCase() === 'g'
+        ? svg.firstElementChild : svg;
+      const labels = Array.from(svg.querySelectorAll('.cluster-label'));
+      if (!labels.length) return;
+      const pageBg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#ffffff';
+
+      const entries = labels.map(label => {
+        const text = (label.textContent || '').trim();
+        if (!text) { label.style.opacity = '0'; return null; }
+        const cluster = label.closest('.cluster');
+        const clusterRect = cluster && cluster.querySelector(':scope > rect');
+        let stroke = '#cbd5e1';
+        if (clusterRect) {
+          stroke = clusterRect.getAttribute('stroke')
+                || getComputedStyle(clusterRect).stroke
+                || stroke;
+        }
+        return { label, ctm: label.getCTM(), bbox: label.getBBox(), stroke };
+      }).filter(Boolean);
+
+      for (const { label, ctm, bbox, stroke } of entries) {
+        if (!ctm) continue;
+        const wrapper = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        wrapper.setAttribute('transform', `matrix(${ctm.a} ${ctm.b} ${ctm.c} ${ctm.d} ${ctm.e} ${ctm.f})`);
+
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', bbox.x - 8);
+        rect.setAttribute('y', bbox.y - 2);
+        rect.setAttribute('width', bbox.width + 16);
+        rect.setAttribute('height', bbox.height + 4);
+        rect.setAttribute('fill', pageBg);
+        rect.setAttribute('fill-opacity', '0.78');
+        rect.setAttribute('stroke', stroke);
+        rect.setAttribute('stroke-width', '1');
+        rect.setAttribute('stroke-opacity', '0.6');
+        rect.setAttribute('rx', '4');
+        wrapper.appendChild(rect);
+
+        const clone = label.cloneNode(true);
+        clone.removeAttribute('transform');
+        wrapper.appendChild(clone);
+
+        label.style.opacity = '0';
+        root.appendChild(wrapper);
+      }
+    }
+
+    function backdropEdgeLabels(svg) {
+      if (!svg) return;
+      const pageBg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#ffffff';
+      const labels = Array.from(svg.querySelectorAll('g.edgeLabel'));
+      for (const label of labels) {
+        if (!(label.textContent || '').trim()) continue;
+        if (label.querySelector(':scope > rect.label-backdrop')) continue;
+        let bbox;
+        try { bbox = label.getBBox(); } catch (e) { continue; }
+        if (!bbox.width || !bbox.height) continue;
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('class', 'label-backdrop');
+        rect.setAttribute('x', bbox.x - 4);
+        rect.setAttribute('y', bbox.y - 2);
+        rect.setAttribute('width', bbox.width + 8);
+        rect.setAttribute('height', bbox.height + 4);
+        rect.setAttribute('fill', pageBg);
+        rect.setAttribute('rx', '3');
+        label.insertBefore(rect, label.firstChild);
+      }
+    }
+
+    function liftEdgeLabelsOffNodes(svg) {
+      if (!svg || typeof svg.createSVGTransform !== 'function') return;
+      const rootBox = el => {
+        let bbox, ctm;
+        try { bbox = el.getBBox(); ctm = el.getCTM(); } catch (e) { return null; }
+        if (!ctm || !bbox || !bbox.width) return null;
+        let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+        for (const px of [bbox.x, bbox.x + bbox.width]) {
+          for (const py of [bbox.y, bbox.y + bbox.height]) {
+            const x = ctm.a * px + ctm.c * py + ctm.e;
+            const y = ctm.b * px + ctm.d * py + ctm.f;
+            x1 = Math.min(x1, x); y1 = Math.min(y1, y);
+            x2 = Math.max(x2, x); y2 = Math.max(y2, y);
+          }
+        }
+        return { x1, y1, x2, y2 };
+      };
+      const nodeBoxes = Array.from(svg.querySelectorAll('g.node')).map(rootBox).filter(Boolean);
+      if (!nodeBoxes.length) return;
+      const GAP = 8, MAX_LIFT = 200;
+      for (const label of svg.querySelectorAll('g.edgeLabel')) {
+        if (!(label.textContent || '').trim()) continue;
+        const lb = rootBox(label);
+        if (!lb) continue;
+        let lift = 0;
+        for (const nb of nodeBoxes) {
+          const overlapX = Math.min(lb.x2, nb.x2) - Math.max(lb.x1, nb.x1);
+          const overlapY = Math.min(lb.y2, nb.y2) - Math.max(lb.y1, nb.y1);
+          if (overlapX > 2 && overlapY > 2) {
+            lift = Math.max(lift, lb.y2 - nb.y1 + GAP);
+          }
+        }
+        if (lift > 0) {
+          const t = svg.createSVGTransform();
+          t.setTranslate(0, -Math.min(lift, MAX_LIFT));
+          label.transform.baseVal.insertItemBefore(t, 0);
+        }
+      }
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    }
+
+    function goTo(idx) {
+      currentIndex = Math.max(0, Math.min(slides.length - 1, idx));
+      picker.value = slides[currentIndex].id;
+      updateCounter();
+      render();
+    }
+
+    function goToId(id) {
+      const idx = slides.findIndex(s => s.id === id);
+      if (idx >= 0) goTo(idx);
+    }
+
+    buildPicker();
+    picker.addEventListener('change', e => goToId(e.target.value));
+    themeSelect.addEventListener('change', render);
+    fontSizeInput.addEventListener('input', render);
+    prevBtn.addEventListener('click', () => goTo(currentIndex - 1));
+    nextBtn.addEventListener('click', () => goTo(currentIndex + 1));
+
+    zoomIn.addEventListener('click', () => zoomStep(1));
+    zoomOut.addEventListener('click', () => zoomStep(-1));
+    zoomFitBtn.addEventListener('click', zoomFit);
+    zoomLabel.addEventListener('click', () => setZoom(1));
+
+    preview.addEventListener('wheel', e => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      zoomStep(e.deltaY < 0 ? 1 : -1);
+    }, { passive: false });
+
+    let drag = null;
+    preview.addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
+      if (!preview.classList.contains('draggable')) return;
+      drag = {
+        startX: e.clientX, startY: e.clientY,
+        scrollX: preview.scrollLeft, scrollY: preview.scrollTop,
+        moved: false,
+      };
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', e => {
+      if (!drag) return;
+      const dx = e.clientX - drag.startX;
+      const dy = e.clientY - drag.startY;
+      if (!drag.moved && Math.abs(dx) + Math.abs(dy) > 3) {
+        drag.moved = true;
+        preview.classList.add('dragging');
+      }
+      if (drag.moved) {
+        preview.scrollLeft = drag.scrollX - dx;
+        preview.scrollTop = drag.scrollY - dy;
+      }
+    });
+    document.addEventListener('mouseup', () => {
+      if (!drag) return;
+      drag = null;
+      preview.classList.remove('dragging');
+    });
+    document.addEventListener('mouseleave', () => {
+      if (!drag) return;
+      drag = null;
+      preview.classList.remove('dragging');
+    });
+
+    document.addEventListener('keydown', e => {
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+        e.preventDefault(); goTo(currentIndex + 1);
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault(); goTo(currentIndex - 1);
+      } else if (e.key === 'Home') {
+        e.preventDefault(); goTo(0);
+      } else if (e.key === 'End') {
+        e.preventDefault(); goTo(slides.length - 1);
+      } else if (e.key === '+' || e.key === '=') {
+        e.preventDefault(); zoomStep(1);
+      } else if (e.key === '-' || e.key === '_') {
+        e.preventDefault(); zoomStep(-1);
+      } else if (e.key === '0') {
+        e.preventDefault(); setZoom(1);
+      } else if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault(); zoomFit();
+      }
+    });
+
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      themeSelect.value = 'dark';
+    }
+
+    goTo(0);
+  </script>
+</body>
+</html>
