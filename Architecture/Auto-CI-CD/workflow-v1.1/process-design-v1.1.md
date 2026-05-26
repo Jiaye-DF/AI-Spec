@@ -23,11 +23,11 @@ GitHub CI 流程的具體技術細節 — User 端 caller 怎麼接、中央 reu
    | `frontend-test` | `ci-frontend-node.yml` | Lint / typecheck / test / build → **內含 `npm audit --audit-level=high`**(step) |
    | `backend-test`(Python) | `ci-backend-python.yml` | ruff / mypy / pytest / **migration round-trip(依 `migration_tool` 分派)** + **`pip-audit`** |
    | `backend-test`(Node) | `ci-backend-node.yml` | Lint / typecheck / test / **migration round-trip** + **`npm audit`** |
-   | `backend-test`(Java) | `ci-backend-java.yml` | `mvn -B verify` + **migration round-trip**(Java 暫無獨立 audit step,見「已知缺口」) |
+   | `backend-test`(Java) | `ci-backend-java.yml` | `mvn -B verify` + **migration round-trip** + **OWASP `dependency-check-maven`**(CVSS ≥ 7 fail,過渡期 `continue-on-error: true`,報告 upload artifact) |
    | `secret-scan` | `auto-cicd.yml::secret-scan` | `gitleaks-action@v2` + `.gitleaks.toml`;需 `fetch-depth: 0` |
    | `security-scan` | `auto-cicd.yml::security-scan` | `semgrep-action@v1` + 多語 ruleset → SARIF 上傳 GitHub Code Scanning |
 
-   > **套件漏洞稽核**併入 `*-test` 為 step,不獨立成 job — UI 上 4 個 CI job 看起來俐落;audit 失敗連帶整個 `*-test` 紅,branch protection 直接 require `*-test` 即可。`npm audit --audit-level=high` / `pip-audit` 預設都只擋高危,連帶紅了是「本來就該擋」的等級。
+   > **套件漏洞稽核**是 `*-test` 內含 step(`npm audit --audit-level=high` / `pip-audit`,只擋高危),非獨立 job;audit 紅 = `*-test` 紅,branch protection require `*-test` 即可。
 
 ## Migration 偵測(per-stack 分派)
 
@@ -91,16 +91,3 @@ updates:
 ```
 
 中央發新 PATCH / MINOR tag 後,Dependabot 自動開 PR 升 caller 的 `uses: ...@v1.0.X` → 過 CI + reviewer approve 即合併。
-
-## 已知缺口
-
-目前無。原 4 項已併入實作或文件:
-
-| 項 | 處理 |
-| --- | --- |
-| Java backend 獨立 audit step | `.github/workflows/ci-backend-java.yml` 加 `mvn org.owasp:dependency-check-maven:check`(過渡期 `continue-on-error: true`,報告上傳 artifact) |
-| 中央 repo SemVer + tag/SHA SOP | 新增 [`Github-CI/RELEASE.md`](../../../Github-CI/RELEASE.md);本節 § 版本管理表移除 floating tag、caller 模板改用 `@v1.0.0` |
-| Flyway 真正 down 驗證 | `ci-backend-java.yml` 加 `custom_undo_cmd` opt-in input;有 Teams 版 / 手寫 rollback SQL 的專案可掛 hook;預設行為仍是社群版的 clean+migrate |
-| Prisma 真正 down 驗證 | `ci-backend-node.yml` 加 `custom_undo_cmd` opt-in input;同樣可掛專案自寫的 rollback SQL;預設仍是 `migrate reset --force` |
-
-各工具的 down 驗證**能力天花板**(社群版 Flyway 無 undo / Prisma 無 down command / Django migrate 對單一 app downgrade 不便)見 § Migration 偵測「各工具特殊行為」表;那是工具設計層級的限制,不是本流程的缺口。
