@@ -1,0 +1,101 @@
+# 中央 reusable — 後端 CI(Node.js)
+#
+# 對齊 process-design-v1.1.md § Migration 偵測。
+# 契約:專案根目錄有 backend/,backend/package.json 定義 lint / typecheck / test scripts。
+# test script 須為 CI 模式(非 watch);TS 專案 typecheck 走 tsc --noEmit。
+# migration_tool 預設 none(Node 後端 migration 套件分散,caller 自填 prisma / typeorm / knex)。
+name: ci-backend-node (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      migration_tool:
+        description: "Migration 工具(prisma / typeorm / knex / none)"
+        type: string
+        default: none
+      custom_undo_cmd:
+        description: "Optional:自訂 down 指令(Prisma 沒 down,有手寫 rollback 用此 hook);非空字串時取代 migration_tool 預設的 down 策略"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  backend-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    # postgres 常駐 — migration_tool != none 時實際用;none 時空跑 ~5s overhead
+    services:
+      postgres:
+        image: postgres:17.2
+        env:
+          POSTGRES_PASSWORD: ci-only
+          POSTGRES_DB: ci_test
+          TZ: Asia/Taipei
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:ci-only@localhost:5432/ci_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: backend/package.json
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test
+
+      # Migration round-trip — 依 migration_tool 分派;custom_undo_cmd 非空時覆寫 down 策略
+      - name: Migration round-trip (${{ inputs.migration_tool }})
+        if: inputs.migration_tool != 'none'
+        run: |
+          case "${{ inputs.migration_tool }}" in
+            prisma)
+              npx prisma migrate deploy
+              # down:custom_undo_cmd 非空 → 用使用者提供的 undo(例 psql -f rollback.sql)
+              #       否則 → Prisma 預設用 reset --force 重置(無 down command)
+              if [ -n "${{ inputs.custom_undo_cmd }}" ]; then
+                bash -c "${{ inputs.custom_undo_cmd }}"
+              else
+                npx prisma migrate reset --force --skip-seed
+              fi
+              npx prisma migrate deploy
+              ;;
+            typeorm)
+              npx typeorm migration:run
+              if [ -n "${{ inputs.custom_undo_cmd }}" ]; then
+                bash -c "${{ inputs.custom_undo_cmd }}"
+              else
+                npx typeorm migration:revert
+              fi
+              npx typeorm migration:run
+              ;;
+            knex)
+              npx knex migrate:latest
+              if [ -n "${{ inputs.custom_undo_cmd }}" ]; then
+                bash -c "${{ inputs.custom_undo_cmd }}"
+              else
+                npx knex migrate:rollback
+              fi
+              npx knex migrate:latest
+              ;;
+            *)
+              echo "::error::未知的 migration_tool='${{ inputs.migration_tool }}',允許值:prisma / typeorm / knex / none"
+              exit 1
+              ;;
+          esac
+
+      - name: npm audit
+        run: npm audit --audit-level=high
+        continue-on-error: true        # 過渡期;成熟後改 false(見 Harness 05-CI/03)

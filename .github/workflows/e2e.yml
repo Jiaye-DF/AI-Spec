@@ -1,6 +1,6 @@
 # Auto-CI-CD 中央 reusable workflow — Playwright E2E(對齊 Harness 05-CI/06-e2e.md)
 #
-# 【放哪】中央 repo「ci-workflows」的 .github/workflows/e2e.yml。
+# 【放哪】中央 repo `Dafon-IT/DF-AI-Spec` 的 `.github/workflows/e2e.yml`。
 # 【誰呼叫】各 User 專案的 e2e caller(由 user-template skill 依專案產生)。
 # 【啟用與否】由 caller 端的 `if:` 控制(預設停用);本檔只定義「被呼叫時跑什麼」。
 # 【為什麼獨立一支】E2E flaky / 慢,Harness 06-e2e 規定不併入 ci 主流程,獨立 workflow。

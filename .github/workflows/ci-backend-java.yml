@@ -1,0 +1,134 @@
+# 中央 reusable — 後端 CI(Java)
+#
+# 對齊 process-design-v1.1.md § Migration 偵測。
+# 契約:專案根目錄有 backend/,內含 Maven 專案(pom.xml)。
+# 預設 mvn -B verify(編譯 + 單元測試 + 套件解析)。Gradle 專案:caller 傳 with: build_command: "./gradlew build"。
+# migration_tool 預設 none(Hibernate auto-ddl 不算正規 migration);Flyway / Liquibase 專案 caller 自填。
+name: ci-backend-java (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      java_version:
+        description: "JDK 版本"
+        type: string
+        default: "21"
+      build_command:
+        description: "建置 / 測試指令(Gradle 專案改 ./gradlew build)"
+        type: string
+        default: "mvn -B verify"
+      migration_tool:
+        description: "Migration 工具(flyway / liquibase / none)"
+        type: string
+        default: none
+      custom_undo_cmd:
+        description: "Optional:自訂 down 指令(Flyway Teams undo / 手寫 rollback SQL 等);非空字串時取代 migration_tool 預設的 down 策略"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  backend-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    # postgres 常駐 — migration_tool != none 時實際用;none 時空跑 ~5s overhead
+    services:
+      postgres:
+        image: postgres:17.2
+        env:
+          POSTGRES_PASSWORD: ci-only
+          POSTGRES_DB: ci_test
+          TZ: Asia/Taipei
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      SPRING_PROFILES_ACTIVE: ci
+      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/ci_test
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ci-only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ inputs.java_version }}
+          cache: maven
+      - run: ${{ inputs.build_command }}
+
+      # Migration round-trip — 依 migration_tool 分派;custom_undo_cmd 非空時覆寫 down 策略
+      - name: Migration round-trip (${{ inputs.migration_tool }})
+        if: inputs.migration_tool != 'none'
+        run: |
+          case "${{ inputs.migration_tool }}" in
+            flyway)
+              # 先 forward 一次
+              mvn -B flyway:migrate \
+                -Dflyway.url="$SPRING_DATASOURCE_URL" \
+                -Dflyway.user="$SPRING_DATASOURCE_USERNAME" \
+                -Dflyway.password="$SPRING_DATASOURCE_PASSWORD"
+              # down:custom_undo_cmd 非空 → 用使用者提供的 undo(例 Teams 版 flyway:undo / psql -f rollback.sql)
+              #       否則 → 社群版預設用 flyway:clean(drop schema)再 migrate 驗 idempotent
+              if [ -n "${{ inputs.custom_undo_cmd }}" ]; then
+                bash -c "${{ inputs.custom_undo_cmd }}"
+              else
+                mvn -B flyway:clean \
+                  -Dflyway.url="$SPRING_DATASOURCE_URL" \
+                  -Dflyway.user="$SPRING_DATASOURCE_USERNAME" \
+                  -Dflyway.password="$SPRING_DATASOURCE_PASSWORD"
+              fi
+              # 再 forward 一次驗 idempotent
+              mvn -B flyway:migrate \
+                -Dflyway.url="$SPRING_DATASOURCE_URL" \
+                -Dflyway.user="$SPRING_DATASOURCE_USERNAME" \
+                -Dflyway.password="$SPRING_DATASOURCE_PASSWORD"
+              ;;
+            liquibase)
+              mvn -B liquibase:update \
+                -Dliquibase.url="$SPRING_DATASOURCE_URL" \
+                -Dliquibase.username="$SPRING_DATASOURCE_USERNAME" \
+                -Dliquibase.password="$SPRING_DATASOURCE_PASSWORD"
+              if [ -n "${{ inputs.custom_undo_cmd }}" ]; then
+                bash -c "${{ inputs.custom_undo_cmd }}"
+              else
+                mvn -B liquibase:rollback -Dliquibase.rollbackCount=1 \
+                  -Dliquibase.url="$SPRING_DATASOURCE_URL" \
+                  -Dliquibase.username="$SPRING_DATASOURCE_USERNAME" \
+                  -Dliquibase.password="$SPRING_DATASOURCE_PASSWORD"
+              fi
+              mvn -B liquibase:update \
+                -Dliquibase.url="$SPRING_DATASOURCE_URL" \
+                -Dliquibase.username="$SPRING_DATASOURCE_USERNAME" \
+                -Dliquibase.password="$SPRING_DATASOURCE_PASSWORD"
+              ;;
+            *)
+              echo "::error::未知的 migration_tool='${{ inputs.migration_tool }}',允許值:flyway / liquibase / none"
+              exit 1
+              ;;
+          esac
+
+      # OWASP Dependency-Check —— Java 端套件漏洞稽核
+      # CVSS 7 以上 fail(對齊 Python / Node 的 --audit-level=high)
+      # 過渡期 continue-on-error: true(成熟後改 false)
+      - name: OWASP Dependency-Check
+        run: |
+          mvn -B org.owasp:dependency-check-maven:check \
+            -DfailBuildOnCVSS=7 \
+            -DautoUpdate=true \
+            -Dformats=HTML,JSON
+        continue-on-error: true
+      - name: Upload dependency-check report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: backend/target/dependency-check-report.*
+          retention-days: 7
+          if-no-files-found: ignore

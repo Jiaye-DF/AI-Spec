@@ -1,4 +1,4 @@
-# ci-workflows 中央 reusable — 前端 CI(npm 系:React / Vue / 任何 npm 前端)
+# 中央 reusable — 前端 CI(npm 系:React / Vue / 任何 npm 前端)
 #
 # 對齊 Harness 05-CI/01-frontend-jobs。
 # 契約:專案根目錄有 frontend/,且 frontend/package.json 定義 lint / typecheck / test / build scripts。

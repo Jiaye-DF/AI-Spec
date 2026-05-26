@@ -1,0 +1,86 @@
+# 中央 reusable — 後端 CI(Python:FastAPI / Tortoise / Django 等)
+#
+# 對齊 Harness 05-CI/02-backend-jobs + process-design-v1.1.md § Migration 偵測。
+# 契約:專案根目錄有 backend/,backend/pyproject.toml 鎖 requires-python,uv.lock 存在。
+# migration_tool 預設 alembic(SQLAlchemy 主流);非 alembic 的專案由 caller 傳 with: migration_tool: ...
+name: ci-backend-python (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      migration_tool:
+        description: "Migration 工具(alembic / aerich / django / none)"
+        type: string
+        default: alembic
+
+permissions:
+  contents: read
+
+jobs:
+  backend-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    services:
+      postgres:
+        image: postgres:17.2
+        env:
+          POSTGRES_PASSWORD: ci-only
+          POSTGRES_DB: ci_test
+          TZ: Asia/Taipei
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      APP_ENV: development
+      DATABASE_URL: postgresql+asyncpg://postgres:ci-only@localhost:5432/ci_test
+      JWT_SECRET_KEY: ci-only-not-for-production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: backend/pyproject.toml
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "0.5.18"
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy app
+
+      # Migration round-trip — 依 migration_tool 分派(見 process-design-v1.1.md § Migration 偵測)
+      - name: Migration round-trip (${{ inputs.migration_tool }})
+        if: inputs.migration_tool != 'none'
+        run: |
+          case "${{ inputs.migration_tool }}" in
+            alembic)
+              uv run alembic upgrade head
+              uv run alembic downgrade -1
+              uv run alembic upgrade head
+              ;;
+            aerich)
+              uv run aerich upgrade
+              uv run aerich downgrade
+              uv run aerich upgrade
+              ;;
+            django)
+              # Django migrate 不便對單一 app 自動 downgrade,僅做 forward
+              uv run python manage.py migrate --noinput
+              ;;
+            *)
+              echo "::error::未知的 migration_tool='${{ inputs.migration_tool }}',允許值:alembic / aerich / django / none"
+              exit 1
+              ;;
+          esac
+
+      - run: uv run pytest -q
+
+      - name: pip-audit
+        run: |
+          uv tool install pip-audit
+          uv run pip-audit
+        continue-on-error: true

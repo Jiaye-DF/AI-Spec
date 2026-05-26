@@ -10,5 +10,5 @@ on:
 jobs:
   e2e:
     if: false   # 備妥 E2E 後改 true 啟用(啟用條件見 Harness 05-CI/06-e2e)
-    uses: df-recycle/ci-workflows/.github/workflows/e2e.yml@v1
+    uses: Dafon-IT/DF-AI-Spec/.github/workflows/e2e.yml@v1.0.0
     secrets: inherit

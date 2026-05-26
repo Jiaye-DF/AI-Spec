@@ -7,47 +7,52 @@
 
 ## 兩端架構
 
-GitHub Actions 的 **reusable workflow** 機制 —— 把 CI/CD 邏輯集中在一個私有的中央 repo,各專案只放一支薄殼 caller 去呼叫它。
+GitHub Actions 的 **reusable workflow** 機制 — 把 CI/CD 邏輯集中在中央 repo `Dafon-IT/DF-AI-Spec` 的 `.github/workflows/`,各專案只放一支薄殼 caller 去呼叫它。
 
-- **中央端(`ci-workflows`)** — 真正的 CI/CD 邏輯。私有 repo,User 看不到內容。
-- **User 端** — 每個專案 `.github/workflows/` 放一支 caller,`uses:` 連到中央。caller 不含邏輯。
+- **中央端** — `Dafon-IT/DF-AI-Spec` 的 `.github/workflows/`(本 repo),放 6 支 reusable workflow。
+- **User 端** — 每個專案 `.github/workflows/` 放一支 caller `ci-cd.yml`,`uses:` 連到中央。caller 不含邏輯。
 
 好處:邏輯一處維護、全公司一致;User 不需也無從得知中央內部;改規則只動中央。
+
+> **為什麼放在 `.github/workflows/` 而不放 `Github-CI/ci-workflows/`** — GitHub Actions 對 reusable workflow 的路徑硬性要求:`uses: <owner>/<repo>/.github/workflows/<file>.yml@<ref>`,不能放子資料夾。
 
 ---
 
 ## 資料夾
 
 ```
-Github-CI/
-├── ci-workflows/        中央 repo:reusable workflow(實作)
-│   ├── ci-frontend-node.yml     ┐
-│   ├── ci-backend-python.yml    │ 分棧 CI 積木(步驟③)
-│   ├── ci-backend-node.yml      │
-│   ├── ci-backend-java.yml      ┘
-│   ├── auto-cicd.yml            後續流程(步驟④~⑦,跨棧通用)
-│   └── e2e.yml                  Playwright E2E
+Dafon-IT/DF-AI-Spec/
+├── .github/workflows/             # 中央 reusable workflow(GitHub 硬性要求路徑)
+│   ├── ci-frontend-node.yml       ┐
+│   ├── ci-backend-python.yml      │ 分棧 CI 積木(步驟③)
+│   ├── ci-backend-node.yml        │
+│   ├── ci-backend-java.yml        ┘
+│   ├── auto-cicd.yml              後續流程(步驟④~⑦,跨棧通用)
+│   └── e2e.yml                    Playwright E2E
 │
-└── user-template/       給 User 的 skill:掃技術棧 → 產 caller
-    ├── SKILL.md
-    ├── ci-cd.yml                caller 模板
-    └── e2e.yml                  caller 模板
+└── Github-CI/                     # 說明文件 + User 端 skill 模板
+    ├── Github-CI.md               本檔
+    ├── RELEASE.md                 中央 reusable workflow 發版 SOP(SemVer + SHA,禁 floating tag)
+    └── user-template/             給 User 的 skill:掃技術棧 → 產 caller
+        ├── SKILL.md
+        ├── ci-cd.yml              caller 模板
+        └── e2e.yml                caller 模板
 ```
 
-> 本資料夾為求簡潔不嵌套 `.github/workflows/`;實際部署時,中央檔案放進 `ci-workflows` repo 的 `.github/workflows/`,User 端 caller 放進專案的 `.github/workflows/`。故 `uses:` 路徑含 `.github/workflows/`(GitHub 硬性要求)。
+> AI-Spec repo 之後若要加自己的 CI(例:測試本 repo 的 markdown lint),也放 `.github/workflows/`;檔名前綴 `ci-` / `auto-` 自然跟 reusable workflow 區分。
 
 ---
 
-## 中央:ci-workflows
+## 中央 reusable workflow(`.github/workflows/`)
 
 CI 綁技術棧、後續流程不綁 —— 沿這條線拆。
 
 | 檔案 | 角色 | 內容 |
 | --- | --- | --- |
 | `ci-frontend-node.yml` | 分棧 CI | npm 前端(React / Vue):lint / typecheck / test / build / audit |
-| `ci-backend-python.yml` | 分棧 CI | Python(FastAPI 等):ruff / mypy / pytest / alembic / pip-audit |
-| `ci-backend-node.yml` | 分棧 CI | Node.js 後端:lint / typecheck / test / audit |
-| `ci-backend-java.yml` | 分棧 CI | Java:`mvn -B verify`(Gradle 可換指令) |
+| `ci-backend-python.yml` | 分棧 CI | Python(FastAPI / Tortoise / Django 等):ruff / mypy / pytest / migration round-trip(`migration_tool` 分派 alembic / aerich / django / none) / pip-audit |
+| `ci-backend-node.yml` | 分棧 CI | Node.js 後端:lint / typecheck / test / migration round-trip(`migration_tool` 分派 prisma / typeorm / knex / none) / audit |
+| `ci-backend-java.yml` | 分棧 CI | Java:`mvn -B verify`(Gradle 可換指令) / migration round-trip(`migration_tool` 分派 flyway / liquibase / none)/ OWASP `dependency-check`(CVSS ≥ 7 fail,過渡期 `continue-on-error`) |
 | `auto-cicd.yml` | 後續流程 | 機密掃描 → 安全掃描 → CI 彙整 → AI 審查 → 四態判決自動合併 → CD 觸發 |
 | `e2e.yml` | E2E | Playwright;預設由 caller 端 `if: false` 停用 |
 
@@ -59,12 +64,13 @@ CI 綁技術棧、後續流程不綁 —— 沿這條線拆。
 
 ## User 端:user-template skill
 
-User 專案不手抄 caller —— 跑 `user-template` skill,讓 AI 掃 `package.json` / `pyproject.toml` / `pom.xml` 自動判斷技術棧,產出對的 caller。
+User 專案不手抄 caller —— 跑 `user-template` skill,讓 AI 掃 `package.json` / `pyproject.toml` / `pom.xml` 自動判斷技術棧 + migration 工具,產出對的 caller。
 
-skill 做兩件事:
+skill 做三件事:
 
 1. **掃描**前端(React / Vue / 無)與後端(Python / Node / Java)技術棧。
-2. 依 `ci-cd.yml` / `e2e.yml` 模板**客製** → 寫進專案 `.github/workflows/`。
+2. **偵測 migration 工具**(見 SKILL.md 步驟 2.5)— 自動填 `with: migration_tool: ...`。
+3. 依 `ci-cd.yml` / `e2e.yml` 模板**客製** → 寫進專案 `.github/workflows/`。
 
 細節見 [user-template/SKILL.md](./user-template/SKILL.md)。
 
@@ -74,20 +80,20 @@ skill 做兩件事:
 
 ## 對應關係
 
-caller 裡每個 job 的 `uses:` 各指向 `ci-workflows` 的一支檔:
+caller 裡每個 job 的 `uses:` 各指向中央 repo `Dafon-IT/DF-AI-Spec/.github/workflows/` 下的一支檔:
 
 ```
- caller job              uses: ───→        ci-workflows
-──────────────────────────────────────────────────────────
+ caller job              uses: ───→        中央 .github/workflows/
+──────────────────────────────────────────────────────────────────
  frontend-ci   ──────────────────→  ci-frontend-node.yml
  backend-ci    ──┬───────────────→  ci-backend-python.yml ┐
                  ├───────────────→  ci-backend-node.yml   │ 依後端棧三選一
                  └───────────────→  ci-backend-java.yml   ┘
- auto-cicd     ──────────────────→  auto-cicd.yml          （固定)
- e2e           ──────────────────→  e2e.yml                （有前端才產)
+ auto-cicd     ──────────────────→  auto-cicd.yml          (固定)
+ e2e           ──────────────────→  e2e.yml                (有前端才產)
 ```
 
-`SKILL.md` 的偵測表每一列 = `ci-workflows` 的一支檔。**兩邊同步演進**:中央新增一支(例 `ci-backend-go.yml`),`SKILL.md` 偵測表就要補一列。
+`SKILL.md` 的偵測表每一列 = 中央 `.github/workflows/` 的一支檔。**兩邊同步演進**:中央新增一支(例 `ci-backend-go.yml`),`SKILL.md` 偵測表就要補一列。
 
 ---
 
@@ -95,8 +101,8 @@ caller 裡每個 job 的 `uses:` 各指向 `ci-workflows` 的一支檔:
 
 ### 中央團隊(一次性)
 
-1. 建私有 repo `ci-workflows`,把 6 支檔放進其 `.github/workflows/`。
-2. Settings → Actions → General → Access:開放給組織內其他 repo 呼叫。
+1. **6 支檔已在** `Dafon-IT/DF-AI-Spec/.github/workflows/` — 無須額外搬移。
+2. Settings → Actions → General → Access:開放給組織內其他 repo 呼叫(若是私有 repo)。
 3. 在**組織層級**設好下列 secrets / variables(各專案自動繼承,無須逐一設):
 
 | 類型 | 項目 |
@@ -108,7 +114,7 @@ caller 裡每個 job 的 `uses:` 各指向 `ci-workflows` 的一支檔:
 
 ### User 專案(每個專案)
 
-1. 把 `user-template/` 複製進專案的 `.claude/skills/`。
+1. 把 `Github-CI/user-template/` 複製進專案的 `.claude/skills/`。
 2. 在專案根目錄跑該 skill → 產出 `.github/workflows/ci-cd.yml`(+ 有前端則 `e2e.yml`)。
 3. 設 `main` 分支保護的 required status checks,見 Harness [07-branch-protection](../Development/Harness-Engineering/docs/Design-Base/05-CI/07-branch-protection.md)。
 

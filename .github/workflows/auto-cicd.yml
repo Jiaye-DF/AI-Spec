@@ -1,4 +1,4 @@
-# ci-workflows 中央 reusable — Auto-CI-CD 後續流程(步驟 ④~⑦,與技術棧無關)
+# 中央 reusable — Auto-CI-CD 後續流程(步驟 ④~⑦,與技術棧無關)
 #
 # 接在分棧 CI 之後:caller 端先挑對應的 ci-frontend-* / ci-backend-* reusable 跑完 CI,
 # 再把各自的 job result 以 inputs.frontend_result / inputs.backend_result 傳進來,本檔據此走後續。
@@ -6,7 +6,7 @@
 # 含:機密掃描 → 原始碼安全掃描 → CI 彙整 → AI 審查 → 四態判決自動合併 → CD 觸發。
 # 對齊 Architecture/Auto-CI-CD/workflow-v1.0/workflow-v1.0.md §一 步驟 ④~⑦ + §二 保護路徑 + §四.5 熔斷 + §五 Audit。
 #
-# 【部署】放中央 repo「ci-workflows」的 .github/workflows/auto-cicd.yml。
+# 【部署】放中央 repo `Dafon-IT/DF-AI-Spec` 的 `.github/workflows/auto-cicd.yml`。
 name: auto-cicd (reusable)
 
 on:

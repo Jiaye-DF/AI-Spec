@@ -22,10 +22,10 @@ description: 掃描專案技術棧(React / Vue / Jinja2 / Node.js / FastAPI / Ja
 
 | 項目 | 預設 | 說明 |
 | --- | --- | --- |
-| 中央 repo | `df-recycle/ci-workflows` | reusable workflow 所在 |
-| 版本 ref | `@v1` | 釘 tag 或 commit SHA,勿用 `@main` |
+| 中央 repo | `Dafon-IT/DF-AI-Spec` | reusable workflow 放在中央 repo 的 `.github/workflows/`(GitHub Actions 硬性要求) |
+| 版本 ref | `@v1.0.0`(模板預設) | 只用 fixed SemVer tag 或 40-char SHA;**禁用 floating tag(`@v1`)/ 禁用 branch(`@main`)**。完整 SOP 見 [`Github-CI/RELEASE.md`](../RELEASE.md) |
 
-模板內以此為預設;若不同,產生時一併替換。
+模板內以此為預設;若不同,產生時一併替換。產生後**建議**幫 User 一併加 `.github/dependabot.yml`(`package-ecosystem: github-actions`),讓中央發新 patch tag 時自動 PR 升版。
 
 ## 執行步驟
 
@@ -40,20 +40,41 @@ description: 掃描專案技術棧(React / Vue / Jinja2 / Node.js / FastAPI / Ja
 
 ### 2. 偵測後端
 
-| 偵測到 | 判定 | `backend-ci` 接 | 備註 |
+| 偵測到 | 判定 | `backend-ci` 接 | 必填 `with:` |
 | --- | --- | --- | --- |
-| `backend/pyproject.toml` | Python(FastAPI / Flask+Jinja2) | `ci-backend-python.yml` | 有 `backend/alembic/` → 預設;無 → 加 `with: run_migrations: false` |
-| `backend/package.json` | Node.js | `ci-backend-node.yml` | — |
-| `backend/pom.xml` | Java / Maven | `ci-backend-java.yml` | — |
-| `backend/build.gradle`(或 `.kts`) | Java / Gradle | `ci-backend-java.yml` | 加 `with: build_command: "./gradlew build"` |
+| `backend/pyproject.toml` | Python(FastAPI / Tortoise / Django 等) | `ci-backend-python.yml` | `migration_tool`(見步驟 2.5) |
+| `backend/package.json` | Node.js | `ci-backend-node.yml` | `migration_tool`(見步驟 2.5) |
+| `backend/pom.xml` | Java / Maven | `ci-backend-java.yml` | `migration_tool`(見步驟 2.5) |
+| `backend/build.gradle`(或 `.kts`) | Java / Gradle | `ci-backend-java.yml` | `build_command: "./gradlew build"` + `migration_tool` |
 
 > 專案結構非 `frontend/` + `backend/` 拆分時:掃根目錄找對應 manifest,把判定結果列給使用者確認後再產。
 
+### 2.5 偵測 Migration 工具
+
+中央 `ci-backend-*.yml` 都有 `migration_tool` input,依下表自動填值(對齊 [process-design-v1.1.md § Migration 偵測](../../Architecture/Auto-CI-CD/workflow-v1.1/process-design-v1.1.md#migration-偵測per-stack-分派)):
+
+| 後端棧 | 偵測訊號 | `migration_tool` 值 |
+| --- | --- | --- |
+| Python | `backend/alembic.ini` + `backend/alembic/` | `alembic`(預設) |
+| Python | `backend/pyproject.toml` 含 `tortoise-orm` + `backend/migrations/` | `aerich` |
+| Python | `backend/manage.py` 存在 | `django`(僅 forward,無 round-trip) |
+| Python | 都偵測不到 | `none` |
+| Node | `backend/prisma/schema.prisma` + `backend/prisma/migrations/` | `prisma`(用 reset 替代 down) |
+| Node | `backend/package.json` deps 含 `typeorm` + `backend/src/migration/`(或 `migrations/`) | `typeorm` |
+| Node | `backend/knexfile.{js,ts}` | `knex` |
+| Node | 都偵測不到 | `none`(預設) |
+| Java | `pom.xml` 含 `flyway-core` + `src/main/resources/db/migration/` | `flyway`(社群版用 clean+migrate 替代 undo) |
+| Java | `pom.xml` 含 `liquibase-core` + `src/main/resources/db/changelog/` | `liquibase` |
+| Java | 都偵測不到 / Hibernate auto-ddl | `none`(預設) |
+
+> 偵測不明確(例:同時存在 alembic + django,或 Node 多個 migration 套件)→ 停下問使用者,不要猜。
+
 ### 3. 產生 .github/workflows/ci-cd.yml
 
-讀本資料夾的 `ci-cd.yml` 模板,依步驟 1、2 客製:
+讀本資料夾的 `ci-cd.yml` 模板,依步驟 1、2、2.5 客製:
 
-- `backend-ci` 的 `uses:` 換成步驟 2 判定的 reusable;有 `with:` 需求一併補上。
+- `backend-ci` 的 `uses:` 換成步驟 2 判定的 reusable。
+- `backend-ci` 的 `with:` 補 `migration_tool: <步驟 2.5 判定值>`;Gradle 專案 另補 `build_command: "./gradlew build"`。
 - **無獨立前端**:刪整個 `frontend-ci` job、`auto-cicd` 的 `needs` 改 `[backend-ci]`、移除 `with.frontend_result` 那行。
 - 中央 repo / tag 與「中央 repo 參數」一致。
 
