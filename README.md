@@ -17,7 +17,7 @@
 
 ```
 AI-Spec/
-├── Architecture/Auto-CI-CD/          # 流程規格 + 全貌圖(workflow / diagram.html)
+├── Architecture/Auto-CI-CD/          # 流程規格 + 全貌圖(分版本資料夾,各含 workflow-vX.Y.md / .html)
 ├── Coolify-Deploy/                   # Docker Compose 規範(最新 v1.4)
 ├── Development/
 │   ├── spec/                         # 00-overview / 01-design-notes / scan-project
@@ -42,7 +42,7 @@ AI-Spec/
 | 接 DF-SSO | `Harness-Engineering/Skills/sso-init/` 對應框架 |
 | Replit 個人工具 | [replit/replit-spec-latest.md](replit/replit-spec-latest.md) |
 | 接 Auto-CI-CD(產 GitHub Actions caller) | [Github-CI/Github-CI.md](Github-CI/Github-CI.md) → 跑 `user-template` |
-| 看 Auto-CI-CD 全貌(掃機密→AI 審→自動合併→CD) | [workflow-v1.0.md](Architecture/Auto-CI-CD/workflow-v1.0.md) / [diagram.html](Architecture/Auto-CI-CD/diagram.html) |
+| 看 Auto-CI-CD 全貌(掃機密→AI 審→自動合併→CD) | **最新 v1.1**:[workflow-v1.1.md](Architecture/Auto-CI-CD/workflow-v1.1/workflow-v1.1.md) / [workflow-v1.1.html](Architecture/Auto-CI-CD/workflow-v1.1/workflow-v1.1.html) ・舊版 v1.0:[workflow-v1.0.md](Architecture/Auto-CI-CD/workflow-v1.0/workflow-v1.0.md) / [workflow-v1.0.html](Architecture/Auto-CI-CD/workflow-v1.0/workflow-v1.0.html) |
 | 寫 Coolify docker-compose | [Docker-Compose-Spec-v1.4.md](Coolify-Deploy/Docker-Compose-Spec-v1.4.md) |
 | 掃架構 / 資安 / 部署違規 | [spec/scan-project-v1.0.md](Development/spec/scan-project-v1.0.md) |
 

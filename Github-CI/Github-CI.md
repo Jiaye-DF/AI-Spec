@@ -1,7 +1,7 @@
 # Auto-CI-CD — GitHub 工作流設計
 
 > Auto-CI-CD 在 GitHub 端的實作,包裝給公司各專案使用。
-> 流程規格見 [workflow-v1.0.md](../Architecture/Auto-CI-CD/workflow-v1.0.md),全貌圖見 [diagram.html](../Architecture/Auto-CI-CD/diagram.html)。
+> 流程規格見 [workflow-v1.0.md](../Architecture/Auto-CI-CD/workflow-v1.0/workflow-v1.0.md)(本實作對齊 v1.0;v1.1 為 Agent Platform → CI/CD 管理平台的純改名,實作尚未跟上),全貌圖見 [workflow-v1.0.html](../Architecture/Auto-CI-CD/workflow-v1.0/workflow-v1.0.html)。
 
 ---
 
@@ -53,7 +53,7 @@ CI 綁技術棧、後續流程不綁 —— 沿這條線拆。
 
 `auto-cicd.yml` 跟技術棧無關 —— 它不 import 任何 CI 檔,而是收 caller 傳進來的前後端 CI 結果(`inputs.frontend_result` / `backend_result`)再走後續。新增一種棧只要加一支 `ci-*` 積木,不動 `auto-cicd.yml`。
 
-對齊 [workflow-v1.0.md](../Architecture/Auto-CI-CD/workflow-v1.0.md) §一:步驟③ = 分棧 CI 積木;步驟④~⑦ = `auto-cicd.yml`。
+對齊 [workflow-v1.0.md](../Architecture/Auto-CI-CD/workflow-v1.0/workflow-v1.0.md) §一:步驟③ = 分棧 CI 積木;步驟④~⑦ = `auto-cicd.yml`。
 
 ---
 
@@ -116,6 +116,6 @@ caller 裡每個 job 的 `uses:` 各指向 `ci-workflows` 的一支檔:
 
 ## 對齊基準
 
-- **流程** — [Architecture/Auto-CI-CD/workflow-v1.0.md](../Architecture/Auto-CI-CD/workflow-v1.0.md) §一 步驟 ②~⑦、§二 保護路徑、§四.5 熔斷、§五 Audit。
+- **流程** — [Architecture/Auto-CI-CD/workflow-v1.0/workflow-v1.0.md](../Architecture/Auto-CI-CD/workflow-v1.0/workflow-v1.0.md) §一 步驟 ②~⑦、§二 保護路徑、§四.5 熔斷、§五 Audit。
 - **CI 規範** — Harness [05-CI](../Development/Harness-Engineering/docs/Design-Base/05-CI/00-overview.md):job 命名 `frontend-test` / `backend-test`、觸發策略、版本鎖定(`postgres:17.2` / `uv 0.5.18`)。
 - **container scan(trivy)** 不在此 —— 本流程不 build image(image 由 Coolify 部署時建置),container scan 歸 06-Coolify-CD。

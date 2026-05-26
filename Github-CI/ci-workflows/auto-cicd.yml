@@ -4,7 +4,7 @@
 # 再把各自的 job result 以 inputs.frontend_result / inputs.backend_result 傳進來,本檔據此走後續。
 #
 # 含:機密掃描 → 原始碼安全掃描 → CI 彙整 → AI 審查 → 四態判決自動合併 → CD 觸發。
-# 對齊 Architecture/Auto-CI-CD/workflow-v1.0.md §一 步驟 ④~⑦ + §二 保護路徑 + §四.5 熔斷 + §五 Audit。
+# 對齊 Architecture/Auto-CI-CD/workflow-v1.0/workflow-v1.0.md §一 步驟 ④~⑦ + §二 保護路徑 + §四.5 熔斷 + §五 Audit。
 #
 # 【部署】放中央 repo「ci-workflows」的 .github/workflows/auto-cicd.yml。
 name: auto-cicd (reusable)
