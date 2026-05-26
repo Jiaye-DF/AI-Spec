@@ -1,17 +1,17 @@
-# 自動 CI/CD 流程 v1.1
+# 自動 CI/CD 流程 v1.0
 
-> **定位**:在既有的 Coolify 自動部署之上 **新增 AI 程式碼安全審查**,把「PR → GitHub CI → CI/CD 管理平台 審查 → 判斷 → 自動合併 → CD 部署 → 寄報告」串成一條 **完全自動化** 的 pipeline,**三個獨立服務各司其職**。
+> **定位**:在既有的 Coolify 自動部署之上 **新增 AI 程式碼安全審查**,把「PR → GitHub CI → Agent Platform 審查 → 判斷 → 自動合併 → CD 部署 → 寄報告」串成一條 **完全自動化** 的 pipeline,**三個獨立服務各司其職**。
 > **三服務拆分**:
 >  - 🔵 **GitHub 工作流引擎(GitHub Actions)** — 跑 CI / 打審查 API / 收 verdict / 判斷 merge / 觸發 Coolify
->  - 🔵 **CI/CD 管理平台** — 自建系統,內含 5 模組(接收入口 / 機密過濾 / OpenRouter Dispatch / 判決引擎 / 發布器),負責 AI code review 並產四態 verdict
->  - 🔵 **SMTP Notifier(寄信服務)** — 訂閱三方 webhook(GitHub + CI/CD 管理平台 + Coolify),自己彙整後寄信給特定人員
+>  - 🔵 **Agent Platform(Agent 管理系統)** — 自建系統,內含 5 模組(接收入口 / 機密過濾 / OpenRouter Dispatch / 判決引擎 / 發布器),負責 AI code review 並產四態 verdict
+>  - 🔵 **SMTP Notifier(寄信服務)** — 訂閱三方 webhook(GitHub + Agent Platform + Coolify),自己彙整後寄信給特定人員
 > **唯一人類介入點**:收 SMTP 報告(其他全自動)。
 
 ---
 
 ## 〇、三服務職責切分
 
-> **事件流程**:開發者推 PR → GitHub CI 5 檢查 → CI/CD 管理平台 AI 審查 → 四態判斷 → 自動合併 → Coolify 部署 → 寄信。
+> **事件流程**:開發者推 PR → GitHub CI 5 檢查 → Agent Platform AI 審查 → 四態判斷 → 自動合併 → Coolify 部署 → 寄信。
 
 ```mermaid
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
@@ -30,7 +30,7 @@ flowchart TB
       JSecsc[原始碼安全掃描]:::critical
     end
     Fanin([全部通過？]):::it
-    Health{4. CI/CD 管理平台存活檢查}:::it
+    Health{4. Agent 管理系統存活檢查}:::it
     Call[5. 送出審查請求]:::it
     Skip[降級｜跳過 AI 審查<br>改走人工]:::shared
     Gate{6. 判斷系統<br>四態判決}:::critical
@@ -41,7 +41,7 @@ flowchart TB
     Webhook[8. 通知部署平台]:::it
   end
 
-  Dispatch[CI/CD 管理平台<br>內含 5 個模組，詳見下節]:::it
+  Dispatch[Agent Platform（Agent 管理系統）<br>內含 5 個模組，詳見下節]:::it
   Coolify[Coolify 部署平台<br>建置 → 部署 → 健康檢查<br>失敗自動回滾]:::critical
   Notifier[寄信服務<br>訂閱三方事件 → 彙整 → 寄信]:::it
   Human([收件人]):::user
@@ -90,29 +90,29 @@ flowchart TB
 | 視角 | 重點 | 說明 |
 | --- | --- | --- |
 | 🟢 對開發者 | 推合併請求就收工 | CI / 程式碼審查 / 合併 / 部署全部自動,結果寄信通知 |
-| 🔵 對 IT | 安全審查流程解耦合 | 工作流引擎 / CI/CD 管理平台 / 寄信服務各自獨立部署,5 檢查任務並行 |
+| 🔵 對 IT | 安全審查流程解耦合 | 工作流引擎 / Agent Platform / 寄信服務各自獨立部署,5 檢查任務並行 |
 | 🔴 ★ 對資安 / 合規 | 稽核流程狀態管理 + 保護措施 | 四態判決(合併 / 衝突 / 人工 / 拒絕),專案事件紀錄留存 |
 
 **為什麼拆三個系統**:
-- **單一職責** — GitHub 工作流引擎只做 CI/merge,CI/CD 管理平台 只做 AI review,SMTP Notifier 只做通知
+- **單一職責** — GitHub 工作流引擎只做 CI/merge,Agent Platform 只做 AI review,SMTP Notifier 只做通知
 - **可獨立部署 / 替換** — 換 LLM 提供商不影響 SMTP,換郵件服務不影響 review
-- **失敗隔離** — SMTP 掛了不會卡住 merge / deploy;CI/CD 管理平台 掛了 GitHub 工作流引擎走 fallback(降級走人工)
+- **失敗隔離** — SMTP 掛了不會卡住 merge / deploy;Agent Platform 掛了 GitHub 工作流引擎走 fallback(降級走人工)
 - **SMTP 是長駐服務** — 比 GitHub Actions 無狀態 runner 更適合做跨階段彙整(自己有 DB 暫存事件 → 湊齊再寄)
 
 人類**只**收信,中間 0 介入。
 
 > **適用範圍** — 內部工具 / 中低風險服務。對外正式服務 / 金流 / 法遵敏感系統不適用(須回到 U2 人核流程)。
 
-### CI/CD 管理平台 內部 5 模組
+### Agent Platform 內部 5 模組
 
-> **CI/CD 管理平台 = 自建系統**:對 GitHub 工作流引擎而言是一個 HTTP API,內部由 5 個單一職責模組串成管線。每個模組可獨立替換,**任一模組失敗 → 統一回四態的 `manual`(人工)**。
+> **Agent Platform = 自建系統**:對 GitHub 工作流引擎而言是一個 HTTP API,內部由 5 個單一職責模組串成管線。每個模組可獨立替換,**任一模組失敗 → 統一回四態的 `manual`(人工)**。
 
 ```mermaid
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart LR
   Ext([GitHub 工作流<br>送審查請求]):::it
 
-  subgraph DSP[CI/CD 管理平台]
+  subgraph DSP[Agent Platform（Agent 管理系統）]
     direction LR
     M1[1. 接收入口]:::it
     M2[2. 機密過濾]:::critical
@@ -195,10 +195,10 @@ on:
 
 完成後產出 `ci-report.json`(artifact),供步驟 ④ + ⑧ 讀取。
 
-### 步驟 ④ — 打 CI/CD 管理平台 做 code review
+### 步驟 ④ — 打 Agent Platform 做 code review
 
-> **CI/CD 管理平台 = 自建系統**(內部 5 模組見 § 〇):對外是 HTTP API,內部負責驗憑證、機密過濾、挑 model、跑 review prompt、依規則庫產 verdict。
-> 對 GitHub Actions 而言它就是一個 HTTP endpoint,workflow 不在乎 CI/CD 管理平台 後面挑了哪個 LLM。
+> **Agent Platform = 自建系統**(內部 5 模組見 § 〇):對外是 HTTP API,內部負責驗憑證、機密過濾、挑 model、跑 review prompt、依規則庫產 verdict。
+> 對 GitHub Actions 而言它就是一個 HTTP endpoint,workflow 不在乎 Agent Platform 後面挑了哪個 LLM。
 
 **Workflow step**(只在 CI 全綠後跑):
 
@@ -212,21 +212,21 @@ ai-review:
   steps:
     - uses: actions/checkout@v4
 
-    # ─── ④.0 CI/CD 管理平台 健康檢查(打 /review 前先確認服務在) ───
-    - name: CI/CD 管理平台 health check
+    # ─── ④.0 Agent Platform 健康檢查(打 /review 前先確認服務在) ───
+    - name: Agent Platform health check
       id: health
       env:
-        PLATFORM_URL: ${{ vars.CICD_PLATFORM_URL }}
+        PLATFORM_URL: ${{ vars.AGENT_PLATFORM_URL }}
       run: |
         # 5s 連線 timeout + 10s 讀取 timeout,只看 HTTP code
         code=$(curl -sS -o /dev/null -w "%{http_code}" \
                     --connect-timeout 5 --max-time 10 \
                     "$PLATFORM_URL/health" || echo "000")
-        echo "CI/CD 管理平台 /health => HTTP $code"
+        echo "Agent Platform /health => HTTP $code"
         if [ "$code" = "200" ]; then
           echo "skipped=false" >> $GITHUB_OUTPUT
         else
-          echo "::warning::CI/CD 管理平台 unhealthy (HTTP $code) → 跳過 AI Review,進入降級模式"
+          echo "::warning::Agent Platform unhealthy (HTTP $code) → 跳過 AI Review,進入降級模式"
           echo "skipped=true"  >> $GITHUB_OUTPUT
         fi
 
@@ -237,12 +237,12 @@ ai-review:
     - name: Redact secrets
       if: steps.health.outputs.skipped == 'false'
       run: gitleaks protect --staged /tmp/pr.diff
-    - name: Call CI/CD 管理平台 /review
+    - name: Call Agent Platform /review
       id: review
       if: steps.health.outputs.skipped == 'false'
       env:
-        PLATFORM_URL: ${{ vars.CICD_PLATFORM_URL }}
-        PLATFORM_KEY: ${{ secrets.CICD_PLATFORM_KEY }}
+        PLATFORM_URL: ${{ vars.AGENT_PLATFORM_URL }}
+        PLATFORM_KEY: ${{ secrets.AGENT_PLATFORM_KEY }}
       run: |
         curl -X POST "$PLATFORM_URL/review" \
           -H "Authorization: Bearer $PLATFORM_KEY" \
@@ -280,15 +280,15 @@ ai-review:
 **Health check unhealthy → 走 `manual`,不直接 merge**:
 - 對齊四態設計:沒 AI 把關 = 需人工介入
 - PR 改成 draft + 加 label `needs-tech-lead`,SMTP 通知
-- CI/CD 管理平台 恢復後,作者新 push 重跑流程即可
+- Agent Platform 恢復後,作者新 push 重跑流程即可
 
-**CI/CD 管理平台 `/health` 規格**(接收入口模組提供):
+**Agent Platform `/health` 規格**(接收入口模組提供):
 - `GET /health` → 200 + `{"status":"ok"}` 表示可服務
 - 任何非 200(含 timeout / 連線失敗)→ 視為 unhealthy
 - 連線 timeout 5s + 讀取 timeout 10s(避免 health check 自己卡住 CI)
 - Health check **不需 API key**(只看可用性,不查業務資料)
 
-**CI/CD 管理平台 `/review` API 合約**(請求 → 回應):
+**Agent Platform `/review` API 合約**(請求 → 回應):
 
 ```jsonc
 // Request
@@ -300,7 +300,7 @@ ai-review:
   "rules_ref": "99-code-review/v1.0"
 }
 
-// Response(CI/CD 管理平台 回傳給 GitHub)
+// Response(Agent Platform 回傳給 GitHub)
 {
   "verdict": "mergeable | conflict | manual | reject",   // 四態,見下表
   "verdict_zh": "可以合併 | 衝突 | 人工介入 | 不能合併",  // 中文對照,給 PR 評論用
@@ -326,14 +326,14 @@ ai-review:
 | --- | --- | --- | --- |
 | `mergeable` | 可以合併 | AI 評估無 blocker / 無保護路徑命中 | 進入步驟 ⑥ 判斷 → auto-merge |
 | `conflict` | 衝突 | 偵測到語意衝突(同 schema / 同 API / 同 migration 號)或 git merge conflict | 留評論通知作者 rebase,PR 不關 |
-| `manual` | 人工介入 | AI 含 blocker / 保護路徑 / CI/CD 管理平台 自身 unhealthy(降級) | PR 改 draft + label `needs-tech-lead`,SMTP 通知 |
+| `manual` | 人工介入 | AI 含 blocker / 保護路徑 / Agent Platform 自身 unhealthy(降級) | PR 改 draft + label `needs-tech-lead`,SMTP 通知 |
 | `reject` | 不能合併 | secret-scan fail / high CVE / AI 明確判 fail | PR auto-close + 留 reject 評論 |
 
 **安全邊界**(對應 U4 § 4.4 + § 4.7):
-- workflow → CI/CD 管理平台 只送 diff + PR body,**不**送整個 repo
-- 送 CI/CD 管理平台 前 `gitleaks` redact;CI/CD 管理平台 的**機密過濾模組**是第三道(雙保險再加一)
-- Token cap:input 200K / output 8K(CI/CD 管理平台 端強制)
-- **CI/CD 管理平台 服務本身只有 GitHub 讀 + 評論權限,不能** 呼 GitHub merge API(merge 由步驟 ⑥ workflow 內 `auto-merge` step 處理)
+- workflow → Agent Platform 只送 diff + PR body,**不**送整個 repo
+- 送 Agent Platform 前 `gitleaks` redact;Agent Platform 的**機密過濾模組**是第三道(雙保險再加一)
+- Token cap:input 200K / output 8K(Agent Platform 端強制)
+- **Agent Platform 服務本身只有 GitHub 讀 + 評論權限,不能** 呼 GitHub merge API(merge 由步驟 ⑥ workflow 內 `auto-merge` step 處理)
 
 ### 步驟 ⑤ — API 回傳結果到 GitHub
 
@@ -367,15 +367,15 @@ ai-review:
 ```mermaid
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart TB
-  Start([6. 判斷觸發<br>檢查結果 + CI/CD 管理平台判決]):::it
+  Start([6. 判斷觸發<br>檢查結果 + Agent 管理系統判決]):::it
 
   Q1{機密掃描失敗？}:::critical
   Q2{安全掃描失敗<br>含高危漏洞？}:::critical
-  Q3{CI/CD 管理平台判 = 拒絕？}:::it
+  Q3{Agent 管理系統判 = 拒絕？}:::it
   Q4{檢查失敗或<br>與 main 有衝突？}:::it
-  Q5{CI/CD 管理平台判 = 人工？}:::it
+  Q5{Agent 管理系統判 = 人工？}:::it
   Q6{含保護路徑？}:::critical
-  Q7{CI/CD 管理平台判 = 可合併<br>且檢查全綠？}:::it
+  Q7{Agent 管理系統判 = 可合併<br>且檢查全綠？}:::it
 
   Reject[拒絕<br>關閉合併請求]:::critical
   Conflict[衝突<br>請作者修]:::shared
@@ -412,15 +412,15 @@ flowchart TB
 | --- | --- | --- | --- |
 | 1 | `ci.secret-scan == fail` | `reject` | PR auto-close + 評論「機密外洩」 |
 | 2 | `ci.security-scan == fail` 含 `high+` CVE | `reject` | PR auto-close + 評論 CVE 列表 |
-| 3 | CI/CD 管理平台 `verdict == reject` | `reject` | PR auto-close + CI/CD 管理平台 的 reason |
+| 3 | Agent Platform `verdict == reject` | `reject` | PR auto-close + Agent Platform 的 reason |
 | 4 | `ci.frontend\|backend == fail` | `conflict` | 留評論「CI 失敗,請修正後 push」 |
 | 5 | PR 與 main 有 git conflict | `conflict` | 留評論「請 rebase / merge main」 |
-| 6 | CI/CD 管理平台 `verdict == manual`(blocker / 保護路徑 / unhealthy) | `manual` | PR 改 draft + label `needs-tech-lead` |
+| 6 | Agent Platform `verdict == manual`(blocker / 保護路徑 / unhealthy) | `manual` | PR 改 draft + label `needs-tech-lead` |
 | 7 | PR 改動含 **保護路徑**(見 § 二) | `manual` | 同上 |
-| 8 | CI/CD 管理平台 `verdict == mergeable` 且 CI 全綠 | `mergeable` | **auto-merge** ✅ |
+| 8 | Agent Platform `verdict == mergeable` 且 CI 全綠 | `mergeable` | **auto-merge** ✅ |
 | 9 | 上述皆無命中(例:CI 全綠但 verdict 缺欄位) | `manual` | 防呆,走人工 |
 
-> **核心對應**:**CI/CD 管理平台 的 verdict 是建議**,workflow 步驟 ⑥ 是 **最終判決**。CI/CD 管理平台 不該因為 secret-scan / security-scan(CI 才知道)的結果改 verdict — 那些由 workflow 判。
+> **核心對應**:**Agent Platform 的 verdict 是建議**,workflow 步驟 ⑥ 是 **最終判決**。Agent Platform 不該因為 secret-scan / security-scan(CI 才知道)的結果改 verdict — 那些由 workflow 判。
 
 **自動合併 step**(依四態分派):
 
@@ -433,7 +433,7 @@ auto-merge:
       env:
         PLATFORM_VERDICT: ${{ needs.ai-review.outputs.verdict }}
       run: |
-        # 保護路徑檢查(可覆寫 CI/CD 管理平台 的 mergeable)
+        # 保護路徑檢查(可覆寫 Agent Platform 的 mergeable)
         if git diff --name-only origin/main...HEAD \
             | grep -qE '^(docs/Design-Base/|\.github/workflows/|infra/|.*migrations/)'; then
           echo "verdict=manual" >> $GITHUB_OUTPUT
@@ -467,13 +467,13 @@ auto-merge:
 
 ### 步驟 ⑧ — SMTP Notifier 寄報告(**獨立服務,不在 GitHub Actions 內**)
 
-> **本步驟由獨立的 SMTP Notifier 服務處理**,GitHub Actions / CI/CD 管理平台 / Coolify 三方各自把結果 POST 給 Notifier,**Notifier 自己彙整再寄**。
+> **本步驟由獨立的 SMTP Notifier 服務處理**,GitHub Actions / Agent Platform / Coolify 三方各自把結果 POST 給 Notifier,**Notifier 自己彙整再寄**。
 
 **SMTP Notifier 端要做的事**:
 
 1. 訂閱三方 webhook(對 Notifier 而言全部是「事件來源」):
    - 來自 **GitHub Actions** → CI 結果 + merge 結果
-   - 來自 **CI/CD 管理平台** → AI review verdict + findings
+   - 來自 **Agent Platform** → AI review verdict + findings
    - 來自 **Coolify** → deploy + health check + rollback
 2. 內部用 PR# 當 key 暫存事件(short-lived DB / Redis)
 3. 湊齊條件 → 依 § 三 通知策略決定收件人 → 彙整內容寄 SMTP
@@ -494,10 +494,10 @@ POST /events
   "ts": "2026-05-19T10:23:00Z"
 }
 
-// 來自 CI/CD 管理平台(AI review 完成)
+// 來自 Agent Platform(AI review 完成)
 POST /events
 {
-  "source": "cicd-platform",
+  "source": "agent-platform",
   "event": "review.done",
   "pr_number": 123,
   "commit_sha": "abc1234",
@@ -505,7 +505,7 @@ POST /events
   "blocker_count": 0,
   "major_count": 1,
   "model_used": "anthropic/claude-opus-4-7",
-  "summary_url": "https://cicd-platform.../reviews/123",
+  "summary_url": "https://agent-platform.../reviews/123",
   "ts": "2026-05-19T10:24:00Z"
 }
 
@@ -540,10 +540,10 @@ Audit:          https://audit.df-recycle.com.tw/pr/123
 PR:             https://github.com/df-recycle/repo/pull/123
 ```
 
-**為什麼 SMTP 是獨立服務、不放 GitHub Actions、也不放 CI/CD 管理平台**:
+**為什麼 SMTP 是獨立服務、不放 GitHub Actions、也不放 Agent Platform**:
 - **GitHub Actions** 是無狀態 runner,跨階段彙整要靠 artifact 串接很脆弱;且 runner 死掉信就漏
-- **CI/CD 管理平台** 專心做 AI review,塞通知邏輯會打亂單一職責
-- **獨立 Notifier** 有自己的 DB 可暫存事件,湊齊或超時都能處理;通知模板 / 收件人 / 黑白名單變動只動 Notifier,不動 workflow 也不動 CI/CD 管理平台
+- **Agent Platform** 專心做 AI review,塞通知邏輯會打亂單一職責
+- **獨立 Notifier** 有自己的 DB 可暫存事件,湊齊或超時都能處理;通知模板 / 收件人 / 黑白名單變動只動 Notifier,不動 workflow 也不動 Agent Platform
 
 ---
 
@@ -589,7 +589,7 @@ PR:             https://github.com/df-recycle/repo/pull/123
 flowchart LR
   subgraph F[失敗來源]
     direction TB
-    F1[CI/CD 管理平台失敗]:::it
+    F1[Agent 管理系統失敗]:::it
     F2[合併後檢查失敗<br>語意衝突]:::it
     F3[部署平台失敗]:::critical
     F4[連續失敗熔斷]:::critical
@@ -634,7 +634,7 @@ flowchart LR
   git push --force-with-lease
   ```
 
-### 4.2 CI/CD 管理平台 失敗
+### 4.2 Agent Platform 失敗
 
 - 重試 2 次 → 仍失敗 → 判斷 = **`manual`(人工)**(無 AI 意見不敢自動 merge)
 - SMTP 通知 tech-lead
@@ -669,7 +669,7 @@ flowchart LR
   "pr_number": 123,
   "commit_sha": "abc1234",
   "stage": "ci | ai-review | judgement | merge | deploy | notify | rollback",
-  "actor": "github-actions[bot] | cicd-platform | auto-merge-step | coolify",
+  "actor": "github-actions[bot] | agent-platform | auto-merge-step | coolify",
   "result": "pass | hold | reject | fail | success",
   "matched_rule_id": "auto-merge#row3",   // judgement 階段必填
   "report_uri": "artifact://... 或 s3://...",
@@ -687,8 +687,8 @@ flowchart LR
 | 合規通則 | 本流程落點 |
 | --- | --- |
 | 1. 容器與映像 | 步驟 ⑦ image tag = commit SHA(禁 `latest`) |
-| 2. Secret 管理 | GitHub Secrets + 步驟 ④ gitleaks redact + CI/CD 管理平台 機密過濾模組 |
-| 3. 權限與隔離 🔴 | CI/CD 管理平台 只有讀權限,不能 merge;唯一 merge 來源 = `auto-merge` step |
+| 2. Secret 管理 | GitHub Secrets + 步驟 ④ gitleaks redact + Agent Platform 機密過濾模組 |
+| 3. 權限與隔離 🔴 | Agent Platform 只有讀權限,不能 merge;唯一 merge 來源 = `auto-merge` step |
 | 4. 可觀測性 | § 五 Audit + Coolify → Seq stdout |
 | 5. CI/CD 🔴 | 步驟 ② + ⑦(push → auto deploy);Prompt 改視同 code |
 | 6. Audit Trail 🔴 | § 五 — retention ≥ 2 年 |
@@ -703,11 +703,11 @@ flowchart LR
 
 | Harness 元件 | 本流程對應 |
 | --- | --- |
-| **U3 ② 設計 Review Agent** | 步驟 ④「打 CI/CD 管理平台」 |
+| **U3 ② 設計 Review Agent** | 步驟 ④「打 Agent Platform」 |
 | **U3 ⑤ 維運/告警 Agent** | § 四.5 熔斷 + § 三 SMTP 告警 |
 | **U3 ⑥ 主管報告 Agent** | § 三 排程週報 |
 | **U3 Leader / Tool Gateway** | (本流程暫不導入,workflow 本身就是 orchestrator) |
-| **U4 § 4.1 Prompts** | CI/CD 管理平台 判決引擎的 prompt 版本鎖 |
+| **U4 § 4.1 Prompts** | Agent Platform 判決引擎的 prompt 版本鎖 |
 | **U4 § 4.2 Tools** | API 限定能呼 GitHub 評論 + status,**不能** merge |
 | **U4 § 4.4 Sandbox** 🔴 | 步驟 ④ diff-only + redact + runner 隔離 |
 | **U4 § 4.5 Tests / CI** | 步驟 ③ 5 jobs |
@@ -722,9 +722,9 @@ flowchart LR
 ## 八、自我檢核
 
 - [ ] `.github/workflows/ci-cd.yml` 含 § 一 8 個步驟(② ~ ⑧)
-- [ ] CI/CD 管理平台 URL + Key 走 GitHub Variables / Secrets(`CICD_PLATFORM_URL` / `CICD_PLATFORM_KEY`)
-- [ ] 步驟 ④ 送出前過一次 gitleaks redact(即使 secret-scan 已過也要);CI/CD 管理平台 機密過濾模組為第三道
-- [ ] CI/CD 管理平台 服務本身**不能** 呼 GitHub merge(權限分離,唯一 merge 來源 = `auto-merge` step)
+- [ ] Agent Platform URL + Key 走 GitHub Variables / Secrets(`AGENT_PLATFORM_URL` / `AGENT_PLATFORM_KEY`)
+- [ ] 步驟 ④ 送出前過一次 gitleaks redact(即使 secret-scan 已過也要);Agent Platform 機密過濾模組為第三道
+- [ ] Agent Platform 服務本身**不能** 呼 GitHub merge(權限分離,唯一 merge 來源 = `auto-merge` step)
 - [ ] 步驟 ⑥ 四態判斷規則寫在 workflow yaml(可 review、可 test)
 - [ ] § 二 保護路徑列表落地,且這些路徑強制走 `manual`
 - [ ] § 三 SMTP 通知策略:不寄每次 push,只寄有意義的事件
@@ -736,15 +736,10 @@ flowchart LR
 
 ## 九、版本
 
-- **v1.1(2026-05-26)** — 純改名,流程與 API 不變:
-  - 對外名稱「Agent Platform / Agent 管理系統」一律改為「CI/CD 管理平台」
-  - 環境變數同步改名:`AGENT_PLATFORM_URL` → `CICD_PLATFORM_URL`、`AGENT_PLATFORM_KEY` → `CICD_PLATFORM_KEY`
-  - SMTP Notifier 事件 `source` 欄位:`agent-platform` → `cicd-platform`
-  - 5 模組(接收入口 / 機密過濾 / OpenRouter Dispatch / 判決引擎 / 發布器)與 `/health`、`/review` API 合約完全沿用 v1.0
 - **v1.0(2026-05-19)** — 首版,線性 GitHub Actions pipeline:
-  - § 〇 三服務職責切分(主流程 mermaid 圖)+ CI/CD 管理平台 內部 5 模組拆解(接收入口 / 機密過濾 / OpenRouter Dispatch / 判決引擎 / 發布器)
+  - § 〇 三服務職責切分(主流程 mermaid 圖)+ Agent Platform 內部 5 模組拆解(接收入口 / 機密過濾 / OpenRouter Dispatch / 判決引擎 / 發布器)
   - § 一 完整 workflow 範例(yaml snippet 可直接抄)
-  - § 一.④ CI/CD 管理平台 `/review` 合約(request / response schema)
+  - § 一.④ Agent Platform `/review` 合約(request / response schema)
   - § 一.⑥ 四態判決狀態機(mergeable / conflict / manual / reject)
   - § 二 保護路徑(規範 / workflow / infra / migration 強制走 `manual`)
   - § 四 衝突 / 失敗 / 熔斷處理(1h deploy fail ≥ 3 或 24h rollback ≥ 2)

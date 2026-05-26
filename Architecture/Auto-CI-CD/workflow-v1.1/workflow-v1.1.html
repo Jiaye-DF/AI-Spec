@@ -158,7 +158,7 @@
       font-size: 13px; white-space: pre-wrap; text-align: left;
     }
 
-    /* ---- HTML slide:cards + 內嵌 mermaid 混排 ---- */
+    /* ---- HTML slide:cards + 內嵌 mermaid 混排（對齊 presentation-datas SSO 樣式） ---- */
     .cards-wrap { max-width: 1280px; width: 100%; }
     .cards-head {
       margin-bottom: 18px;
@@ -266,17 +266,6 @@
       line-height: 1.6;
     }
     .flow-legend strong { color: var(--fg); }
-    .code-block {
-      background: var(--bg-soft);
-      padding: 14px;
-      border-radius: 8px;
-      font-family: 'JetBrains Mono', Consolas, monospace;
-      font-size: 13px;
-      line-height: 1.6;
-      overflow-x: auto;
-      color: var(--fg);
-      white-space: pre;
-    }
   </style>
 </head>
 <body>
@@ -287,16 +276,16 @@
     鍵盤：← / → 翻頁；+ / − 縮放；0 重設；F 符合視窗；Ctrl+滾輪也可 zoom。
   -->
 
-  <!-- ================== 1. 整體流程概觀 (8 步) ================== -->
+  <!-- ================== 1. Auto CI + CD 任務流程 ================== -->
   <script type="text/plain" id="main-flow"
-          data-label="1. 整體流程概觀"
+          data-label="1. Auto CI + CD 任務流程"
           data-order="1"
           data-kind="flow"
           data-format="html">
 <div class="cards-wrap">
   <div class="cards-head">
     <strong>自動 CI/CD — 基於 Coolify 自動部署上，新增專案安全檢查</strong>
-    <span>· GitHub 工作流引擎 × CI/CD 管理平台 × 寄信服務 ·</span>
+    <span>· GitHub 工作流引擎 × CI/CD 管理平台× 寄信服務 ·</span>
   </div>
 
   <div class="cards-grid cols-3" style="margin-bottom: 16px;">
@@ -306,61 +295,84 @@
       <div class="card-body">持續整合 / 程式碼審查 / 合併 / 部署全部自動，結果寄信通知。</div>
     </div>
     <div class="card it">
-      <div class="card-badges"><span class="card-badge">🔵 對 IT</span><span class="card-tag">兩層審查省成本</span></div>
-      <div class="card-title">Tier 1 規則閘門擋掉雜訊</div>
-      <div class="card-body">Tier 1 純規則攔掉明顯不合規 PR（workflow 偷改 / 大規模 / 螞蟻搬家）→ 才打 LLM 做 Tier 2 深度審查，省 API 配額。</div>
+      <div class="card-badges"><span class="card-badge">🔵 對 IT</span><span class="card-tag">對齊 Harness 規範</span></div>
+      <div class="card-title">安全審查流程解耦合</div>
+      <div class="card-body">工作流引擎 / CI/CD 管理平台 / 寄信服務各自獨立部署，5 個檢查任務並行。</div>
     </div>
     <div class="card critical">
       <div class="card-badges"><span class="card-badge">🔴 ★ 對資安 / 合規</span></div>
-      <div class="card-title">中央政策 User 無權改</div>
-      <div class="card-body">每個專案的風險等級、嚴格度、保護路徑都在中央 <code>projects/{repo}.yml</code> 管理，User repo 無權降低門檻。</div>
+      <div class="card-title">稽核流程狀態管理 + 保護措施</div>
+      <div class="card-body">4 種狀態（合併 / 刪除 / 衝突 / 人工），專案事件紀錄留存。</div>
     </div>
   </div>
 
   <div>
-    <div class="flow-section-title"><strong>事件流程</strong> &nbsp;—&nbsp; PR → CI → Tier 1 規則 → Tier 2 AI → 判決 → 部署 → 寄信</div>
+    <div class="flow-section-title"><strong>事件流程</strong> &nbsp;—&nbsp; 開發者推合併請求 → 檢查 → AI 審查 → 判斷 → 部署 → 寄信</div>
     <pre class="mermaid">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart TB
   Dev([1. 開發者<br>推合併請求到 main]):::user
-  GHA[2. 工作流自動觸發<br>User caller → 中央 reusable]:::it
 
-  subgraph CI[3. 並行 CI 4 個檢查任務]
+  subgraph GH[GitHub 工作流引擎]
     direction TB
-    JFront[前端檢查<br>含套件漏洞稽核]:::it
-    JBack[後端檢查<br>含套件漏洞稽核]:::it
-    JSec[機密外洩掃描]:::critical
-    JSecsc[原始碼安全掃描]:::critical
+    Trigger[2. 工作流自動觸發]:::it
+    subgraph CI[3. 並行 5 個檢查任務]
+      direction TB
+      JFront[前端檢查]:::it
+      JBack[後端檢查]:::it
+      JAudit[套件漏洞稽核]:::it
+      JSec[機密外洩掃描]:::critical
+      JSecsc[原始碼安全掃描]:::critical
+    end
+    Fanin([全部通過？]):::it
+    Health{4. CI/CD 管理平台存活檢查}:::it
+    Call[5. 送出審查請求]:::it
+    Skip[降級｜跳過 AI 審查<br>改走人工]:::shared
+    Gate{6. 判斷系統<br>四態判決}:::critical
+    Merge[7. 可合併<br>壓縮合併]:::it
+    Conflict[衝突<br>請作者重新接上 main]:::shared
+    Manual[人工<br>合併請求改成草稿]:::shared
+    Reject[拒絕<br>關閉合併請求]:::critical
+    Webhook[8. 通知部署平台]:::it
   end
 
-  Fanin([4a. 全部通過?]):::it
-  Health{4b. 平台<br>存活檢查}:::it
-  T1{5. Tier 1<br>規則閘門<br>無 LLM、純規則}:::shared
-  T2[6. Tier 2<br>AI Reviewer<br>LLM + 工具]:::critical
-  V{7. 四態判決<br>動作分派}:::critical
-  Audit[8. 稽核 + 寄信]:::it
-  CD([→ Coolify 部署]):::user
+  Dispatch[CI/CD 管理平台<br>內含 5 個模組，詳見下一張]:::it
+  Coolify[Coolify 部署平台<br>建置 → 部署 → 健康檢查<br>失敗自動回滾]:::critical
+  Notifier[寄信服務<br>訂閱三方事件 → 彙整 → 寄信]:::it
   Human([收件人]):::user
 
-  Dev --> GHA
-  GHA ==> JFront
-  GHA ==> JBack
-  GHA ==> JSec
-  GHA ==> JSecsc
+  Dev --> Trigger
+  Trigger ==> JFront
+  Trigger ==> JBack
+  Trigger ==> JAudit
+  Trigger ==> JSec
+  Trigger ==> JSecsc
   JFront --> Fanin
   JBack --> Fanin
+  JAudit --> Fanin
   JSec --> Fanin
   JSecsc --> Fanin
-  Fanin -->|全綠| Health
-  Fanin -.任一紅.-> V
-  Health -->|健康| T1
-  Health -.不健康.-> V
-  T1 -->|通過| T2
-  T1 -.命中規則.-> V
-  T2 ==> V
-  V ==>|可合併| CD
-  V ==> Audit
-  Audit ==> Human
+  Fanin -->|全部通過| Health
+  Fanin -.任一失敗.-> Gate
+  Health -->|健康| Call
+  Health -.不健康.-> Skip
+  Skip --> Gate
+  Call ==>|送程式碼差異| Dispatch
+  Dispatch ==>|判決回傳| Gate
+  Gate ==>|可合併| Merge
+  Gate -->|衝突| Conflict
+  Gate -->|人工| Manual
+  Gate -->|拒絕| Reject
+  Merge --> Webhook
+  Webhook ==>|通知| Coolify
+
+  Dispatch -.->|審查完成事件| Notifier
+  Coolify -.->|"部署完成<br>回滾事件"| Notifier
+  Merge -.->|merge 完成事件| Notifier
+  Conflict --> Notifier
+  Manual --> Notifier
+  Reject --> Notifier
+  Notifier ==>|寄信| Human
 
   classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
   classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
@@ -370,53 +382,53 @@ flowchart TB
   </div>
 
   <div class="cards-foot">
-    <strong>適用範圍：</strong>&nbsp;&nbsp;內部工具 / 中低風險服務。對外正式服務 / 金流 / 法遵敏感系統不適用（需回到人核流程）。
+    <strong>適用範圍：</strong>&nbsp;&nbsp;內部工具 / 中低風險服務。對外正式服務 / 金流 / 法遵敏感系統不適用。
   </div>
 </div>
   </script>
 
-  <!-- ================== 2. CI/CD 管理平台 內部拆解 ================== -->
+  <!-- ================== 1.5 CI/CD 管理平台 內部拆解 ================== -->
   <script type="text/plain" id="dispatch-internals"
-          data-label="2. 管理平台內部 + Tier 對應"
-          data-order="2"
+          data-label="1.5 CI/CD 管理平台 內部拆解"
+          data-order="1.5"
           data-kind="flow"
           data-format="html">
 <div class="cards-wrap">
   <div class="cards-head">
-    <strong>CI/CD 管理平台 ▸ 內部 5 模組 + Tier 1 / Tier 2 對應</strong>
+    <strong>CI/CD 管理平台 ▸ 內部 5 模組</strong>
     <span>· 每個模組單一職責 · 可獨立替換 · 任一失敗統一回人工 ·</span>
   </div>
 
   <div class="cards-grid cols-3" style="margin-bottom: 16px;">
     <div class="card it">
-      <div class="card-badges"><span class="card-badge">1. 接收入口</span><span class="card-tag">Tier 1</span></div>
+      <div class="card-badges"><span class="card-badge">1. 接收入口</span></div>
       <div class="card-title">接請求 + 驗憑證 + 限流</div>
       <div class="card-body">驗證失敗即回拒，不進後面模組。</div>
     </div>
     <div class="card critical">
-      <div class="card-badges"><span class="card-badge">2. 機密過濾</span><span class="card-tag">Tier 1</span></div>
+      <div class="card-badges"><span class="card-badge">2. 機密過濾</span></div>
       <div class="card-title">第三道機密偵測</div>
       <div class="card-body">發現密碼 / 憑證仍在 → 拒收，避免送進語言模型。</div>
     </div>
     <div class="card it">
-      <div class="card-badges"><span class="card-badge">3. OpenRouter Dispatch</span><span class="card-tag">Tier 2</span></div>
+      <div class="card-badges"><span class="card-badge">3. OpenRouter Dispatch</span><span class="card-tag">獨立服務</span></div>
       <div class="card-title">依大小 / 類型挑語言模型</div>
-      <div class="card-body">小 PR + 內部工具 → Haiku；大 PR + payment → Opus。配額 / 退路集中管理。</div>
+      <div class="card-body">配額 / 退路集中管理。</div>
     </div>
     <div class="card shared">
-      <div class="card-badges"><span class="card-badge">4. 判決引擎</span><span class="card-tag">Tier 1 + Tier 2</span></div>
-      <div class="card-title">規則閘門 + LLM 套表</div>
-      <div class="card-body">規則部分 = Tier 1（無 LLM 純規則）；LLM 部分 = Tier 2（呼語言模型）。產四態判決 + 問題清單。</div>
+      <div class="card-badges"><span class="card-badge">4. 判決引擎</span></div>
+      <div class="card-title">呼語言模型 + 套規則庫</div>
+      <div class="card-body">產四態判決 + 問題清單。規則改動視同程式碼。</div>
     </div>
     <div class="card it">
       <div class="card-badges"><span class="card-badge">5. 發布器</span></div>
-      <div class="card-title">寫評論 + 發事件</div>
+      <div class="card-title">寫合併請求評論 + 發事件</div>
       <div class="card-body">失敗只影響通知，不影響判決（已寫稽核）。</div>
     </div>
   </div>
 
   <div>
-    <div class="flow-section-title"><strong>內部資料流</strong> &nbsp;—&nbsp; Tier 1 先擋，Tier 2 才打 LLM</div>
+    <div class="flow-section-title"><strong>內部資料流</strong> &nbsp;—&nbsp; 管線式串接，任一模組失敗即回人工</div>
     <pre class="mermaid">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart LR
@@ -424,15 +436,10 @@ flowchart LR
 
   subgraph DSP[CI/CD 管理平台]
     direction LR
-    subgraph T1["Tier 1 規則閘門 · 無 LLM"]
-      M1[1. 接收入口]:::it
-      M2[2. 機密過濾]:::critical
-      M4a[4a. 判決引擎<br>規則部分]:::shared
-    end
-    subgraph T2["Tier 2 深度 Reviewer · LLM"]
-      M3[3. OpenRouter Dispatch]:::it
-      M4b[4b. 判決引擎<br>LLM 套表]:::shared
-    end
+    M1[1. 接收入口]:::it
+    M2[2. 機密過濾]:::critical
+    M3[3. OpenRouter Dispatch]:::it
+    M4[4. 判決引擎]:::shared
     M5[5. 發布器]:::it
   end
 
@@ -442,19 +449,16 @@ flowchart LR
 
   Ext ==> M1
   M1 ==> M2
-  M2 ==> M4a
-  M4a ==>|規則通過| M3
-  M4a -.規則命中.-> M5
-  M3 ==> M4b
-  M4b ==> M5
+  M2 ==> M3
+  M3 ==> M4
+  M4 ==> M5
   M5 ==>|寫評論| GH
   M5 -.->|審查完成事件| Notifier
 
   M1 -.失敗.-> Fail
   M2 -.失敗.-> Fail
   M3 -.失敗.-> Fail
-  M4a -.失敗.-> Fail
-  M4b -.失敗.-> Fail
+  M4 -.失敗.-> Fail
   M5 -.失敗.-> Fail
 
   classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
@@ -465,306 +469,75 @@ flowchart LR
   </div>
 
   <div class="cards-foot">
-    <strong>未來擴充：</strong>&nbsp;&nbsp;OpenRouter Dispatch 已可獨立部署為服務；判決引擎邏輯變複雜時可比照拆出，其餘模組同進程足夠。
+    <strong>未來擴充：</strong>&nbsp;&nbsp;OpenRouter Dispatch 已獨立部署為服務；判決引擎邏輯變複雜時可比照拆出，其餘模組同進程足夠。
   </div>
 </div>
   </script>
 
-  <!-- ================== 3. Tier 1 規則閘門 ================== -->
-  <script type="text/plain" id="tier1-gate"
-          data-label="3. Tier 1 規則閘門（8 條規則）"
-          data-order="3"
-          data-kind="flow"
-          data-format="html">
-<div class="cards-wrap">
-  <div class="cards-head">
-    <strong>Tier 1 規則閘門 — 純規則，無 LLM</strong>
-    <span>· 8 條規則依序檢查 · 命中即停 · 全部 &lt; 1 秒完成 · 可單元測試 ·</span>
-  </div>
-
-  <div class="cards-grid cols-4" style="margin-bottom: 16px;">
-    <div class="card critical">
-      <div class="card-badges"><span class="card-badge">規則 1</span><span class="card-tag">→ 拒絕</span></div>
-      <div class="card-title">workflow 骨架被偷改</div>
-      <div class="card-body">caller 的 <code>uses:</code> 不指向中央 reusable、或加了自訂 <code>steps:</code> → 直接關 PR。</div>
-    </div>
-    <div class="card it">
-      <div class="card-badges"><span class="card-badge">規則 2</span><span class="card-tag">→ 略過</span></div>
-      <div class="card-title">PR 已關閉 / 合併</div>
-      <div class="card-body">不重跑審查（noop），避免歷史 PR 被重觸發。</div>
-    </div>
-    <div class="card shared">
-      <div class="card-badges"><span class="card-badge">規則 3</span><span class="card-tag">→ 人工</span></div>
-      <div class="card-title">平台自我健康</div>
-      <div class="card-body">DB / OpenRouter / Redis 任一異常 → 主動退到人工，不冒險合併。</div>
-    </div>
-    <div class="card shared">
-      <div class="card-badges"><span class="card-badge">規則 4</span><span class="card-tag">→ 人工</span></div>
-      <div class="card-title">大規模改</div>
-      <div class="card-body">觸及 &gt; 30 檔 或 變動 &gt; 1000 行 → 大改不適合自動 merge。</div>
-    </div>
-    <div class="card shared">
-      <div class="card-badges"><span class="card-badge">規則 5</span><span class="card-tag">→ 人工</span></div>
-      <div class="card-title">同人高頻 PR</div>
-      <div class="card-body">同 author 24 小時內 &ge; 5 個 PR → 疑似刷量。</div>
-    </div>
-    <div class="card shared">
-      <div class="card-badges"><span class="card-badge">規則 6</span><span class="card-tag">→ 人工</span></div>
-      <div class="card-title">PR 路徑重疊</div>
-      <div class="card-body">同 author 24h PR 觸及檔重疊率 &ge; 50% → 疑似拆 PR 規避審查（螞蟻搬家）。</div>
-    </div>
-    <div class="card shared">
-      <div class="card-badges"><span class="card-badge">規則 7</span><span class="card-tag">→ 人工</span></div>
-      <div class="card-title">噪音 force-push</div>
-      <div class="card-body">同 PR 1h 內 force-push &ge; 5 次 → 需要人來看狀況。</div>
-    </div>
-    <div class="card shared">
-      <div class="card-badges"><span class="card-badge">規則 8</span><span class="card-tag">→ 衝突</span></div>
-      <div class="card-title">commit message 不合規</div>
-      <div class="card-body">含 <code>[skip ci]</code> / 純 WIP / 空白 → 留評論請作者改 message。</div>
-    </div>
-  </div>
-
-  <div>
-    <div class="flow-section-title"><strong>判決路徑</strong> &nbsp;—&nbsp; 接收 → 過濾 → 8 規則依序評估，命中即停</div>
-    <pre class="mermaid">
-%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
-flowchart LR
-  In[接收入口<br>驗 token + 限流]:::it --> SF[機密過濾<br>第三道 redact]:::critical
-  SF --> R[8 條規則<br>依序評估]:::shared
-  R --> Pass{全部通過?}:::shared
-  Pass -->|是| T2[進 Tier 2<br>深度審查]:::it
-  Pass -.規則 1.-> Reject[拒絕<br>close PR]:::critical
-  Pass -.規則 2.-> Noop[略過<br>noop]:::it
-  Pass -.規則 3-7.-> Manual[人工<br>改 draft + label]:::shared
-  Pass -.規則 8.-> Conflict[衝突<br>留評論請改]:::shared
-
-  classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
-  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
-  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
-  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
-    </pre>
-  </div>
-
-  <div class="cards-foot">
-    <strong>省成本邏輯：</strong>&nbsp;&nbsp;Tier 1 攔掉的 PR 不會打 LLM，節省 OpenRouter 配額；命中規則寫 <code>matched_rule_id</code> 進稽核，可單元測試、可 audit。
-  </div>
-</div>
-  </script>
-
-  <!-- ================== 4. Tier 2 深度 Reviewer ================== -->
-  <script type="text/plain" id="tier2-reviewer"
-          data-label="4. Tier 2 深度 Reviewer"
-          data-order="4"
-          data-kind="flow"
-          data-format="html">
-<div class="cards-wrap">
-  <div class="cards-head">
-    <strong>Tier 2 深度 Reviewer — LLM Agent + Tools</strong>
-    <span>· LLM 主動探索 · 中央政策權威 · 知識帳本當查詢介面 ·</span>
-  </div>
-
-  <div class="cards-grid cols-3" style="margin-bottom: 16px;">
-    <div class="card critical">
-      <div class="card-badges"><span class="card-badge">LLM Agent 模式</span></div>
-      <div class="card-title">不是一次塞 context</div>
-      <div class="card-body">給 LLM 一組 tools 主動探索（<code>read_file</code> / <code>query_findings</code> / <code>find_callers</code>）→ LLM 自己決定要看什麼。</div>
-    </div>
-    <div class="card it">
-      <div class="card-badges"><span class="card-badge">中央政策權威</span></div>
-      <div class="card-title">不可被 user repo 改</div>
-      <div class="card-body">每個專案 risk_tier / 嚴格度寫在中央 <code>projects/{repo}.yml</code>，user repo 內容只當「描述性輸入」。</div>
-    </div>
-    <div class="card shared">
-      <div class="card-badges"><span class="card-badge">知識帳本</span></div>
-      <div class="card-title">過去出過什麼問題</div>
-      <div class="card-body">Audit DB 的 findings_ledger view，LLM 可查「這檔 / 這函數歷史問題」做重點審查。</div>
-    </div>
-    <div class="card it">
-      <div class="card-badges"><span class="card-badge">併發控制</span></div>
-      <div class="card-title">Per-PR Single-flight</div>
-      <div class="card-body">同 PR 多次 push 只跑最新 SHA，舊 task 取消；防雷打、防重複扣 API 額度。</div>
-    </div>
-    <div class="card it">
-      <div class="card-badges"><span class="card-badge">兩層快取</span></div>
-      <div class="card-title">L1 verdict + L2 retrieval</div>
-      <div class="card-body">同 SHA retry 秒回；LLM 失敗 retry 免重撈 tool 結果。</div>
-    </div>
-    <div class="card critical">
-      <div class="card-badges"><span class="card-badge">★ Prompt Injection 防護</span></div>
-      <div class="card-title">「請忽略 X 檢查」</div>
-      <div class="card-body">LLM 偵測 repo 內容企圖改變 policy 嚴格度 → 回報為攻擊嫌疑並拒絕。</div>
-    </div>
-  </div>
-
-  <div>
-    <div class="flow-section-title"><strong>內部序列</strong> &nbsp;—&nbsp; 平台 ↔ LLM 工具呼叫迴圈</div>
-    <pre class="mermaid">
-%%{init: {'sequence': {'showSequenceNumbers': true}} }%%
-sequenceDiagram
-    participant W as 工作流
-    participant P as 平台
-    participant M as Repo Mirror
-    participant DB as Audit DB
-    participant L as LLM
-    W->>P: POST /review (sha + pr + install_id)
-    P->>P: Single-flight + L1 cache 檢查
-    P->>M: git fetch origin sha
-    M-->>P: ok
-    P->>DB: 撈 findings ledger 摘要
-    P->>L: system prompt + tools + diff
-    loop tool 迴圈 (max 20 次)
-      L->>P: 呼 tool
-      P->>M: 撈 / 解析
-      M-->>P: 結果
-      P->>L: tool 結果
-    end
-    L-->>P: findings JSON
-    P->>P: 套 verdict_thresholds → 四態
-    P->>DB: INSERT audit (tier2-review)
-    P-->>W: verdict + findings
-    </pre>
-  </div>
-
-  <div class="cards-foot">
-    <strong>真瓶頸是 LLM call：</strong>&nbsp;&nbsp;clone / parse / ripgrep 都 &lt; 2s，但 LLM 一輪 20-60s。worker pool 限併發避免配額爆。
-  </div>
-</div>
-  </script>
-
-  <!-- ================== 5. 知識帳本 — Profile + Findings Ledger ================== -->
-  <script type="text/plain" id="knowledge-ledger"
-          data-label="5. 知識帳本 — Profile + Ledger"
-          data-order="5"
-          data-kind="flow"
-          data-format="html">
-<div class="cards-wrap">
-  <div class="cards-head">
-    <strong>知識帳本 — Project Profile + Findings Ledger</strong>
-    <span>· 不是 RAG · 結構化儲存 · 同一份資料給 AI / Dashboard 兩邊用 ·</span>
-  </div>
-
-  <div class="cards-grid cols-4" style="margin-bottom: 16px;">
-    <div class="card it">
-      <div class="card-badges"><span class="card-badge">Project Profile</span></div>
-      <div class="card-title">這個專案在做什麼</div>
-      <div class="card-body">中央維護的 markdown，4 段：用途 / 風險面 / 反覆出現問題 / 慣例。User 無權改，累計變動 LOC &gt; 1000 自動重生。</div>
-    </div>
-    <div class="card shared">
-      <div class="card-badges"><span class="card-badge">Findings Ledger</span></div>
-      <div class="card-title">過去出過什麼問題</div>
-      <div class="card-body">Audit DB 的 view，每次 Tier 2 完成自動寫入；舊 finding 在新 PR 消失 → 自動標 fixed。</div>
-    </div>
-    <div class="card critical">
-      <div class="card-badges"><span class="card-badge">中央治理</span></div>
-      <div class="card-title">不給 user 降門檻</div>
-      <div class="card-body">Profile + <code>projects/{repo}.yml</code> 都在 DF-AI-Spec，改動需 tech-lead approve；payment tier 雙簽。</div>
-    </div>
-    <div class="card it">
-      <div class="card-badges"><span class="card-badge">兩個 consumer</span></div>
-      <div class="card-title">AI 查 + Dashboard 統計</div>
-      <div class="card-body">同一份資料，AI 用 tools 查「重點掃描」、Dashboard 用 SQL 算「多少專案資安違規」。</div>
-    </div>
-  </div>
-
-  <div>
-    <div class="flow-section-title"><strong>資料流</strong> &nbsp;—&nbsp; 寫一次 ledger，兩端各自消費</div>
-    <pre class="mermaid">
-%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
-flowchart LR
-  subgraph Central[中央 DF-AI-Spec repo]
-    direction TB
-    P[Project Profile.md<br>4 段描述]:::it
-    Y[projects/repo.yml<br>risk_tier / 閾值]:::critical
-  end
-
-  subgraph Audit[Audit DB]
-    direction TB
-    AE[audit_events<br>append-only]:::it
-    LV[findings_ledger view<br>結構化 finding]:::shared
-  end
-
-  T2[Tier 2 LLM Agent]:::critical
-  Dash[CI/CD 管理儀表板]:::it
-  Mail[週報 SMTP]:::it
-
-  T2 -->|get_project_profile| P
-  T2 -->|get_central_policy| Y
-  T2 -->|query_findings| LV
-  T2 -.->|寫 tier2-review| AE
-  AE -.->|view| LV
-
-  LV -->|SQL aggregate| Dash
-  LV -->|每週統計| Mail
-
-  classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
-  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
-  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
-  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
-    </pre>
-  </div>
-
-  <div class="cards-foot">
-    <strong>Embedding 是 Phase 2 加速層：</strong>&nbsp;&nbsp;若未來語意搜尋 / 跨 repo 找相似實作有需求，直接在 ledger 的 <code>summary</code> 欄位掛 embedding，不影響 Phase 1 的結構化查詢。
-  </div>
-</div>
-  </script>
-
-  <!-- ================== 6. 稽核系統狀態機 — 四態判決 ================== -->
+  <!-- ================== 2. 稽核系統狀態機 ================== -->
   <script type="text/plain" id="gate-logic"
-          data-label="6. 稽核系統狀態機（四態）"
-          data-order="6"
+          data-label="2. 稽核系統狀態機"
+          data-order="2"
           data-kind="flow"
           data-format="html">
 <div class="cards-wrap">
   <div class="cards-head">
     <strong>稽核系統狀態機 — 四態判決</strong>
-    <span>· Tier 1 / Tier 2 / CI 三路匯合 · 依優先序評估 · 命中即停 ·</span>
+    <span>· 自動合併規則庫 · 依 ①②③④ 優先序，取第一個命中 ·</span>
   </div>
 
   <div class="cards-grid cols-4" style="margin-bottom: 16px;">
     <div class="card user">
       <div class="card-badges"><span class="card-badge">🟢 可合併</span></div>
-      <div class="card-title">所有檢查通過 + 無嚴重問題</div>
-      <div class="card-body">壓縮合併後觸發部署。Tier 2 findings 都在 mergeable 閾值內、未觸保護路徑、CI 全綠。</div>
+      <div class="card-title">所有檢查通過 + 沒有嚴重問題</div>
+      <div class="card-body">壓縮合併後觸發部署。</div>
     </div>
     <div class="card shared">
       <div class="card-badges"><span class="card-badge">🟣 衝突</span></div>
-      <div class="card-title">檢查失敗 / 與 main 衝突 / commit 不規範</div>
-      <div class="card-body">合併請求不關，請作者修或重新接上 main。CI 失敗、medium-CVE、Tier 1 規則 8 都會走這條。</div>
+      <div class="card-title">檢查失敗 / 與 main 有衝突</div>
+      <div class="card-body">合併請求不關，請作者修或重新接上 main。</div>
     </div>
     <div class="card shared">
       <div class="card-badges"><span class="card-badge">🟣 人工</span></div>
-      <div class="card-title">AI 找到嚴重問題 / 保護路徑 / 平台不健康</div>
-      <div class="card-body">合併請求改成草稿，加標籤等技術主管處理。Tier 1 規則 3-7 + Tier 2 major findings 都會走這條。</div>
+      <div class="card-title">AI 找到嚴重問題 / 保護路徑 / 健康檢查掛</div>
+      <div class="card-body">合併請求改成草稿，加標籤等技術主管處理。</div>
     </div>
     <div class="card critical">
       <div class="card-badges"><span class="card-badge">🔴 拒絕</span></div>
-      <div class="card-title">機密外洩 / 高危漏洞 / AI 明確拒絕 / workflow 偷改</div>
-      <div class="card-body">關閉合併請求，需另開新合併請求修正。Tier 1 規則 1 + Tier 2 blocker findings 都會走這條。</div>
+      <div class="card-title">機密外洩 / 高危漏洞 / AI 明確拒絕</div>
+      <div class="card-body">關閉合併請求，需另開新合併請求修正。</div>
     </div>
   </div>
 
   <div>
-    <div class="flow-section-title"><strong>判決流程</strong> &nbsp;—&nbsp; 三路匯合，依優先序評估</div>
+    <div class="flow-section-title"><strong>檢查流程</strong> &nbsp;—&nbsp; 機密/安全/AI 拒絕 → 衝突 → 人工條件 → 可合併，一條管線依序評估，命中即停</div>
     <pre class="mermaid">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart LR
-  CI[CI 結果<br>frontend/backend/secret/security]:::it
-  T1G[Tier 1 規則 結果]:::shared
-  T2G[Tier 2 findings + 閾值]:::critical
+  Start([6. 判斷觸發<br>檢查結果 + CI/CD 管理平台判決]):::it
 
-  Eval{依序評估<br>命中即停}:::it
+  subgraph CHK[檢查過程 · 依 ①②③④ 序評估，命中即停]
+    direction LR
+    C1[① 機密 / 安全 / AI 拒絕]:::critical
+    C2[② 衝突檢查]:::it
+    C3[③ 人工條件檢查]:::shared
+    C4[④ 可合併判定]:::it
+    C1 ==>|通過| C2
+    C2 ==>|無衝突| C3
+    C3 ==>|未命中| C4
+  end
 
-  CI ==> Eval
-  T1G ==> Eval
-  T2G ==> Eval
+  Reject[拒絕<br>關閉合併請求]:::critical
+  Conflict[衝突<br>請作者修]:::shared
+  Manual[人工<br>合併請求改草稿]:::shared
+  Mergeable[可合併<br>壓縮合併]:::user
 
-  Eval -->|secret 紅 / high-CVE / Tier 1 規則 1 / Tier 2 blocker| Reject[🔴 拒絕<br>close PR]:::critical
-  Eval -->|CI 紅 / medium-CVE / Tier 1 規則 8| Conflict[🟣 衝突<br>留 PR + 評論]:::shared
-  Eval -->|Tier 1 規則 3-7 / Tier 2 major / 保護路徑| Manual[🟣 人工<br>改 draft + label]:::shared
-  Eval -->|全綠 + Tier 2 無 blocker/major| Mergeable[🟢 可合併<br>squash merge]:::user
-  Eval -.兜底.-> Manual
+  Start ==> C1
+  C1 -->|機密外洩 / 高危漏洞 / AI 明確拒絕| Reject
+  C2 -->|檢查失敗 / 與 main 衝突| Conflict
+  C3 -->|AI 判人工 / 保護路徑 / 降級| Manual
+  C4 ==>|全綠 + AI 判可合併| Mergeable
+  C4 -->|未通過兜底| Manual
 
   classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
   classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
@@ -774,15 +547,15 @@ flowchart LR
   </div>
 
   <div class="cards-foot">
-    <strong>規則特性：</strong>&nbsp;&nbsp;閾值寫在 <code>projects/{repo}.yml</code> 的 verdict_thresholds，依 risk_tier 調整嚴格度（payment 連 medium-CVE 都擋）。
+    <strong>規則特性：</strong>&nbsp;&nbsp;規則寫在設定檔內，可稽核可單元測試，不靠語言模型推理判決。
   </div>
 </div>
   </script>
 
-  <!-- ================== 7. 失敗 / 回滾 / 熔斷 ================== -->
+  <!-- ================== 3. 失敗 / 回滾 / 熔斷 ================== -->
   <script type="text/plain" id="failure-handling"
-          data-label="7. 失敗 / 回滾 / 熔斷"
-          data-order="7"
+          data-label="3. 失敗 / 回滾 / 熔斷"
+          data-order="3"
           data-kind="flow"
           data-format="html">
 <div class="cards-wrap">
@@ -853,78 +626,7 @@ flowchart LR
   </div>
 
   <div class="cards-foot">
-    <strong>人類缺位的代償：</strong>&nbsp;&nbsp;稽核留存 2 年（payment 7 年）+ 全事件只增不改 + 自動回滾 + 熔斷強制介入。
-  </div>
-</div>
-  </script>
-
-  <!-- ================== 8. Dashboard 演進 ================== -->
-  <script type="text/plain" id="dashboard-evolution"
-          data-label="8. Dashboard 演進路徑"
-          data-order="8"
-          data-kind="flow"
-          data-format="html">
-<div class="cards-wrap">
-  <div class="cards-head">
-    <strong>Dashboard 演進 — 從週報到自然語言查詢</strong>
-    <span>· 同一份 findings_ledger · 三階段升級 · 資料 schema 不變 ·</span>
-  </div>
-
-  <div class="cards-grid cols-3" style="margin-bottom: 16px;">
-    <div class="card it">
-      <div class="card-badges"><span class="card-badge">Phase 1</span><span class="card-tag">SMTP 主管週報</span></div>
-      <div class="card-title">每週推送靜態統計</div>
-      <div class="card-body">過去一週 PR 統計 + 異常清單，週一寄到主管信箱。離線、push 型。</div>
-    </div>
-    <div class="card shared">
-      <div class="card-badges"><span class="card-badge">Phase 2</span><span class="card-tag">Web UI</span></div>
-      <div class="card-title">即時查、可下鑽</div>
-      <div class="card-body">主管打開 dashboard 看「目前各專案 open findings」「reject 率最高的 5 個」即時資料。</div>
-    </div>
-    <div class="card critical">
-      <div class="card-badges"><span class="card-badge">Phase 3</span><span class="card-tag">★ AI Query</span></div>
-      <div class="card-title">自然語言問</div>
-      <div class="card-body">「目前有多少專案有資安違規風險?」→ LLM 翻 SQL → 跑查詢 → 摘要回答。</div>
-    </div>
-  </div>
-
-  <div>
-    <div class="flow-section-title"><strong>典型 SQL 範例</strong> &nbsp;—&nbsp; 同一份 findings_ledger 應付三階段</div>
-    <pre class="code-block">SELECT repo,
-       COUNT(*) FILTER (WHERE severity = 'blocker') AS blocker_open,
-       COUNT(*) FILTER (WHERE severity = 'major')   AS major_open,
-       MAX(ts) AS last_finding_at
-FROM findings_ledger
-WHERE status = 'open' AND rule_id LIKE 'security/%'
-GROUP BY repo
-HAVING COUNT(*) > 0
-ORDER BY blocker_open DESC;</pre>
-  </div>
-
-  <div>
-    <div class="flow-section-title"><strong>演進路徑</strong></div>
-    <pre class="mermaid">
-%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
-flowchart LR
-  L[findings_ledger view<br>結構化 schema]:::shared
-  P1[Phase 1<br>SMTP 主管週報<br>排程 push]:::it
-  P2[Phase 2<br>Web UI dashboard<br>即時 pull]:::it
-  P3[Phase 3<br>AI Query<br>自然語言 → SQL]:::critical
-
-  L ==> P1
-  L ==> P2
-  L ==> P3
-  P1 -.升級.-> P2 -.升級.-> P3
-
-  classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
-  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
-  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
-  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
-    </pre>
-  </div>
-
-  <div class="cards-foot">
-    <strong>核心不變：</strong>&nbsp;&nbsp;三個階段的資料源都是同一份 <code>findings_ledger</code> view，schema 對了，UI 怎麼換都行。
+    <strong>人類缺位的代償：</strong>&nbsp;&nbsp;稽核留存 2 年 + 全事件只增不改 + 自動回滾 + 熔斷強制介入。
   </div>
 </div>
   </script>
