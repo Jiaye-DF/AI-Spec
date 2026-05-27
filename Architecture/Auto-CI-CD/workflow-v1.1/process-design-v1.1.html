@@ -265,8 +265,22 @@
     .flow-section-title {
       font-size: 18px; color: var(--muted);
       margin: 18px 0 6px;
+      display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px;
     }
     .flow-section-title strong { color: var(--fg); }
+    .flow-section-title .diagram-zoom-btn { margin-left: auto; }
+    .diagram-zoom-btn {
+      padding: 5px 12px;
+      font-size: 13px; font-weight: 600;
+      background: var(--btn-bg);
+      color: var(--accent);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .diagram-zoom-btn:hover { background: var(--btn-hover); border-color: var(--accent); }
     .flow-legend {
       font-size: 14px; color: var(--muted);
       margin-top: 8px;
@@ -386,8 +400,11 @@
   </div>
 
   <div>
-    <div class="flow-section-title"><strong>系統流程圖</strong> &nbsp;—&nbsp; 元件之間的觸發與資料流向</div>
-    <pre class="mermaid">
+    <div class="flow-section-title">
+      <strong>系統流程圖</strong> &nbsp;—&nbsp; 元件之間的觸發與資料流向
+      <button class="diagram-zoom-btn" data-action="zoom-diagram" data-target="step1-flow" data-title="Step 1 · 系統流程圖">↗ 新視窗放大</button>
+    </div>
+    <pre class="mermaid" id="step1-flow">
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart TB
   Dev([開發者<br>push PR → main]):::user
@@ -430,11 +447,11 @@ flowchart TB
   </div>
 
   <div>
-    <div class="flow-section-title"><strong>狀態機</strong> &nbsp;—&nbsp; 5 個並行分支 · 每個分支有自己的內部 pipeline · 聚合成 4 種結束狀態</div>
-    <div class="flow-legend">
-      <strong>讀法:</strong>每個分支內部是 <em>順序執行的步驟</em>(state),箭頭上的文字是 <em>轉狀態的觸發條件</em>(trigger)。失敗 edge 寫具體原因,不要只寫「失敗」。
+    <div class="flow-section-title">
+      <strong>狀態機</strong> &nbsp;—&nbsp; 5 個並行分支 · 每個分支有自己的內部 pipeline · 聚合成 4 種結束狀態
+      <button class="diagram-zoom-btn" data-action="zoom-diagram" data-target="step1-state" data-title="Step 1 · 並行檢查狀態機">↗ 新視窗放大</button>
     </div>
-    <pre class="mermaid">
+    <pre class="mermaid" id="step1-state">
 stateDiagram-v2
   direction TB
   [*] --> 工作流觸發
@@ -683,6 +700,9 @@ stateDiagram-v2
           zoomLabel.textContent = '100%';
           const inlineMermaid = preview.querySelectorAll('pre.mermaid, div.mermaid');
           if (inlineMermaid.length > 0) {
+            inlineMermaid.forEach(n => {
+              if (!n.dataset.mermaidSource) n.dataset.mermaidSource = n.textContent;
+            });
             try {
               await mermaid.run({ nodes: inlineMermaid });
               inlineMermaid.forEach(node => {
@@ -920,9 +940,93 @@ stateDiagram-v2
       }
     });
 
-    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      themeSelect.value = 'dark';
+    themeSelect.value = 'default';
+
+    function openDiagramInNewWindow(code, title, theme) {
+      const safeCode = String(code).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const safeTitle = String(title || '圖表').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      const isDark = theme === 'dark';
+      const safeTheme = isDark ? 'dark' : 'default';
+      const themeAttr = isDark ? 'dark' : 'light';
+
+      const html = '<!DOCTYPE html>\n'
+        + '<html lang="zh-Hant" data-theme="' + themeAttr + '">\n'
+        + '<head><meta charset="UTF-8"><title>' + safeTitle + ' — 放大檢視</title>\n'
+        + '<style>\n'
+        + 'html,body{margin:0;padding:0;height:100%;background:#fff;color:#0f172a;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;overflow:hidden;}\n'
+        + 'html[data-theme="dark"],html[data-theme="dark"] body{background:#0f172a;color:#f1f5f9;}\n'
+        + 'body{display:flex;flex-direction:column;height:100vh;}\n'
+        + 'header{padding:10px 16px;border-bottom:2px solid #e2e8f0;display:flex;gap:10px;align-items:center;background:#f8fafc;flex-shrink:0;}\n'
+        + 'html[data-theme="dark"] header{background:#1e293b;border-bottom-color:#334155;}\n'
+        + 'header h1{font-size:15px;margin:0 auto 0 0;color:#2563eb;font-weight:700;padding-left:10px;border-left:4px solid #2563eb;}\n'
+        + 'header button{padding:5px 11px;font-size:13px;border:1px solid #e2e8f0;background:#fff;color:inherit;border-radius:5px;cursor:pointer;font-family:inherit;}\n'
+        + 'html[data-theme="dark"] header button{background:#1e293b;border-color:#334155;}\n'
+        + 'header button:hover{background:#f1f5f9;border-color:#2563eb;}\n'
+        + 'header .lbl{font-size:12px;color:#64748b;min-width:48px;text-align:center;font-weight:700;cursor:pointer;}\n'
+        + 'main{flex:1;min-height:0;overflow:auto;padding:32px;cursor:grab;user-select:none;}\n'
+        + 'main.dragging{cursor:grabbing;}\n'
+        + 'main.dragging *{pointer-events:none;}\n'
+        + '.wrap{display:inline-block;transform-origin:top left;transition:transform 0.12s ease;}\n'
+        + 'main.dragging .wrap{transition:none;}\n'
+        + '.wrap svg{display:block;}\n'
+        + '.hint{padding:6px 16px;font-size:12px;color:#64748b;background:#f8fafc;border-top:1px solid #e2e8f0;flex-shrink:0;}\n'
+        + 'html[data-theme="dark"] .hint{background:#1e293b;border-top-color:#334155;}\n'
+        + '</style></head>\n'
+        + '<body>\n'
+        + '<header><h1>' + safeTitle + '</h1>'
+        + '<button id="zo">−</button><span class="lbl" id="zl" title="點擊重設為 100%">100%</span><button id="zi">+</button>'
+        + '<button id="zf">符合視窗</button></header>\n'
+        + '<main id="m"><div class="wrap" id="w"><pre class="mermaid">' + safeCode + '</pre></div></main>\n'
+        + '<div class="hint">滑鼠左鍵拖曳平移 · Ctrl + 滾輪縮放 · 鍵盤 +/− 縮放 · 0 重設 · F 符合視窗</div>\n'
+        + '<script type="module">\n'
+        + 'import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";\n'
+        + 'mermaid.initialize({startOnLoad:false,theme:"' + safeTheme + '",'
+        + 'themeVariables:{fontFamily:\'"Noto Sans TC","PingFang TC",system-ui,sans-serif\',fontSize:"20px"},'
+        + 'flowchart:{useMaxWidth:false,htmlLabels:true},state:{useMaxWidth:false},stateDiagram:{useMaxWidth:false},securityLevel:"loose"});\n'
+        + 'const m=document.getElementById("m"),w=document.getElementById("w"),zl=document.getElementById("zl");\n'
+        + 'const node=document.querySelector("pre.mermaid");\n'
+        + 'await mermaid.run({nodes:[node]});\n'
+        + 'const svg=node.querySelector("svg"); if(svg) svg.removeAttribute("style");\n'
+        + 'const STEPS=[0.5,0.7,0.85,1.0,1.25,1.5,1.75,2.0,2.5,3.0,4.0]; let z=1;\n'
+        + 'function setZ(v){z=Math.max(0.3,Math.min(5,v));w.style.transform="scale("+z+")";zl.textContent=Math.round(z*100)+"%";}\n'
+        + 'function stepZ(d){let i=0,df=Infinity;STEPS.forEach((v,k)=>{const x=Math.abs(v-z); if(x<df){df=x;i=k;}});setZ(STEPS[Math.max(0,Math.min(STEPS.length-1,i+d))]);}\n'
+        + 'document.getElementById("zi").onclick=()=>stepZ(1);\n'
+        + 'document.getElementById("zo").onclick=()=>stepZ(-1);\n'
+        + 'zl.onclick=()=>setZ(1);\n'
+        + 'document.getElementById("zf").onclick=()=>{const s=w.querySelector("svg"); if(!s) return; const vb=s.viewBox&&s.viewBox.baseVal; const ww=(vb&&vb.width)||s.getBoundingClientRect().width/z; const hh=(vb&&vb.height)||s.getBoundingClientRect().height/z; setZ(Math.min((m.clientWidth-48)/ww,(m.clientHeight-48)/hh,5));};\n'
+        + 'setTimeout(()=>document.getElementById("zf").click(),50);\n'
+        + 'let dr=null;\n'
+        + 'm.addEventListener("mousedown",e=>{if(e.button!==0) return; dr={x:e.clientX,y:e.clientY,sx:m.scrollLeft,sy:m.scrollTop,moved:false}; e.preventDefault();});\n'
+        + 'window.addEventListener("mousemove",e=>{if(!dr) return; const dx=e.clientX-dr.x,dy=e.clientY-dr.y; if(!dr.moved&&Math.abs(dx)+Math.abs(dy)>3){dr.moved=true; m.classList.add("dragging");} if(dr.moved){m.scrollLeft=dr.sx-dx; m.scrollTop=dr.sy-dy;}});\n'
+        + 'window.addEventListener("mouseup",()=>{if(dr){m.classList.remove("dragging");dr=null;}});\n'
+        + 'm.addEventListener("wheel",e=>{if(!e.ctrlKey) return; e.preventDefault(); stepZ(e.deltaY<0?1:-1);},{passive:false});\n'
+        + 'window.addEventListener("keydown",e=>{if(e.key==="+"||e.key==="="){e.preventDefault();stepZ(1);} else if(e.key==="-"||e.key==="_"){e.preventDefault();stepZ(-1);} else if(e.key==="0"){e.preventDefault();setZ(1);} else if(e.key==="f"||e.key==="F"){e.preventDefault();document.getElementById("zf").click();}});\n'
+        + '<\/script>\n'
+        + '</body></html>';
+
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const win = window.open(url, '_blank');
+      if (!win) {
+        URL.revokeObjectURL(url);
+        alert('彈出視窗被瀏覽器擋下,請允許此頁面開啟新分頁');
+        return;
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
     }
+
+    preview.addEventListener('click', e => {
+      const btn = e.target.closest('[data-action="zoom-diagram"]');
+      if (!btn) return;
+      e.preventDefault();
+      const targetId = btn.dataset.target;
+      if (!targetId) return;
+      const node = preview.querySelector('#' + (window.CSS && CSS.escape ? CSS.escape(targetId) : targetId));
+      if (!node) return;
+      const code = (node.dataset.mermaidSource || node.textContent || '').trim();
+      if (!code) return;
+      openDiagramInNewWindow(code, btn.dataset.title || '圖表', themeSelect.value);
+    });
 
     goTo(0);
   </script>
