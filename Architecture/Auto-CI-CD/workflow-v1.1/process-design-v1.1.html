@@ -472,7 +472,7 @@ flowchart TB
 
   Fanin[聚合節點<br>讀各檢查的 result + outputs]:::shared
 
-  Next([→ Step 2 收斂判決]):::user
+  Next([→ Step 2 · 進入 CI/CD 管理平台]):::shared
 
   Dev ==> Trigger
   Trigger ==> Front
@@ -562,7 +562,7 @@ flowchart TB
   Agg[聚合判定<br>讀 5 個 job result + outputs]:::shared
 
   V1([全綠通過 · mergeable<br>→ 進 Step 2 · 交給 CI/CD 管理平台]):::vPass
-  V2([待作者修正 · conflict<br>→ 留評論 · 等作者修完重 push]):::vWarn
+  V2([待作者修正 · conflict<br>→ CI 檢查未過 · 留評論等作者修完重 push]):::vWarn
   V3([需人工介入 · manual<br>→ PR 轉 draft + needs-tech-lead label]):::vManual
   V4([直接拒絕 · reject<br>→ PR 直接關閉 · 不應重試]):::vReject
 
@@ -617,7 +617,7 @@ flowchart TB
       <div class="verdict-card verdict-warn">
         <div class="verdict-name">待作者修正</div>
         <code class="verdict-code">conflict</code>
-        <div class="verdict-desc">PR 留評論，等作者修完重新 push 後再跑</div>
+        <div class="verdict-desc">CI 檢查項目未過，留評論等作者修完重 push 後再跑</div>
       </div>
       <div class="verdict-card verdict-manual">
         <div class="verdict-name">需人工介入</div>
