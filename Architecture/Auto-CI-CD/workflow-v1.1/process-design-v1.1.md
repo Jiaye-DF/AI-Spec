@@ -262,7 +262,7 @@ high_cve=true|false
   run: gitleaks protect --staged /tmp/pr.diff
 ```
 
-**4.2 POST `/review`**(L3 隱形濾網:Bearer + 4 個 `X-DF-*` 自訂 header,詳見 [cicd-platform-plan.md](./cicd-platform-plan.md)):
+**4.2 POST `/review`**(L2 隱形濾網:Bearer + 5 個 `X-DF-*` 自訂 header,詳見 [cicd-platform-plan.md](./cicd-platform-plan.md)):
 
 ```yaml
 - id: review
@@ -370,7 +370,7 @@ flowchart LR
 
 | # | 模組 | Input | 內部技術 | Output |
 | --- | --- | --- | --- | --- |
-| 1 | 接收入口 | HTTP request body + L3 headers | FastAPI 前置 middleware(L3 隱形濾網:`X-DF-Author / Author-Email / Repo / PR / Commit-SHA` 5 個都在 + Bearer 對 + repo 在 allowlist,任一失敗 → 404)+ pydantic schema + Redis 限流(30 req/min/repo) | 驗過的 request dict |
+| 1 | 接收入口 | HTTP request body + L2 headers | FastAPI 前置 middleware(L2 隱形濾網:`X-DF-Author / Author-Email / Repo / PR / Commit-SHA` 5 個都在 + Bearer 對 + repo 在 allowlist,任一失敗 → 404)+ pydantic schema + Redis 限流(30 req/min/repo) | 驗過的 request dict |
 | 2 | 機密過濾 | redacted diff | `gitleaks protect` 二次掃 | clean diff;或 verdict=reject(命中即終止) |
 | 3 | OpenRouter Dispatch | clean diff + diff size | python `httpx` 對 OpenRouter API;diff > 50K → Opus,否則 Sonnet | LLM raw response |
 | 4 | 判決引擎 | LLM response + rules_ref | YAML 規則庫(`rules_ref` 對應 git tag) | `{verdict, summary, findings[]}` |
@@ -378,7 +378,7 @@ flowchart LR
 
 **任一模組失敗 → 統一回 `verdict=manual`**(防呆),失敗事件寫 Audit。
 
-**L3 隱形濾網詳細設計**(middleware 範例、header 規格、與 L4/L5 的關係):見 [cicd-platform-plan.md](./cicd-platform-plan.md)。
+**L2 隱形濾網詳細設計**(middleware 範例、header 規格、與 L3/L4 的關係):見 [cicd-platform-plan.md](./cicd-platform-plan.md)。
 
 ---
 
