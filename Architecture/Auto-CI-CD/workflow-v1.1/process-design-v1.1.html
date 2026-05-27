@@ -458,66 +458,51 @@ stateDiagram-v2
   工作流觸發 --> 並行檢查 : 5 種檢查同步啟動
 
   state 並行檢查 {
-    direction TB
+    direction LR
 
-    state 前端檢查 {
-      direction TB
-      [*] --> 前端裝依賴
-      前端裝依賴 --> 前端跑五項 : npm ci 成功
-      前端跑五項 --> 前端通過 : ESLint + tsc + vitest + build + npm audit 全綠
-      前端裝依賴 --> 前端失敗 : 依賴解析錯 / lockfile 不一致
-      前端跑五項 --> 前端失敗 : 風格 / 型別 / 單元測試 / 建置 / 套件 CVE 任一紅
-      前端通過 --> [*]
-      前端失敗 --> [*]
-    }
+    [*] --> 前端裝依賴
+    前端裝依賴 --> 前端跑五項 : npm ci 成功
+    前端跑五項 --> 前端通過 : ESLint + tsc + vitest + build + npm audit 全綠
+    前端裝依賴 --> 前端失敗 : 依賴解析錯 / lockfile 不一致
+    前端跑五項 --> 前端失敗 : 風格 / 型別 / 單元測試 / 建置 / 套件 CVE 任一紅
+    前端通過 --> [*]
+    前端失敗 --> [*]
     --
-    state 後端檢查 {
-      direction TB
-      [*] --> 後端裝依賴
-      後端裝依賴 --> 後端跑四項 : pip / mvn / go mod 成功
-      後端跑四項 --> 後端通過 : lint + 型別 + 單元測試 + 套件稽核 全綠
-      後端裝依賴 --> 後端失敗 : 依賴解析錯 / 環境缺套件
-      後端跑四項 --> 後端失敗 : 風格 / 型別 / 單元測試 / 套件 CVE 任一紅
-      後端通過 --> [*]
-      後端失敗 --> [*]
-    }
+    [*] --> 後端裝依賴
+    後端裝依賴 --> 後端跑四項 : pip / mvn / go mod 成功
+    後端跑四項 --> 後端通過 : lint + 型別 + 單元測試 + 套件稽核 全綠
+    後端裝依賴 --> 後端失敗 : 依賴解析錯 / 環境缺套件
+    後端跑四項 --> 後端失敗 : 風格 / 型別 / 單元測試 / 套件 CVE 任一紅
+    後端通過 --> [*]
+    後端失敗 --> [*]
     --
-    state 資料庫結構變更檢查 {
-      direction TB
-      [*] --> 判斷PR是否動到結構檔
-      判斷PR是否動到結構檔 --> 結構檢查跳過 : PR 未碰 migrations/ 路徑
-      判斷PR是否動到結構檔 --> 啟動DB容器 : PR 改了 migrations/ 下的檔
-      啟動DB容器 --> 跑可逆性 : Postgres / MySQL container 健康
-      啟動DB容器 --> 結構工具錯 : container 啟不來 / runner OOM / DB 連不上
-      跑可逆性 --> 結構通過 : up → down → up 三步全綠
-      跑可逆性 --> 結構不合規 : 缺 down 腳本 / 任一步失敗 / down 完 schema 不一致
-      結構檢查跳過 --> [*]
-      結構通過 --> [*]
-      結構工具錯 --> [*]
-      結構不合規 --> [*]
-    }
+    [*] --> 判斷PR是否動到結構檔
+    判斷PR是否動到結構檔 --> 結構檢查跳過 : PR 未碰 migrations/ 路徑
+    判斷PR是否動到結構檔 --> 啟動DB容器 : PR 改了 migrations/ 下的檔
+    啟動DB容器 --> 跑可逆性 : Postgres / MySQL container 健康
+    啟動DB容器 --> 結構工具錯 : container 啟不來 / runner OOM / DB 連不上
+    跑可逆性 --> 結構通過 : up → down → up 三步全綠
+    跑可逆性 --> 結構不合規 : 缺 down 腳本 / 任一步失敗 / down 完 schema 不一致
+    結構檢查跳過 --> [*]
+    結構通過 --> [*]
+    結構工具錯 --> [*]
+    結構不合規 --> [*]
     --
-    state 機密外洩掃描 {
-      direction TB
-      [*] --> 拉完整git歷史
-      拉完整git歷史 --> 跑gitleaks : checkout fetch-depth = 0
-      跑gitleaks --> 機密通過 : 0 命中
-      跑gitleaks --> 機密命中 : ≥ 1 命中(規則 ID + 檔案行號)
-      機密通過 --> [*]
-      機密命中 --> [*]
-    }
+    [*] --> 拉完整git歷史
+    拉完整git歷史 --> 跑gitleaks : checkout fetch-depth = 0
+    跑gitleaks --> 機密通過 : 0 命中
+    跑gitleaks --> 機密命中 : ≥ 1 命中(規則 ID + 檔案行號)
+    機密通過 --> [*]
+    機密命中 --> [*]
     --
-    state 原始碼安全掃描 {
-      direction TB
-      [*] --> 跑semgrep
-      跑semgrep --> 跑trivy : semgrep 結束(不論結果)
-      跑trivy --> 安全通過 : semgrep 0 finding 且 trivy 0 finding
-      跑trivy --> 安全中風險 : semgrep WARNING 或 trivy MEDIUM
-      跑trivy --> 安全高風險 : semgrep ERROR 或 trivy HIGH / CRITICAL
-      安全通過 --> [*]
-      安全中風險 --> [*]
-      安全高風險 --> [*]
-    }
+    [*] --> 跑semgrep
+    跑semgrep --> 跑trivy : semgrep 結束(不論結果)
+    跑trivy --> 安全通過 : semgrep 0 finding 且 trivy 0 finding
+    跑trivy --> 安全中風險 : semgrep WARNING 或 trivy MEDIUM
+    跑trivy --> 安全高風險 : semgrep ERROR 或 trivy HIGH / CRITICAL
+    安全通過 --> [*]
+    安全中風險 --> [*]
+    安全高風險 --> [*]
   }
 
   並行檢查 --> 全綠通過 : 5 個分支終態皆 ∈ {通過, 跳過}
