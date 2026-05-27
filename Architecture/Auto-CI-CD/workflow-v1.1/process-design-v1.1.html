@@ -287,6 +287,56 @@
       line-height: 1.6;
     }
     .flow-legend strong { color: var(--fg); }
+
+    .verdict-grid {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    .verdict-grid-head {
+      grid-column: 1 / -1;
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: -4px;
+    }
+    .verdict-grid-head strong { color: var(--fg); }
+    .verdict-card {
+      padding: 12px 14px;
+      border-radius: 8px;
+      border-left: 4px solid;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .verdict-card .verdict-name {
+      font-size: 15px; font-weight: 700;
+      color: var(--fg);
+    }
+    .verdict-card .verdict-code {
+      font-size: 12px; font-weight: 700;
+      align-self: flex-start;
+      padding: 2px 8px; border-radius: 4px;
+      font-family: 'JetBrains Mono', Consolas, monospace;
+    }
+    .verdict-card .verdict-desc {
+      font-size: 13px; line-height: 1.5;
+      color: var(--fg);
+    }
+    .verdict-pass   { background: #f0fdf4; border-left-color: #16a34a; }
+    .verdict-warn   { background: #fffbeb; border-left-color: #d97706; }
+    .verdict-manual { background: #eef2ff; border-left-color: #6366f1; }
+    .verdict-reject { background: #fef2f2; border-left-color: #dc2626; }
+    .verdict-pass   .verdict-code { background: #dcfce7; color: #14532d; }
+    .verdict-warn   .verdict-code { background: #fef3c7; color: #78350f; }
+    .verdict-manual .verdict-code { background: #e0e7ff; color: #312e81; }
+    .verdict-reject .verdict-code { background: #fee2e2; color: #7f1d1d; }
+    [data-theme="dark"] .verdict-pass   { background: rgba(34,197,94,0.12); }
+    [data-theme="dark"] .verdict-warn   { background: rgba(217,119,6,0.12); }
+    [data-theme="dark"] .verdict-manual { background: rgba(99,102,241,0.14); }
+    [data-theme="dark"] .verdict-reject { background: rgba(220,38,38,0.12); }
+    [data-theme="dark"] .verdict-pass   .verdict-code { background: rgba(34,197,94,0.25); color: #86efac; }
+    [data-theme="dark"] .verdict-warn   .verdict-code { background: rgba(217,119,6,0.25); color: #fcd34d; }
+    [data-theme="dark"] .verdict-manual .verdict-code { background: rgba(99,102,241,0.3); color: #c7d2fe; }
+    [data-theme="dark"] .verdict-reject .verdict-code { background: rgba(220,38,38,0.25); color: #fca5a5; }
   </style>
 </head>
 <body>
@@ -312,45 +362,45 @@
   <div class="cards-grid cols-3" style="margin-bottom: 16px;">
     <div class="card it">
       <div class="card-badges"><span class="card-badge">前端檢查</span></div>
-      <div class="card-title">前端程式碼能跑、依賴沒有已揭露漏洞</div>
-      <div class="card-body">確認程式碼風格、型別、單元測試、建置都過,所引用的套件沒有已揭露的漏洞。</div>
+      <div class="card-title">前端程式碼能跑、依賴沒漏洞</div>
+      <div class="card-body">確認風格、型別、測試、建置、套件四項都過。</div>
       <div class="card-tech">
         <div class="card-tech-title">技術細節</div>
         <ul>
-          <li><strong>風格 / 型別</strong> — <code>ESLint</code> + <code>tsc --noEmit</code>(TypeScript strict),不允許 implicit any;PR 不應新增 lint warning。</li>
-          <li><strong>單元測試</strong> — <code>vitest</code> / <code>jest</code>,建議覆蓋率 ≥ 80%。</li>
-          <li><strong>建置</strong> — <code>next build</code> / <code>vite build</code>,捕捉 import 路徑錯、循環引用、syntax 錯。</li>
-          <li><strong>套件漏洞稽核</strong> — <code>npm audit</code> 讀 GitHub Advisory DB;high+ 視為 fail、medium 視為 warning。</li>
+          <li><strong>風格 / 型別</strong> — <code>ESLint</code> + <code>tsc --noEmit</code></li>
+          <li><strong>單元測試</strong> — <code>vitest</code> / <code>jest</code></li>
+          <li><strong>建置</strong> — <code>next build</code> / <code>vite build</code></li>
+          <li><strong>套件漏洞稽核</strong> — <code>npm audit</code></li>
         </ul>
       </div>
     </div>
 
     <div class="card it">
       <div class="card-badges"><span class="card-badge">後端檢查</span></div>
-      <div class="card-title">後端程式碼能跑、依賴沒有已揭露漏洞</div>
-      <div class="card-body">同前端,只是換成後端語言對應的工具。</div>
+      <div class="card-title">後端程式碼能跑、依賴沒漏洞</div>
+      <div class="card-body">同前端，換成後端語言對應的工具。</div>
       <div class="card-tech">
         <div class="card-tech-title">技術細節</div>
         <ul>
-          <li><strong>Python</strong> — <code>ruff</code>(lint)+ <code>mypy --strict</code>(型別)+ <code>pytest</code>(測試)。</li>
-          <li><strong>Java</strong> — <code>checkstyle</code> + <code>spotbugs</code> + <code>mvn test</code>;<code>OWASP Dependency-Check</code> 讀 NVD CVE 資料庫。</li>
-          <li><strong>Go</strong> — <code>golangci-lint</code> + <code>go test ./...</code> + <code>govulncheck</code>。</li>
-          <li><strong>套件漏洞稽核</strong> — Python 用 <code>pip-audit</code>(讀 PyPI Advisory DB);Java 用 OWASP DC;漏洞等級判定同前端。</li>
+          <li><strong>Python</strong> — <code>ruff</code> + <code>mypy</code> + <code>pytest</code></li>
+          <li><strong>Java</strong> — <code>checkstyle</code> + <code>spotbugs</code> + <code>mvn test</code></li>
+          <li><strong>Node.js</strong> — <code>ESLint</code> + <code>tsc</code> + <code>jest</code> / <code>vitest</code></li>
+          <li><strong>套件漏洞稽核</strong> — <code>pip-audit</code> / OWASP DC / <code>npm audit</code></li>
         </ul>
       </div>
     </div>
 
     <div class="card it">
       <div class="card-badges"><span class="card-badge">資料庫變更檢查</span></div>
-      <div class="card-title">結構變更可以套上、也可以還原</div>
-      <div class="card-body">PR 有動到資料庫結構檔案時才跑;失敗時會區分「工具自己出錯」和「變更內容不合規」兩種,走向不同。</div>
+      <div class="card-title">結構變更能套上、也能還原</div>
+      <div class="card-body">動到 migrations 才跑，工具錯 vs 內容不合規分開處理。</div>
       <div class="card-tech">
         <div class="card-tech-title">技術細節</div>
         <ul>
-          <li><strong>啟用條件</strong> — Workflow <code>paths:</code> filter,只在 PR 改到 <code>**/migrations/**</code> 才執行;沒改就 skip,不消耗 runner。</li>
-          <li><strong>可逆性檢查</strong> — 跑 up → down → up 三步;沒有 down(undo)腳本的 migration 直接視為不合規。</li>
-          <li><strong>工具錯(走 manual)</strong> — Postgres / MySQL container 啟不來、Flyway / Alembic 連不上 DB、runner 自己 OOM 等基建類問題,由 tech-lead 重跑。</li>
-          <li><strong>不合規(走 reject)</strong> — up 跑不過、缺 down、down 跑回去後 schema 不一致;作者必須重新設計 migration 而非小修。</li>
+          <li><strong>啟用條件</strong> — <code>paths:</code> filter 動到 <code>**/migrations/**</code></li>
+          <li><strong>可逆性檢查</strong> — 跑 up → down → up 三步</li>
+          <li><strong>工具錯 → manual</strong> — DB container 啟不來、runner OOM</li>
+          <li><strong>不合規 → reject</strong> — 缺 down 腳本、schema 不一致</li>
         </ul>
       </div>
     </div>
@@ -358,13 +408,13 @@
     <div class="card critical">
       <div class="card-badges"><span class="card-badge">機密外洩掃描</span></div>
       <div class="card-title">PR 沒把密碼 / 憑證寫進程式碼</div>
-      <div class="card-body">命中即視為高風險,後續走向直接拒絕。</div>
+      <div class="card-body">命中即視為高風險，直接拒絕。</div>
       <div class="card-tech">
         <div class="card-tech-title">技術細節</div>
         <ul>
-          <li><strong>掃描範圍</strong> — 整個 git 歷史,不只當前 diff。GHA checkout 預設只拉最近一個 commit,所以強制 <code>fetch-depth: 0</code> 拉完整 history;機密一旦曾出現在 commit log,即使後續被刪掉也已外洩。</li>
-          <li><strong>規則庫</strong> — <code>.gitleaks.toml</code> 內含 AWS Access Key、GitHub PAT、JWT、SSH 私鑰、DB 連線字串、Stripe / OpenAI API Token 等正則;沿用 gitleaks 內建 + 公司自訂 pattern(例:DF 內部域名 token)。</li>
-          <li><strong>為何放第一道</strong> — 機密一旦進入下一階段的 LLM 審查就回不來;同時避免在 PR 評論裡誤揭露。</li>
+          <li><strong>掃描範圍</strong> — 整個 git 歷史(<code>fetch-depth: 0</code>)</li>
+          <li><strong>工具</strong> — <code>gitleaks</code> + 公司自訂 pattern</li>
+          <li><strong>位置</strong> — 第一道，避免機密進入後續 LLM 審查</li>
         </ul>
       </div>
     </div>
@@ -372,14 +422,14 @@
     <div class="card critical">
       <div class="card-badges"><span class="card-badge">原始碼安全掃描</span></div>
       <div class="card-title">PR 沒引入常見的安全漏洞模式</div>
-      <div class="card-body">高風險 → 拒絕;中風險 → 請作者修正後重 push。</div>
+      <div class="card-body">高風險 → reject，中風險 → conflict。</div>
       <div class="card-tech">
         <div class="card-tech-title">技術細節</div>
         <ul>
-          <li><strong>原始碼模式比對</strong> — <code>semgrep</code> 跑 <code>p/security-audit</code> + <code>p/owasp-top-ten</code> 規則包;專抓 SQL injection、XSS、SSRF、不安全反序列化、硬編碼弱亂數種子等程式碼模式。</li>
-          <li><strong>檔案系統 / 設定掃描</strong> — <code>trivy fs</code> 同時掃套件 CVE、Dockerfile 不安全寫法(如 ADD URL、root 執行)、K8s manifest 缺資源限制等。</li>
-          <li><strong>風險分級</strong> — semgrep ERROR 或 trivy HIGH/CRITICAL → reject;semgrep WARNING 或 trivy MEDIUM → conflict,留評論請作者修。</li>
-          <li><strong>SARIF 上傳</strong> — 結果上傳到 GitHub Code Scanning,PR 頁可以直接看每個 finding 對應的行。</li>
+          <li><strong>程式碼模式</strong> — <code>semgrep</code> 抓 SQL injection / XSS / SSRF 等</li>
+          <li><strong>套件 / 設定</strong> — <code>trivy fs</code> 抓 CVE + Dockerfile / K8s 設定</li>
+          <li><strong>風險分級</strong> — HIGH/CRITICAL → reject，WARNING/MEDIUM → conflict</li>
+          <li><strong>SARIF 上傳</strong> — 結果進 GitHub Code Scanning</li>
         </ul>
       </div>
     </div>
@@ -387,13 +437,13 @@
     <div class="card shared">
       <div class="card-badges"><span class="card-badge">★ 共通輸出</span></div>
       <div class="card-title">每個檢查留下「結果 + 分類」</div>
-      <div class="card-body">下一階段依各檢查的結束狀態,聚合成整個 PR 的四種走向之一。</div>
+      <div class="card-body">5 個 job 結束後，聚合層讀欄位決定 PR 走向。</div>
       <div class="card-tech">
         <div class="card-tech-title">技術細節</div>
         <ul>
-          <li><strong>結果欄位</strong> — <code>needs.&lt;job&gt;.result</code> ∈ <code>success</code> / <code>failure</code> / <code>cancelled</code> / <code>skipped</code>。</li>
-          <li><strong>分類欄位</strong> — <code>needs.&lt;job&gt;.outputs.*</code> 由各 job 自設,例如:<br><code>has_high_cve=true</code>、<code>migration_fail_kind=tooling|policy</code>、<code>secret_hit_count=3</code>。</li>
-          <li><strong>聚合 job</strong> — 用 <code>needs:[…] + if: always()</code> 等到 5 個 job 全部結束(不論成功失敗)才啟動;讀完所有欄位後決定整個 PR 進哪一態。</li>
+          <li><strong>結果欄位</strong> — <code>needs.&lt;job&gt;.result</code></li>
+          <li><strong>分類欄位</strong> — <code>needs.&lt;job&gt;.outputs.*</code>(各 job 自設)</li>
+          <li><strong>聚合 job</strong> — <code>if: always()</code> 等 5 個 job 全結束</li>
         </ul>
       </div>
     </div>
@@ -471,7 +521,7 @@ flowchart TB
     direction TB
     B0[裝依賴]:::it
     B1[跑 lint + 型別 + 單元測試 + 套件稽核]:::it
-    B0 -->|pip / mvn / go mod 成功| B1
+    B0 -->|pip / mvn / npm install 成功| B1
     B0 -.->|依賴解析錯 / 環境缺套件| BX(((失敗))):::stFail
     B1 -.->|任一項紅| BX
     B1 -->|4 項全綠| BP(((通過))):::stPass
@@ -511,7 +561,7 @@ flowchart TB
 
   Agg[聚合判定<br>讀 5 個 job result + outputs]:::shared
 
-  V1([全綠通過 · mergeable<br>→ 進 Step 2 自動合併]):::vPass
+  V1([全綠通過 · mergeable<br>→ 進 Step 2 · 交給 CI/CD 管理平台]):::vPass
   V2([待作者修正 · conflict<br>→ 留評論 · 等作者修完重 push]):::vWarn
   V3([需人工介入 · manual<br>→ PR 轉 draft + needs-tech-lead label]):::vManual
   V4([直接拒絕 · reject<br>→ PR 直接關閉 · 不應重試]):::vReject
@@ -557,19 +607,33 @@ flowchart TB
   classDef vManual fill:#e0e7ff,stroke:#6366f1,color:#312e81,font-weight:700
   classDef vReject fill:#fee2e2,stroke:#dc2626,color:#7f1d1d,font-weight:700
     </pre>
-    <div class="flow-legend" style="margin-top:14px;">
-      <strong>4 個結束狀態 ↔ workflow 四態 verdict:</strong>
-      <ul style="margin:6px 0 0; padding-left:20px;">
-        <li><strong>全綠通過 → <code>mergeable</code></strong>:進入 Step 2 自動合併</li>
-        <li><strong>待作者修正 → <code>conflict</code></strong>:留評論請作者修完重 push</li>
-        <li><strong>需人工介入 → <code>manual</code></strong>:PR 轉 draft + 加 <code>needs-tech-lead</code> label(基建類錯,作者修不了)</li>
-        <li><strong>直接拒絕 → <code>reject</code></strong>:PR 直接關閉(機密 / 高風險 CVE / migration 不合規,不應重試)</li>
-      </ul>
+    <div class="verdict-grid">
+      <div class="verdict-grid-head"><strong>4 個結束狀態 · 對應 workflow verdict</strong></div>
+      <div class="verdict-card verdict-pass">
+        <div class="verdict-name">全綠通過</div>
+        <code class="verdict-code">mergeable</code>
+        <div class="verdict-desc">PR 進入 Step 2，交給 CI/CD 管理平台繼續處理</div>
+      </div>
+      <div class="verdict-card verdict-warn">
+        <div class="verdict-name">待作者修正</div>
+        <code class="verdict-code">conflict</code>
+        <div class="verdict-desc">PR 留評論，等作者修完重新 push 後再跑</div>
+      </div>
+      <div class="verdict-card verdict-manual">
+        <div class="verdict-name">需人工介入</div>
+        <code class="verdict-code">manual</code>
+        <div class="verdict-desc">基建類錯誤，PR 轉 draft 並加上 <code>needs-tech-lead</code> label</div>
+      </div>
+      <div class="verdict-card verdict-reject">
+        <div class="verdict-name">直接拒絕</div>
+        <code class="verdict-code">reject</code>
+        <div class="verdict-desc">PR 直接關閉，問題本身不應重試</div>
+      </div>
     </div>
   </div>
 
   <div class="cards-foot">
-    <strong>設計重點:</strong>&nbsp;&nbsp;5 個子狀態彼此獨立,失敗只影響自己;聚合層才決定整個 PR 的下一步。
+    <strong>設計重點:</strong>&nbsp;&nbsp;5 個子狀態彼此獨立，失敗只影響自己。聚合層才決定整個 PR 的下一步。
   </div>
 </div>
   </script>
@@ -1036,7 +1100,7 @@ flowchart TB
       const win = window.open(url, '_blank');
       if (!win) {
         URL.revokeObjectURL(url);
-        alert('彈出視窗被瀏覽器擋下,請允許此頁面開啟新分頁');
+        alert('彈出視窗被瀏覽器擋下，請允許此頁面開啟新分頁');
         return;
       }
       setTimeout(() => URL.revokeObjectURL(url), 60000);
