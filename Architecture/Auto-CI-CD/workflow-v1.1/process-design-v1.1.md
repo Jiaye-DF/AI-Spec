@@ -272,10 +272,11 @@ high_cve=true|false
     PLATFORM_KEY: ${{ secrets.CICD_PLATFORM_KEY }}
   run: |
     curl -X POST "$PLATFORM_URL/review" \
-      -H "X-DF-Author:     ${{ github.event.pull_request.user.login }} · ${{ github.event.pull_request.user.email }}" \
-      -H "X-DF-Repo:       ${{ github.repository }}" \
-      -H "X-DF-PR:         ${{ github.event.pull_request.number }}" \
-      -H "X-DF-Commit-SHA: ${{ github.sha }}" \
+      -H "X-DF-Author:       ${{ github.event.pull_request.user.login }}" \
+      -H "X-DF-Author-Email: ${{ github.event.pull_request.user.email }}" \
+      -H "X-DF-Repo:         ${{ github.repository }}" \
+      -H "X-DF-PR:           ${{ github.event.pull_request.number }}" \
+      -H "X-DF-Commit-SHA:   ${{ github.sha }}" \
       -H "Authorization: Bearer $PLATFORM_KEY" \
       -H "Content-Type: application/json" \
       --max-time 300 \
@@ -369,7 +370,7 @@ flowchart LR
 
 | # | 模組 | Input | 內部技術 | Output |
 | --- | --- | --- | --- | --- |
-| 1 | 接收入口 | HTTP request body + L3 headers | FastAPI 前置 middleware(L3 隱形濾網:`X-DF-Author / Repo / PR / Commit-SHA` 4 個都在 + Bearer 對 + repo 在 allowlist,任一失敗 → 404)+ pydantic schema + Redis 限流(30 req/min/repo) | 驗過的 request dict |
+| 1 | 接收入口 | HTTP request body + L3 headers | FastAPI 前置 middleware(L3 隱形濾網:`X-DF-Author / Author-Email / Repo / PR / Commit-SHA` 5 個都在 + Bearer 對 + repo 在 allowlist,任一失敗 → 404)+ pydantic schema + Redis 限流(30 req/min/repo) | 驗過的 request dict |
 | 2 | 機密過濾 | redacted diff | `gitleaks protect` 二次掃 | clean diff;或 verdict=reject(命中即終止) |
 | 3 | OpenRouter Dispatch | clean diff + diff size | python `httpx` 對 OpenRouter API;diff > 50K → Opus,否則 Sonnet | LLM raw response |
 | 4 | 判決引擎 | LLM response + rules_ref | YAML 規則庫(`rules_ref` 對應 git tag) | `{verdict, summary, findings[]}` |

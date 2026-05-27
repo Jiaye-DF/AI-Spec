@@ -53,7 +53,7 @@
 **已對齊的決策**:
 
 - **部署**:CI/CD 管理平台 deploy 在 Coolify(SSL / reverse proxy 由 Coolify 自帶,不需 Cloudflare)
-- **L3 隱形濾網**:走簡化版(Option B),GHA 端送 4 個自訂 header(`X-DF-Author / Repo / PR / Commit-SHA`)+ 既有 Bearer,平台端 middleware 任一失敗 → 404。**0 個新 GitHub Secret / Variable / Organisation 設定**,詳見 [cicd-platform-plan.md](./cicd-platform-plan.md)。
+- **L3 隱形濾網**:走簡化版(Option B),GHA 端送 5 個自訂 header(`X-DF-Author / Author-Email / Repo / PR / Commit-SHA`)+ 既有 Bearer,平台端 middleware 任一失敗 → 404。**0 個新 GitHub Secret / Variable / Organisation 設定**,詳見 [cicd-platform-plan.md](./cicd-platform-plan.md)。
 
 **待用戶定整體平台架構**,要納入:
 

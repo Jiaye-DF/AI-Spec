@@ -1,121 +1,56 @@
 # CI/CD 管理平台 規劃
 
-> 本檔最終會成為 CI/CD 管理平台的完整流程設計。目前處於累積規劃階段,各 section 會逐步補上。
+> 本檔最終會成為 CI/CD 管理平台的完整流程設計。
 
 ---
 
-## 安全防線(多層)
+## 部署環境
 
-> **部署平台**:Coolify。SSL termination、reverse proxy(Caddy / Traefik)、Let's Encrypt 自動續憑都由 Coolify 處理,不需另外設 Cloudflare 或反向代理。
-
-| 層 | 機制 | 攔截目標 | 狀態 |
-|----|------|----------|------|
-| L1 | Coolify 內建 reverse proxy + SSL | SSL termination | 部署層自帶,不需另設 |
-| L2 | GitHub Actions IP allowlist | 非 GHA 來源 | 不採用(GHA IP range 範圍很寬,且需額外維護) |
-| L3 | **自訂 header 隱形濾網 + repo allowlist** | 隨機 robot scanner、外部 repo 亂打 | 已設計(本檔下方) |
-| L4 | Authorization Bearer | 已知 endpoint 的攻擊者 | 既有設計(process-design-v1.1.md Stage ④' 模組 1) |
-| L5 | Rate limiting(Redis) | 暴力試 token | 既有設計(30 req/min/repo) |
-
-**設計原則**:不新增任何 GitHub repo / organisation 層級設定,L3 只重用既有 `CICD_PLATFORM_KEY`。
+部署在 **Coolify**
 
 ---
 
-## L3 · 自訂 header 隱形濾網 — 詳細設計
+## L3 · 自訂 header 隱形濾網
 
-### 目的
+**目的**:擋 robot 掃描 + 身份綁定 + 外部 repo 過濾。
+**前提**:0 個新 GitHub 設定,只重用既有 `CICD_PLATFORM_KEY`。
 
-1. **隱形** — 不認識 endpoint 的 robot scanner 收到 404 → 放棄(不像 401 會引誘繼續探)
-2. **身份綁定 + audit** — 每個 request 都附帶誰、哪個 repo、哪個 PR、哪個 commit,平台端可以記錄、過濾、稽核
-3. **repo allowlist** — 限定只接受 Dafon-IT 組織下的 repo
+### GHA 端送 4 個自訂 header
 
-### Header 4 欄(全部來自 GHA context,免設定)
+| Header | 來源 |
+|--------|------|
+| `X-DF-Author` | PR 作者(login) |
+| `X-DF-Author-Email` | PR 作者 email |
+| `X-DF-Repo` | repo 全名(e.g. `Dafon-IT/CRM-Backend`) |
+| `X-DF-PR` | PR 號 |
+| `X-DF-Commit-SHA` | commit SHA |
 
-| Header | GHA 來源 | 範例 |
-|--------|----------|------|
-| `X-DF-Author` | `github.event.pull_request.user.login` + `.user.email` | `Jiaye-DF · df.it.all@df-recycle.com.tw` |
-| `X-DF-Repo` | `github.repository` | `Dafon-IT/CRM-Backend` |
-| `X-DF-PR` | `github.event.pull_request.number` | `123` |
-| `X-DF-Commit-SHA` | `github.sha` | `abc1234` |
+外加既有的 `Authorization: Bearer $CICD_PLATFORM_KEY`。**5 個 X-DF-* 全部來自 GHA context**,不需要新 secret / variable。
 
-外加既有的 `Authorization: Bearer <CICD_PLATFORM_KEY>`(由 L4 驗證)。
+### 平台端 4 道檢查(任一失敗 → 404)
 
-**不需要新增**:HMAC signature、timestamp、任何新 secret。
+1. 5 個 X-DF-* header 都在
+2. `Authorization` Bearer 對
+3. `X-DF-Repo` 在 allowlist(`Dafon-IT/` 開頭)
+4. 通過 → 繼續 `/review` 業務邏輯
 
----
-
-### GHA 端送出範例
-
-```yaml
-- name: POST /review
-  env:
-    PLATFORM_URL: ${{ vars.CICD_PLATFORM_URL }}
-    PLATFORM_KEY: ${{ secrets.CICD_PLATFORM_KEY }}
-  run: |
-    curl -X POST "$PLATFORM_URL/review" \
-      -H "X-DF-Author:     ${{ github.event.pull_request.user.login }} · ${{ github.event.pull_request.user.email }}" \
-      -H "X-DF-Repo:       ${{ github.repository }}" \
-      -H "X-DF-PR:         ${{ github.event.pull_request.number }}" \
-      -H "X-DF-Commit-SHA: ${{ github.sha }}" \
-      -H "Authorization:   Bearer $PLATFORM_KEY" \
-      -H "Content-Type: application/json" \
-      --data-binary "@/tmp/review-body.json"
-```
-
-**沒有新 secret、沒有新 vars、沒有新 setup**,4 個 X-DF-* 全部來自 GHA context。
+**為何回 404 不回 401**:讓 robot scanner 以為 endpoint 不存在 → 放棄繼續探。
 
 ---
 
-### 平台端 FastAPI middleware
+## 安全防線總覽
 
-```python
-from fastapi import Request, Response
+| 層 | 機制 | 部署位置 |
+|----|------|---------|
+| L1 | SSL / reverse proxy | Coolify 自帶 |
+| L3 | 5 個 X-DF-* + repo allowlist + 404 | FastAPI middleware |
+| L4 | Bearer auth | FastAPI(既有) |
+| L5 | Redis 30 req/min/repo | FastAPI(既有) |
 
-REPO_ALLOWLIST = ["Dafon-IT/"]   # prefix match
-EXPECTED_BEARER = f"Bearer {settings.CICD_PLATFORM_KEY}"
-
-@app.middleware("http")
-async def stealth_filter(req: Request, call_next):
-    h = req.headers
-    
-    # 1. 4 個 X-DF-* header 都在?
-    required = ["x-df-author", "x-df-repo", "x-df-pr", "x-df-commit-sha"]
-    if not all(k in h for k in required):
-        return Response(status_code=404)
-    
-    # 2. Bearer 對?
-    if h.get("authorization") != EXPECTED_BEARER:
-        return Response(status_code=404)
-    
-    # 3. repo 在 allowlist?
-    if not any(h["x-df-repo"].startswith(p) for p in REPO_ALLOWLIST):
-        return Response(status_code=404)
-    
-    # L3 通過,繼續處理 /review business logic
-    return await call_next(req)
-```
-
-**任何一步失敗 → 一律 404(不是 401),讓 robot 以為 path 不存在。**
+**沒採用**:L2 IP allowlist(GHA IP range 太寬)、HMAC 簽 body(Bearer leak 救不了那種情境,過度設計)。
 
 ---
 
-### 既有 GitHub Secrets 配置(維持不變)
+## 實作細節
 
-| Secret | 用途 | 狀態 |
-|--------|------|------|
-| `CICD_PLATFORM_KEY` | Bearer token | 既有,沿用 |
-| `CICD_PLATFORM_URL` | 平台 URL(repo variable) | 既有,沿用 |
-
-**0 個新 secret · 0 個新 organisation 設定 · 0 個 per-repo 新增設定。**
-
----
-
-### 取捨
-
-| 達到 | 沒做 |
-|------|------|
-| ✅ Robot 掃描 → 404 → 放棄 | ❌ 沒 HMAC,Bearer leak 後可 replay |
-| ✅ Audit trail(每次都有 author / repo / PR / SHA) | ❌ 沒 timestamp 防 replay |
-| ✅ Repo allowlist 擋外部 repo 亂打 | ❌ 沒 body integrity 簽章 |
-| ✅ 0 新 setup | |
-
-**Bearer leak 本身就是大事**,L3 的 HMAC 那種重型保護救不了那個情境,所以拿掉合理。對「擋 robot 掃描」這個首要目標而言,Option B 已經夠用。
+GHA 端 curl 範例與平台端 middleware 程式碼:見 [process-design-v1.1.md](./process-design-v1.1.md) Stage ④ 與 Stage ④' 模組 1。
