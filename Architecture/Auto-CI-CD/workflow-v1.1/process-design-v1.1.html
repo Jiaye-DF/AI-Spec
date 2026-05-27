@@ -448,72 +448,114 @@ flowchart TB
 
   <div>
     <div class="flow-section-title">
-      <strong>狀態機</strong> &nbsp;—&nbsp; 5 個並行分支 · 每個分支有自己的內部 pipeline · 聚合成 4 種結束狀態
-      <button class="diagram-zoom-btn" data-action="zoom-diagram" data-target="step1-state" data-title="Step 1 · 並行檢查狀態機">↗ 新視窗放大</button>
+      <strong>完整設計圖</strong> &nbsp;—&nbsp; 流程圖 + 狀態機 整合 · 觸發 → 5 並行檢查內部 pipeline → 聚合判定 → 4 verdict
+      <button class="diagram-zoom-btn" data-action="zoom-diagram" data-target="step1-state" data-title="Step 1 · 完整設計圖">↗ 新視窗放大</button>
     </div>
     <pre class="mermaid" id="step1-state">
-stateDiagram-v2
-  direction TB
-  [*] --> 工作流觸發
-  工作流觸發 --> 並行檢查 : 5 種檢查同步啟動
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart TB
+  Start(( )):::start
+  Trigger[工作流觸發<br>同一 PR 取消舊跑]:::it
 
-  state 並行檢查 {
-    direction LR
+  subgraph FE[前端檢查]
+    direction TB
+    F0[裝依賴]:::it
+    F1[跑 ESLint + tsc + vitest + build + npm audit]:::it
+    F0 -->|npm ci 成功| F1
+    F0 -.->|依賴解析錯 / lockfile 不一致| FX(((失敗))):::stFail
+    F1 -.->|任一項紅| FX
+    F1 -->|5 項全綠| FP(((通過))):::stPass
+  end
 
-    [*] --> 前端裝依賴
-    前端裝依賴 --> 前端跑五項 : npm ci 成功
-    前端跑五項 --> 前端通過 : ESLint + tsc + vitest + build + npm audit 全綠
-    前端裝依賴 --> 前端失敗 : 依賴解析錯 / lockfile 不一致
-    前端跑五項 --> 前端失敗 : 風格 / 型別 / 單元測試 / 建置 / 套件 CVE 任一紅
-    前端通過 --> [*]
-    前端失敗 --> [*]
-    --
-    [*] --> 後端裝依賴
-    後端裝依賴 --> 後端跑四項 : pip / mvn / go mod 成功
-    後端跑四項 --> 後端通過 : lint + 型別 + 單元測試 + 套件稽核 全綠
-    後端裝依賴 --> 後端失敗 : 依賴解析錯 / 環境缺套件
-    後端跑四項 --> 後端失敗 : 風格 / 型別 / 單元測試 / 套件 CVE 任一紅
-    後端通過 --> [*]
-    後端失敗 --> [*]
-    --
-    [*] --> 判斷PR是否動到結構檔
-    判斷PR是否動到結構檔 --> 結構檢查跳過 : PR 未碰 migrations/ 路徑
-    判斷PR是否動到結構檔 --> 啟動DB容器 : PR 改了 migrations/ 下的檔
-    啟動DB容器 --> 跑可逆性 : Postgres / MySQL container 健康
-    啟動DB容器 --> 結構工具錯 : container 啟不來 / runner OOM / DB 連不上
-    跑可逆性 --> 結構通過 : up → down → up 三步全綠
-    跑可逆性 --> 結構不合規 : 缺 down 腳本 / 任一步失敗 / down 完 schema 不一致
-    結構檢查跳過 --> [*]
-    結構通過 --> [*]
-    結構工具錯 --> [*]
-    結構不合規 --> [*]
-    --
-    [*] --> 拉完整git歷史
-    拉完整git歷史 --> 跑gitleaks : checkout fetch-depth = 0
-    跑gitleaks --> 機密通過 : 0 命中
-    跑gitleaks --> 機密命中 : ≥ 1 命中(規則 ID + 檔案行號)
-    機密通過 --> [*]
-    機密命中 --> [*]
-    --
-    [*] --> 跑semgrep
-    跑semgrep --> 跑trivy : semgrep 結束(不論結果)
-    跑trivy --> 安全通過 : semgrep 0 finding 且 trivy 0 finding
-    跑trivy --> 安全中風險 : semgrep WARNING 或 trivy MEDIUM
-    跑trivy --> 安全高風險 : semgrep ERROR 或 trivy HIGH / CRITICAL
-    安全通過 --> [*]
-    安全中風險 --> [*]
-    安全高風險 --> [*]
-  }
+  subgraph BE[後端檢查]
+    direction TB
+    B0[裝依賴]:::it
+    B1[跑 lint + 型別 + 單元測試 + 套件稽核]:::it
+    B0 -->|pip / mvn / go mod 成功| B1
+    B0 -.->|依賴解析錯 / 環境缺套件| BX(((失敗))):::stFail
+    B1 -.->|任一項紅| BX
+    B1 -->|4 項全綠| BP(((通過))):::stPass
+  end
 
-  並行檢查 --> 全綠通過 : 5 個分支終態皆 ∈ {通過, 跳過}
-  並行檢查 --> 待作者修正 : 前端失敗 ∨ 後端失敗 ∨ 安全中風險
-  並行檢查 --> 需人工介入 : 結構工具錯
-  並行檢查 --> 直接拒絕 : 機密命中 ∨ 安全高風險 ∨ 結構不合規
+  subgraph DB[資料庫結構變更檢查]
+    direction TB
+    D0{{判斷 PR 是否動到結構檔}}:::it
+    D1[啟動 DB container]:::it
+    D2[跑 up → down → up 可逆性]:::it
+    D0 -->|未碰 migrations/| DS(((跳過))):::stSkip
+    D0 -->|改了 migrations/| D1
+    D1 -->|container 健康| D2
+    D1 -.->|container 啟不來 / runner OOM| DM(((工具錯))):::stManual
+    D2 -->|三步全綠| DP(((通過))):::stPass
+    D2 -.->|缺 down / down 完不一致| DR(((不合規))):::stReject
+  end
 
-  全綠通過 --> [*]
-  待作者修正 --> [*]
-  需人工介入 --> [*]
-  直接拒絕 --> [*]
+  subgraph SEC[機密外洩掃描]
+    direction TB
+    S0[拉完整 git 歷史]:::critical
+    S1[跑 gitleaks]:::critical
+    S0 -->|fetch-depth = 0| S1
+    S1 -->|0 命中| SP(((通過))):::stPass
+    S1 -.->|≥ 1 命中| SR(((命中))):::stReject
+  end
+
+  subgraph SCAN[原始碼安全掃描]
+    direction TB
+    A0[跑 semgrep]:::critical
+    A1[跑 trivy]:::critical
+    A0 -->|semgrep 結束| A1
+    A1 -->|semgrep 0 + trivy 0| AP(((通過))):::stPass
+    A1 -.->|WARNING 或 MEDIUM| AW(((中風險))):::stWarn
+    A1 -.->|ERROR 或 HIGH / CRITICAL| AR(((高風險))):::stReject
+  end
+
+  Agg[聚合判定<br>讀 5 個 job result + outputs]:::shared
+
+  V1([全綠通過 · mergeable<br>→ 進 Step 2 自動合併]):::vPass
+  V2([待作者修正 · conflict<br>→ 留評論 · 等作者修完重 push]):::vWarn
+  V3([需人工介入 · manual<br>→ PR 轉 draft + needs-tech-lead label]):::vManual
+  V4([直接拒絕 · reject<br>→ PR 直接關閉 · 不應重試]):::vReject
+
+  Start ==> Trigger
+  Trigger ==>|5 種檢查同步啟動| FE
+  Trigger ==> BE
+  Trigger ==> DB
+  Trigger ==> SEC
+  Trigger ==> SCAN
+
+  FP --> Agg
+  FX --> Agg
+  BP --> Agg
+  BX --> Agg
+  DS --> Agg
+  DP --> Agg
+  DM --> Agg
+  DR --> Agg
+  SP --> Agg
+  SR --> Agg
+  AP --> Agg
+  AW --> Agg
+  AR --> Agg
+
+  Agg ==>|5 項皆 ∈ 通過 / 跳過| V1
+  Agg ==>|前端失敗 ∨ 後端失敗 ∨ 安全中風險| V2
+  Agg ==>|結構工具錯| V3
+  Agg ==>|機密命中 ∨ 安全高風險 ∨ 結構不合規| V4
+
+  classDef start fill:#0f172a,stroke:#0f172a,color:#fff
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
+  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef stPass fill:#dcfce7,stroke:#16a34a,color:#14532d,font-weight:700
+  classDef stSkip fill:#f1f5f9,stroke:#64748b,color:#334155,font-weight:700
+  classDef stFail fill:#fef3c7,stroke:#d97706,color:#78350f,font-weight:700
+  classDef stWarn fill:#fed7aa,stroke:#ea580c,color:#7c2d12,font-weight:700
+  classDef stManual fill:#e0e7ff,stroke:#6366f1,color:#312e81,font-weight:700
+  classDef stReject fill:#fee2e2,stroke:#dc2626,color:#7f1d1d,font-weight:700
+  classDef vPass fill:#dcfce7,stroke:#16a34a,color:#14532d,font-weight:700
+  classDef vWarn fill:#fef3c7,stroke:#d97706,color:#78350f,font-weight:700
+  classDef vManual fill:#e0e7ff,stroke:#6366f1,color:#312e81,font-weight:700
+  classDef vReject fill:#fee2e2,stroke:#dc2626,color:#7f1d1d,font-weight:700
     </pre>
     <div class="flow-legend" style="margin-top:14px;">
       <strong>4 個結束狀態 ↔ workflow 四態 verdict:</strong>
