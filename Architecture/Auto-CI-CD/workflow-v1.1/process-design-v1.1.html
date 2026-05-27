@@ -639,6 +639,248 @@ flowchart TB
   </script>
 
 
+  <!-- ================== Step 2 · CI/CD 管理平台 ================== -->
+  <script type="text/plain" id="step2-platform"
+          data-label="Step 2 · CI/CD 管理平台"
+          data-order="2"
+          data-kind="flow"
+          data-format="html">
+<div class="cards-wrap">
+  <div class="cards-head">
+    <strong>Step 2 · CI/CD 管理平台</strong>
+    <span>· /health 確認活著 · /review 進場 · 5 模組鏈式處理 · 回 verdict ·</span>
+  </div>
+
+  <div class="cards-grid cols-3" style="margin-bottom: 16px;">
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">健康檢查</span></div>
+      <div class="card-title">平台活著才打 /review</div>
+      <div class="card-body">先確認 endpoint 可達，避免 LLM 等到死。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">技術細節</div>
+        <ul>
+          <li><strong>端點</strong> — GET <code>/health</code></li>
+          <li><strong>timeout</strong> — 連線 5s / 總 10s</li>
+          <li><strong>非 200 / timeout</strong> — verdict=manual 降級</li>
+          <li><strong>200 才繼續</strong> — POST <code>/review</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">① 接收入口</span></div>
+      <div class="card-title">驗 token + 限流</div>
+      <div class="card-body">HTTP 進來第一道，擋掉非預期呼叫。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">技術細節</div>
+        <ul>
+          <li><strong>框架</strong> — FastAPI + pydantic schema</li>
+          <li><strong>驗 token</strong> — Bearer (<code>CICD_PLATFORM_KEY</code>)</li>
+          <li><strong>限流</strong> — Redis 30 req/min/repo</li>
+          <li><strong>驗證失敗</strong> — 401 / 429 → verdict=manual</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">② 機密過濾(雙保險)</span></div>
+      <div class="card-title">平台端再掃一次 redacted diff</div>
+      <div class="card-body">workflow 端已掃，這是進 LLM 前的最後一道。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">技術細節</div>
+        <ul>
+          <li><strong>工具</strong> — <code>gitleaks protect</code></li>
+          <li><strong>命中</strong> — 立刻 verdict=reject 終止</li>
+          <li><strong>為何雙掃</strong> — workflow 端可能漏設規則</li>
+          <li><strong>原則</strong> — 機密一進 LLM 就回不來</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">③ OpenRouter Dispatch</span></div>
+      <div class="card-title">依 diff size 挑 model</div>
+      <div class="card-body">大 diff 用 Opus、小 diff 用 Sonnet，省 token 又顧品質。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">技術細節</div>
+        <ul>
+          <li><strong>HTTP client</strong> — python <code>httpx</code></li>
+          <li><strong>挑 model</strong> — diff &gt; 50K → Opus 否則 Sonnet</li>
+          <li><strong>retry</strong> — 2 次間隔 30s</li>
+          <li><strong>LLM 全掛</strong> — verdict=manual</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card shared">
+      <div class="card-badges"><span class="card-badge">④ 判決引擎</span></div>
+      <div class="card-title">LLM 回應 + YAML 規則庫</div>
+      <div class="card-body">對齊鎖定版本的規則庫，出 verdict + findings。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">技術細節</div>
+        <ul>
+          <li><strong>規則版本</strong> — <code>rules_ref</code> 對應 git tag</li>
+          <li><strong>LLM 結構驗證</strong> — pydantic schema</li>
+          <li><strong>schema 不符</strong> — verdict=manual</li>
+          <li><strong>輸出</strong> — verdict / summary / findings[]</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">⑤ 發布器</span></div>
+      <div class="card-title">寫 PR 評論 + 通知 + 回 verdict</div>
+      <div class="card-body">把判決結果擴散到 GitHub PR、Notifier、workflow runner。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">技術細節</div>
+        <ul>
+          <li><strong>PR 評論</strong> — GitHub App token</li>
+          <li><strong>寄事件</strong> — POST Notifier <code>/events</code></li>
+          <li><strong>回 workflow</strong> — HTTP 200 + verdict JSON</li>
+          <li><strong>寫評論失敗</strong> — 不阻塞 verdict 回應</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="flow-section-title">
+      <strong>系統流程圖</strong> &nbsp;—&nbsp; workflow runner ↔ 平台 5 模組鏈
+      <button class="diagram-zoom-btn" data-action="zoom-diagram" data-target="step2-flow" data-title="Step 2 · 系統流程圖">↗ 新視窗放大</button>
+    </div>
+    <pre class="mermaid" id="step2-flow">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart TB
+  In([Step 1 通過<br>verdict = mergeable]):::user
+  Health{GET /health<br>5s timeout}:::it
+  Review[POST /review<br>diff + pr_body + rules_ref]:::it
+
+  subgraph Platform[CI/CD 管理平台 · FastAPI service]
+    direction TB
+    M1[① 接收入口<br>Bearer + 限流]:::it
+    M2[② 機密過濾<br>gitleaks 二次掃]:::critical
+    M3[③ OpenRouter Dispatch<br>依 diff size 挑 model]:::it
+    M4[④ 判決引擎<br>LLM + YAML 規則庫]:::shared
+    M5[⑤ 發布器<br>評論 + 通知 + 回 verdict]:::it
+    M1 ==> M2 ==> M3 ==> M4 ==> M5
+  end
+
+  Out([verdict JSON 回 runner]):::it
+  Comment[workflow 寫 PR 評論<br>設 status check]:::it
+  Next([→ Step 3 · 四態分派]):::shared
+
+  In ==> Health
+  Health -->|200 OK| Review
+  Health -.非 200 / timeout.-> Out
+  Review ==> M1
+  M5 ==> Out
+  Out ==> Comment
+  Comment ==> Next
+
+  classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
+  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+    </pre>
+  </div>
+
+  <div>
+    <div class="flow-section-title">
+      <strong>完整設計圖</strong> &nbsp;—&nbsp; 從 /health 到 verdict 全程 · 每模組退路明示
+      <button class="diagram-zoom-btn" data-action="zoom-diagram" data-target="step2-state" data-title="Step 2 · 完整設計圖">↗ 新視窗放大</button>
+    </div>
+    <pre class="mermaid" id="step2-state">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart TB
+  Start(( )):::start
+  In[Step 1 通過<br>verdict = mergeable]:::it
+
+  Health{GET /health<br>5s timeout}:::it
+  Recv[① 接收入口<br>Bearer + 限流]:::it
+  Sec[② 機密過濾<br>gitleaks 二次掃]:::critical
+  Disp[③ OpenRouter Dispatch<br>挑 Opus / Sonnet]:::it
+  Engine[④ 判決引擎<br>LLM + 規則庫]:::shared
+  Pub[⑤ 發布器<br>評論 + 通知]:::it
+
+  WfComment[workflow 寫 PR 評論<br>設 status check]:::it
+
+  V1(((mergeable))):::stPass
+  V2(((conflict))):::stFail
+  V3(((manual))):::stManual
+  V4(((reject))):::stReject
+
+  ToStep3([→ Step 3 · 合併]):::vPass
+  ToNotifier([→ Notifier 寄信]):::vReject
+
+  Start ==> In
+  In ==> Health
+  Health ==>|200 OK| Recv
+  Health -.非 200 / timeout.-> V3
+  Recv ==> Sec
+  Recv -.401 / 429.-> V3
+  Sec ==> Disp
+  Sec -.命中機密.-> V4
+  Disp ==> Engine
+  Disp -.LLM 全掛.-> V3
+  Engine ==> Pub
+  Engine -.schema 不符.-> V3
+  Pub ==>|verdict 出爐| V1
+  Pub ==> V2
+  Pub ==> V3
+  Pub ==> V4
+
+  V1 ==> WfComment
+  V2 ==> WfComment
+  V3 ==> WfComment
+  V4 ==> WfComment
+
+  WfComment ==>|mergeable| ToStep3
+  WfComment -.conflict / manual / reject.-> ToNotifier
+
+  classDef start fill:#0f172a,stroke:#0f172a,color:#fff
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
+  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef stPass fill:#dcfce7,stroke:#16a34a,color:#14532d,font-weight:700
+  classDef stFail fill:#fef3c7,stroke:#d97706,color:#78350f,font-weight:700
+  classDef stManual fill:#e0e7ff,stroke:#6366f1,color:#312e81,font-weight:700
+  classDef stReject fill:#fee2e2,stroke:#dc2626,color:#7f1d1d,font-weight:700
+  classDef vPass fill:#dcfce7,stroke:#16a34a,color:#14532d,font-weight:700
+  classDef vReject fill:#fee2e2,stroke:#dc2626,color:#7f1d1d,font-weight:700
+    </pre>
+
+    <div class="verdict-grid">
+      <div class="verdict-grid-head"><strong>Step 2 出口 · 4 個 verdict · 對應 workflow 動作</strong></div>
+      <div class="verdict-card verdict-pass">
+        <div class="verdict-name">AI 審查通過</div>
+        <code class="verdict-code">mergeable</code>
+        <div class="verdict-desc">LLM 判決可合併，PR 進 Step 3 由 workflow 執行 merge</div>
+      </div>
+      <div class="verdict-card verdict-warn">
+        <div class="verdict-name">AI 找到問題</div>
+        <code class="verdict-code">conflict</code>
+        <div class="verdict-desc">LLM 找到 major/minor finding，留 PR 評論等作者修</div>
+      </div>
+      <div class="verdict-card verdict-manual">
+        <div class="verdict-name">平台無法判決</div>
+        <code class="verdict-code">manual</code>
+        <div class="verdict-desc">/health 死 / LLM 全掛 / schema 不符，tech-lead 介入</div>
+      </div>
+      <div class="verdict-card verdict-reject">
+        <div class="verdict-name">AI 直接拒絕</div>
+        <code class="verdict-code">reject</code>
+        <div class="verdict-desc">機密二次命中 或 LLM 判決 blocker，PR 直接關閉</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cards-foot">
+    <strong>設計重點:</strong>&nbsp;&nbsp;5 模組鏈式處理，任一節點失敗都有對應 verdict 退路，workflow 端永不卡死。
+  </div>
+</div>
+  </script>
+
+
   <!-- ================== 工具列 + 舞台 ================== -->
   <header class="toolbar">
     <h1 id="title">Auto CI/CD 流程設計 v1.1</h1>
