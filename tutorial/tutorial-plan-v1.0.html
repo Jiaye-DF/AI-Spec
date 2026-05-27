@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'><circle cx='3' cy='8' r='2' fill='%2316a34a'/><line x1='5' y1='8' x2='11' y2='8' stroke='%232563eb' stroke-width='1.6'/><circle cx='13' cy='8' r='2' fill='%23dc2626'/></svg>">
+  <title>DF 內部 Vibe Coding 治理講座 v1.0 — Tutorial Plan</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-soft: #f8fafc;
+      --fg: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --toolbar-bg: #f8fafc;
+      --btn-bg: #ffffff;
+      --btn-hover: #f1f5f9;
+      --accent: #2563eb;
+      --error: #dc2626;
+      --user: #16a34a;
+      --it: #2563eb;
+      --shared: #9333ea;
+      --critical: #dc2626;
+    }
+    [data-theme="dark"] {
+      --bg: #0f172a;
+      --bg-soft: #1e293b;
+      --fg: #f1f5f9;
+      --muted: #94a3b8;
+      --border: #334155;
+      --toolbar-bg: #1e293b;
+      --btn-bg: #1e293b;
+      --btn-hover: #334155;
+      --accent: #60a5fa;
+      --error: #f87171;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      font-family: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--fg);
+    }
+    body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+    .toolbar {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      padding: 12px 20px;
+      background: var(--toolbar-bg);
+      border-bottom: 2px solid var(--border);
+      align-items: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+      flex-shrink: 0;
+    }
+    .toolbar h1 {
+      font-size: 16px;
+      margin: 0;
+      margin-right: auto;
+      font-weight: 700;
+      color: var(--accent);
+      padding-left: 12px;
+      border-left: 4px solid var(--accent);
+      line-height: 1.3;
+      letter-spacing: 0.02em;
+      max-width: 40%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .toolbar .divider { width: 1px; height: 22px; background: var(--border); margin: 0 4px; }
+    .toolbar button, .toolbar select, .toolbar input {
+      padding: 6px 11px; font-size: 13px;
+      border: 1px solid var(--border);
+      background: var(--btn-bg); color: var(--fg);
+      border-radius: 5px; cursor: pointer; font-family: inherit;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .toolbar button:hover, .toolbar select:hover {
+      background: var(--btn-hover); border-color: var(--accent);
+    }
+    .toolbar button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .toolbar label {
+      font-size: 12px; color: var(--muted);
+      display: inline-flex; align-items: center; gap: 6px;
+      font-weight: 500;
+    }
+    .toolbar .picker {
+      font-weight: 600; min-width: 280px;
+      border-color: var(--accent); color: var(--fg);
+    }
+    .counter {
+      font-size: 12px; color: var(--muted); font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      padding: 0 8px;
+    }
+    .nav-btn {
+      width: 32px; height: 30px; padding: 0 !important;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 600;
+    }
+
+    main {
+      flex: 1; min-height: 0;
+      display: flex; flex-direction: column;
+    }
+    .preview {
+      flex: 1; min-height: 0;
+      overflow: auto;
+      padding: 28px 24px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+    .preview.zoomed { justify-content: flex-start; }
+    .preview.draggable { cursor: grab; user-select: none; }
+    .preview.draggable.dragging { cursor: grabbing; }
+    .preview.draggable.dragging * { pointer-events: none; }
+    .preview svg { display: block; margin: 0 auto; }
+    .preview .svg-wrap {
+      display: inline-block;
+      transform-origin: top left;
+      transition: transform 0.12s ease;
+    }
+    .preview.dragging .svg-wrap { transition: none; }
+    .zoom-label {
+      font-size: 12px; color: var(--muted); font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      min-width: 42px; text-align: center;
+      cursor: pointer;
+    }
+    .zoom-label:hover { color: var(--accent); }
+    .error {
+      color: var(--error); padding: 16px;
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 13px; white-space: pre-wrap; text-align: left;
+    }
+
+    .cards-wrap { max-width: 1280px; width: 100%; }
+    .cards-head {
+      margin-bottom: 18px;
+      font-size: 15px; color: var(--muted);
+      display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center;
+    }
+    .cards-head strong { color: var(--accent); font-size: 19px; }
+    .cards-grid { display: grid; gap: 16px; }
+    .cards-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+    .cards-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .cards-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+    .cards-grid.cols-5 { grid-template-columns: repeat(5, 1fr); }
+    .card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-left-width: 5px;
+      border-radius: 10px;
+      padding: 16px 18px;
+      display: flex; flex-direction: column;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.1);
+    }
+    .card.user { border-left-color: #16a34a; }
+    .card.it { border-left-color: #2563eb; }
+    .card.shared { border-left-color: #9333ea; }
+    .card.critical { border-left-color: #dc2626; }
+    .card-badges {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      margin-bottom: 10px;
+    }
+    .card-badge {
+      display: inline-block;
+      font-size: 12.5px; font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 5px;
+      letter-spacing: 0.02em;
+    }
+    .card-tag {
+      display: inline-block;
+      font-size: 11.5px;
+      padding: 3px 8px;
+      border-radius: 5px;
+      background: var(--btn-hover);
+      color: var(--muted);
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    [data-theme="dark"] .card-tag { background: rgba(148, 163, 184, 0.15); }
+    .card.user .card-badge { background: #dcfce7; color: #14532d; }
+    .card.it .card-badge { background: #dbeafe; color: #1e3a8a; }
+    .card.shared .card-badge { background: #f3e8ff; color: #581c87; }
+    .card.critical .card-badge { background: #fee2e2; color: #7f1d1d; }
+    [data-theme="dark"] .card.user .card-badge { background: rgba(34,197,94,0.2); color: #86efac; }
+    [data-theme="dark"] .card.it .card-badge { background: rgba(96,165,250,0.2); color: #93c5fd; }
+    [data-theme="dark"] .card.shared .card-badge { background: rgba(168,85,247,0.2); color: #d8b4fe; }
+    [data-theme="dark"] .card.critical .card-badge { background: rgba(248,113,113,0.2); color: #fca5a5; }
+    .card-title {
+      font-size: 16px; font-weight: 700;
+      margin: 0 0 9px;
+      color: var(--fg); line-height: 1.35;
+    }
+    .card-body {
+      font-size: 14px;
+      color: var(--fg);
+      line-height: 1.6;
+    }
+    .card-body strong { color: var(--accent); }
+    .card-body code {
+      background: var(--btn-hover);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-family: 'JetBrains Mono', Consolas, monospace;
+    }
+    .card-body ul {
+      margin: 6px 0 0;
+      padding-left: 20px;
+    }
+    .card-body li {
+      margin-bottom: 3px;
+    }
+    .card-tech {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--border);
+      font-size: 12.5px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .card-tech-title {
+      font-weight: 700;
+      color: var(--fg);
+      margin-bottom: 6px;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+    }
+    .card-tech ul { margin: 4px 0 0; padding-left: 16px; }
+    .card-tech li { margin-bottom: 4px; }
+    .card-tech strong { color: var(--fg); font-weight: 700; }
+    .card-tech code {
+      background: var(--btn-hover);
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 11.5px;
+      font-family: 'JetBrains Mono', Consolas, monospace;
+    }
+    .cards-foot {
+      margin-top: 20px;
+      padding: 14px 18px;
+      background: var(--bg-soft);
+      border-left: 4px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      font-size: 15px;
+      color: var(--fg); line-height: 1.6;
+    }
+    .cards-foot strong { color: var(--accent); }
+
+    .preview pre.mermaid {
+      background: var(--bg);
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: auto;
+    }
+    .flow-section-title {
+      font-size: 18px; color: var(--muted);
+      margin: 18px 0 6px;
+      display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px;
+    }
+    .flow-section-title strong { color: var(--fg); }
+    .flow-section-title .diagram-zoom-btn { margin-left: auto; }
+    .diagram-zoom-btn {
+      padding: 5px 12px;
+      font-size: 13px; font-weight: 600;
+      background: var(--btn-bg);
+      color: var(--accent);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .diagram-zoom-btn:hover { background: var(--btn-hover); border-color: var(--accent); }
+    .flow-legend {
+      font-size: 14px; color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.6;
+    }
+    .flow-legend strong { color: var(--fg); }
+
+    .verdict-grid {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    .verdict-grid-head {
+      grid-column: 1 / -1;
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: -4px;
+    }
+    .verdict-grid-head strong { color: var(--fg); }
+    .verdict-card {
+      padding: 12px 14px;
+      border-radius: 8px;
+      border-left: 4px solid;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .verdict-card .verdict-name {
+      font-size: 15px; font-weight: 700;
+      color: var(--fg);
+    }
+    .verdict-card .verdict-code {
+      font-size: 12px; font-weight: 700;
+      align-self: flex-start;
+      padding: 2px 8px; border-radius: 4px;
+      font-family: 'JetBrains Mono', Consolas, monospace;
+    }
+    .verdict-card .verdict-desc {
+      font-size: 13px; line-height: 1.5;
+      color: var(--fg);
+    }
+    .verdict-pass   { background: #f0fdf4; border-left-color: #16a34a; }
+    .verdict-warn   { background: #fffbeb; border-left-color: #d97706; }
+    .verdict-manual { background: #eef2ff; border-left-color: #6366f1; }
+    .verdict-reject { background: #fef2f2; border-left-color: #dc2626; }
+    .verdict-pass   .verdict-code { background: #dcfce7; color: #14532d; }
+    .verdict-warn   .verdict-code { background: #fef3c7; color: #78350f; }
+    .verdict-manual .verdict-code { background: #e0e7ff; color: #312e81; }
+    .verdict-reject .verdict-code { background: #fee2e2; color: #7f1d1d; }
+    [data-theme="dark"] .verdict-pass   { background: rgba(34,197,94,0.12); }
+    [data-theme="dark"] .verdict-warn   { background: rgba(217,119,6,0.12); }
+    [data-theme="dark"] .verdict-manual { background: rgba(99,102,241,0.14); }
+    [data-theme="dark"] .verdict-reject { background: rgba(220,38,38,0.12); }
+    [data-theme="dark"] .verdict-pass   .verdict-code { background: rgba(34,197,94,0.25); color: #86efac; }
+    [data-theme="dark"] .verdict-warn   .verdict-code { background: rgba(217,119,6,0.25); color: #fcd34d; }
+    [data-theme="dark"] .verdict-manual .verdict-code { background: rgba(99,102,241,0.3); color: #c7d2fe; }
+    [data-theme="dark"] .verdict-reject .verdict-code { background: rgba(220,38,38,0.25); color: #fca5a5; }
+  </style>
+</head>
+<body>
+  <!--
+    tutorial-plan-v1.0.html
+    DF 內部 Vibe Coding 治理講座 · 計畫書投影片
+    12 週 × 1 小時 · 每週獨立 workshop · 不設結業
+    每張 slide = 一個課程設計面向
+    鍵盤: ← / → 翻頁 ; + / − 縮放 ; 0 重設 ; F 符合視窗
+  -->
+
+  <!-- ================== ① 課程大綱 + 12 週目錄 ================== -->
+  <script type="text/plain" id="slide-01-overview"
+          data-label="① 課程大綱 + 12 週目錄"
+          data-order="1"
+          data-format="html">
+<div class="cards-wrap">
+  <div class="cards-head">
+    <strong>① 課程大綱</strong>
+    <span>· 12 週 × 1 小時 · 每週獨立 workshop · 不設結業 · 對象:完全新手非工程師 ·</span>
+  </div>
+
+  <div class="flow-section-title">
+    <strong>設計三大原則</strong> &nbsp;—&nbsp; 課程哲學
+  </div>
+  <div class="cards-grid cols-3" style="margin-bottom: 18px;">
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">原則 ①</span></div>
+      <div class="card-title">每週自成一體</div>
+      <div class="card-body">開場 5 分鐘必重新建立 context,不假設聽過前面。任何一週單獨來都帶得走完整收穫。</div>
+    </div>
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">原則 ②</span></div>
+      <div class="card-title">痛感先行,概念後到</div>
+      <div class="card-body">每週開場有失敗故事,讓學員「不要變成故事裡那個人」。觀念直接講會被當官腔。</div>
+    </div>
+    <div class="card shared">
+      <div class="card-badges"><span class="card-badge">原則 ③</span></div>
+      <div class="card-title">用日常例子,不用技術 jargon</div>
+      <div class="card-body">外送 App、網路銀行、Email 這類非工程師也熟悉的例子,把技術概念翻譯成生活語言。</div>
+    </div>
+  </div>
+
+  <div class="flow-section-title">
+    <strong>12 週課程目錄</strong>
+  </div>
+  <div class="cards-grid cols-4" style="margin-bottom: 16px;">
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">W1</span></div>
+      <div class="card-title">什麼是 AI 協作?為什麼學這個</div>
+      <div class="card-body">認識「跟 AI 一起做事」的工作模式 + AI 能/不能做什麼</div>
+    </div>
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">W2</span></div>
+      <div class="card-title">AI 思維:合作而非命令</div>
+      <div class="card-body">從命令式心態轉成跟 AI 對話的合作心態</div>
+    </div>
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">W3</span></div>
+      <div class="card-title">為什麼 AI 寫的東西要被審查</div>
+      <div class="card-body">治理 3 大支柱:可追溯 / 可審查 / 可回滾</div>
+    </div>
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">W4</span></div>
+      <div class="card-title">Prompt 結構入門</div>
+      <div class="card-body">目的 / 背景 / 限制 / 範例 四欄位模板</div>
+    </div>
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">W5</span></div>
+      <div class="card-title">從 AI 視角理解 prompt</div>
+      <div class="card-body">LLM 是什麼 + 幻覺辨識 + AI 不能信的情境</div>
+    </div>
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">W6</span></div>
+      <div class="card-title">系統架構 101:一個東西有哪些層</div>
+      <div class="card-body">用「外送 App」拆解 4 個層次</div>
+    </div>
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">W7</span></div>
+      <div class="card-title">思維邏輯:需求 → 設計 → 實作</div>
+      <div class="card-body">拆解設計這步為什麼不能丟給 AI</div>
+    </div>
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">W8</span></div>
+      <div class="card-title">責任邊界:誰負責什麼</div>
+      <div class="card-body">AI 寫的 code 也是你的 code · 不能交給 AI 的決定清單</div>
+    </div>
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">W9</span></div>
+      <div class="card-title">本地端:你的電腦不等於世界</div>
+      <div class="card-body">環境差異 + 套件版本 + 為什麼換台電腦就壞</div>
+    </div>
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">W10</span></div>
+      <div class="card-title">伺服器端是什麼?部署觀念入門</div>
+      <div class="card-body">部署元素 + secret 安全 + 為什麼 24 小時運作很難</div>
+    </div>
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">W11</span></div>
+      <div class="card-title">Git / GitHub 基本概念</div>
+      <div class="card-body">commit / branch / merge + GitHub Desktop 上手</div>
+    </div>
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">W12</span></div>
+      <div class="card-title">PR 流程:被審、被合、被部署</div>
+      <div class="card-body">PR → 審查 → 合併 → 部署 全流程</div>
+    </div>
+  </div>
+
+  <div class="cards-foot">
+    <strong>課程使命:</strong>&nbsp;&nbsp;讓非工程師同仁建立 AI 協作時代的基本素養 — 不一定要變成工程師,但能跟工程師對話、能跟 AI 合作、能避開常見的坑。
+  </div>
+</div>
+  </script>
+
+
+  <!-- ================== ② W1–W5 課程內容 ================== -->
+  <script type="text/plain" id="slide-02-w1-w5"
+          data-label="② W1–W5 · 課程內容"
+          data-order="2"
+          data-format="html">
+<div class="cards-wrap">
+  <div class="cards-head">
+    <strong>② W1–W5 課程內容</strong>
+    <span>· 認識 AI 協作 · 治理觀念 · Prompt 工程 ·</span>
+  </div>
+
+  <div class="cards-grid cols-3" style="margin-bottom: 18px;">
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">W1</span></div>
+      <div class="card-title">什麼是 AI 協作?為什麼學這個</div>
+      <div class="card-body"><strong>帶走:</strong>看得懂 AI 協作跟「偶爾用 AI」的差別,知道接下來會學到什麼。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">60 分鐘安排</div>
+        <ul>
+          <li><strong>開場故事</strong> — 同事用 AI 一週,完成原本要兩週的事</li>
+          <li><strong>主題教學</strong> — 「AI 協作」是什麼:不是「叫 AI 寫程式」,是從一開始就讓 AI 參與想、做、改</li>
+          <li><strong>能與不能</strong> — AI 能做什麼(草稿、查資料、補完),不能做什麼(下決定、為錯誤負責)</li>
+          <li><strong>範例參考</strong> — 一個真實 AI 協作流程的長相</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">W2</span></div>
+      <div class="card-title">AI 思維:合作而非命令</div>
+      <div class="card-body"><strong>帶走:</strong>知道為什麼跟 AI 講話會失敗,有具體改善方向。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">60 分鐘安排</div>
+        <ul>
+          <li><strong>開場故事</strong> — 「叫 AI 做」結果做歪</li>
+          <li><strong>主題教學</strong> — 命令式 vs 合作式;「我想清楚 → 講 → AI 回應 → 我再想」</li>
+          <li><strong>對照示範</strong> — 同需求,命令式 vs 合作式的輸出差異</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">W3</span></div>
+      <div class="card-title">為什麼 AI 寫的東西要被審查</div>
+      <div class="card-body"><strong>帶走:</strong>能說出治理 3 大支柱(可追溯/可審查/可回滾),知道為什麼這對非工程師也重要。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">60 分鐘安排</div>
+        <ul>
+          <li><strong>開場故事</strong> — AI 寫的 code 上線炸掉、追責找不到人</li>
+          <li><strong>主題教學</strong> — 治理 3 大支柱:可追溯(誰做了)/ 可審查(對不對)/ 可回滾(出事能回頭)</li>
+          <li><strong>淺白類比</strong> — 銀行為什麼要對帳、合約為什麼要簽名、開源專案為什麼要 PR</li>
+          <li><strong>🔒 資安穿插</strong> — 沒治理 = 安全漏洞的最佳溫床</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="cards-grid cols-2" style="margin-bottom: 16px;">
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">W4</span></div>
+      <div class="card-title">Prompt 結構入門:目的 / 背景 / 限制 / 範例</div>
+      <div class="card-body"><strong>帶走:</strong>一張 Prompt 模板速查卡,下週起會用。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">60 分鐘安排</div>
+        <ul>
+          <li><strong>開場故事</strong> — 「我講得很清楚啊!」結果 AI 完全做歪</li>
+          <li><strong>主題教學</strong> — 4 欄位模板的用途與常見錯誤</li>
+          <li><strong>對照示範</strong> — 模糊 vs 結構化的 AI 輸出差異</li>
+          <li><strong>現場練習</strong> — 學員把一個自己用過的爛 prompt 套模板重寫</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">W5</span></div>
+      <div class="card-title">從 AI 視角理解 prompt:為何這樣下有效</div>
+      <div class="card-body"><strong>帶走:</strong>從機制理解 prompt,以後能自己判斷某種寫法為何有效。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">60 分鐘安排</div>
+        <ul>
+          <li><strong>開場故事</strong> — AI 自信地撒謊(虛構函式、編造 API)</li>
+          <li><strong>主題教學</strong> — LLM 不是字典,是「會接話的補完機器」</li>
+          <li><strong>機制解析</strong> — 為何 AI 會幻覺、自信、誤解你</li>
+          <li><strong>🤖 AI 風險穿插</strong> — 幻覺類型清單、怎麼快速辨識、絕對不能信 AI 的情境</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="cards-foot">
+    <strong>本頁關鍵:</strong>&nbsp;&nbsp;從「我一個人用 AI」轉成「我寫出來的東西要能被審查、被信任」+ 從 know-how 進化到 know-why 的 prompt 使用者。
+  </div>
+</div>
+  </script>
+
+
+  <!-- ================== ③ W6–W10 課程內容 ================== -->
+  <script type="text/plain" id="slide-03-w6-w10"
+          data-label="③ W6–W10 · 課程內容"
+          data-order="3"
+          data-format="html">
+<div class="cards-wrap">
+  <div class="cards-head">
+    <strong>③ W6–W10 課程內容</strong>
+    <span>· 系統架構與思維邏輯 · 本地端 vs 伺服器端 ·</span>
+  </div>
+
+  <div class="cards-grid cols-3" style="margin-bottom: 18px;">
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">W6</span></div>
+      <div class="card-title">系統架構 101:一個東西有哪些層</div>
+      <div class="card-body"><strong>帶走:</strong>看到任何系統能說出它的「層次」,跟工程師對話有共同語言。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">60 分鐘安排</div>
+        <ul>
+          <li><strong>開場故事</strong> — AI 寫了能跑但沒分層的程式,維護地獄</li>
+          <li><strong>主題教學</strong> — 4 層:呈現層(看得到) / 業務邏輯(規則) / 資料(存放) / 基礎設施(跑在哪)</li>
+          <li><strong>日常例子</strong> — 用「外送 App」每層用生活語言講明(畫面 / 計價 / 訂單記錄 / 機房)</li>
+          <li><strong>練習</strong> — 拆解一個學員熟悉的 App(銀行、購物、訂房)</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">W7</span></div>
+      <div class="card-title">思維邏輯:需求 → 設計 → 實作</div>
+      <div class="card-body"><strong>帶走:</strong>拿到任何需求,知道怎麼拆步驟再給 AI。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">60 分鐘安排</div>
+        <ul>
+          <li><strong>開場故事</strong> — 整包需求丟給 AI 結果做歪</li>
+          <li><strong>主題教學</strong> — 工程思維 3 步:理解需求 → 拆解設計 → 逐步實作</li>
+          <li><strong>關鍵觀念</strong> — 「拆解設計」這一步該你做,不是丟給 AI</li>
+          <li><strong>現場練習</strong> — 真實需求(整理客戶資料寄信),全班一起拆步驟</li>
+          <li><strong>🤖 AI 風險穿插</strong> — 把「設計決策」交給 AI 的危險</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">W8</span></div>
+      <div class="card-title">責任邊界:誰負責什麼、AI 負責什麼</div>
+      <div class="card-body"><strong>帶走:</strong>一張「不能交給 AI 全權的決定」清單。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">60 分鐘安排</div>
+        <ul>
+          <li><strong>開場故事</strong> — 「AI 寫的啊,不是我寫的」推卸後出事</li>
+          <li><strong>主題教學</strong> — 即使 AI 寫的,送出去的是你的名字</li>
+          <li><strong>關鍵清單</strong> — 哪些決定 AI 不能做(架構 / 安全 / 隱私 / 合規)</li>
+          <li><strong>🔒 資安穿插</strong> — AI 寫的 code 出事,責任歸屬怎麼算(法律 / 職場 / 合規面)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="cards-grid cols-2" style="margin-bottom: 16px;">
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">W9</span></div>
+      <div class="card-title">本地端:你的電腦不等於世界</div>
+      <div class="card-body"><strong>帶走:</strong>知道「本地能跑」≠「真的能用」,以後寫東西會多想一步。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">60 分鐘安排</div>
+        <ul>
+          <li><strong>開場故事</strong> — 「我電腦能跑啊」結果換台電腦就壞</li>
+          <li><strong>主題教學</strong> — 本地端的本質;環境差異、套件版本、作業系統、相對路徑</li>
+          <li><strong>實務觀念</strong> — 怎麼讓你的東西「在別處也能跑」(環境變數、套件清單)</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">W10</span></div>
+      <div class="card-title">伺服器端是什麼?部署觀念入門</div>
+      <div class="card-body"><strong>帶走:</strong>聽得懂工程師講「我來部署一下」是在幹嘛,知道 secret 為什麼要小心。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">60 分鐘安排</div>
+        <ul>
+          <li><strong>開場故事</strong> — 「為何線上的跟本地的不一樣?」</li>
+          <li><strong>主題教學</strong> — 伺服器是什麼:24 小時運作、別人會連、出事影響廣</li>
+          <li><strong>部署基本元素</strong> — 環境變數 / health check / build / rollback(用淺白話講)</li>
+          <li><strong>部署工具</strong> — 業界常見的部署平台(Vercel、Heroku、Coolify 等)在做什麼</li>
+          <li><strong>🔒 資安穿插</strong> — secret 外洩、API key 寫死的後果</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="cards-foot">
+    <strong>本頁關鍵:</strong>&nbsp;&nbsp;讓學員從「我電腦能跑就好」進化到「能看懂工程師在說什麼」 — 跨過這個門檻,跟技術團隊溝通就不再雞同鴨講。
+  </div>
+</div>
+  </script>
+
+
+  <!-- ================== ④ W11–W12 課程內容 + 每週節奏 ================== -->
+  <script type="text/plain" id="slide-04-w11-w12-rhythm"
+          data-label="④ W11–W12 · 課程內容 + 每週節奏"
+          data-order="4"
+          data-format="html">
+<div class="cards-wrap">
+  <div class="cards-head">
+    <strong>④ W11–W12 課程內容 + 每週 60 分鐘節奏</strong>
+    <span>· GitHub 工具入門 · 統一節奏降低跨週認知負擔 ·</span>
+  </div>
+
+  <div class="cards-grid cols-2" style="margin-bottom: 18px;">
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">W11</span></div>
+      <div class="card-title">Git / GitHub 基本概念</div>
+      <div class="card-body"><strong>帶走:</strong>會用 GitHub Desktop 做存檔點與回頭。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">60 分鐘安排</div>
+        <ul>
+          <li><strong>開場故事</strong> — 沒版控「改壞了回不去」毀掉一個下午</li>
+          <li><strong>主題教學</strong> — Git 是「有歷史的存檔系統」</li>
+          <li><strong>3 個核心概念</strong> — commit(存檔點)/ branch(平行宇宙)/ merge(合併)</li>
+          <li><strong>現場練習</strong> — 改檔 → commit → 看歷史 → 復原(GitHub Desktop,不碰命令列)</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">W12</span></div>
+      <div class="card-title">PR 流程:被審、被合、被部署</div>
+      <div class="card-body"><strong>帶走:</strong>看懂任何 PR 的構造,理解審查為何是保護而非麻煩。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">60 分鐘安排</div>
+        <ul>
+          <li><strong>開場故事</strong> — 沒走 PR 直接推 main,出事沒人知道</li>
+          <li><strong>主題教學</strong> — PR 是「請求合併」的提案 + 審查機制</li>
+          <li><strong>全流程</strong> — 開 PR → 同事/AI review → 修 → 合併 → 部署</li>
+          <li><strong>真實例子</strong> — 看一個公開 open source 專案的 PR(例如 React 或 VS Code)</li>
+          <li><strong>🔒 資安穿插</strong> — 不走 PR 的後果(後門 code、secret 漏出去)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-section-title">
+    <strong>每週 60 分鐘的時間結構</strong> &nbsp;—&nbsp; 同一節奏,每週都熟悉
+  </div>
+  <div class="cards-grid cols-4" style="margin-bottom: 16px;">
+    <div class="card user">
+      <div class="card-badges"><span class="card-badge">10 min</span></div>
+      <div class="card-title">開場</div>
+      <div class="card-body">5 分鐘重新建立 context(不假設聽過前面)+ 5 分鐘失敗故事</div>
+    </div>
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">30 min</span></div>
+      <div class="card-title">主題教學 + 例子</div>
+      <div class="card-body">講師示範「壞做法 → 好做法」對照,用日常例子說明技術概念</div>
+    </div>
+    <div class="card shared">
+      <div class="card-badges"><span class="card-badge">15 min</span></div>
+      <div class="card-title">現場練習 / 討論</div>
+      <div class="card-body">學員當場練習,卡住的當場問,5–10 分鐘看到結果的題目</div>
+    </div>
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">5 min</span></div>
+      <div class="card-title">收尾</div>
+      <div class="card-body">把本週 takeaway 再講一次,發 A4 速查卡</div>
+    </div>
+  </div>
+
+  <div class="cards-foot">
+    <strong>本頁關鍵:</strong>&nbsp;&nbsp;讓學員看懂 PR 流程不是「行政手續」,而是整個軟體業共同的協作機制 + 統一節奏(不假設聽過上週 · 帶走的東西明確可立刻用 · 用日常例子不用技術 jargon)。
+  </div>
+</div>
+  </script>
+
+
+  <!-- ================== ⑤ 教學營運 · 穿插 + 故事 + 風格 + 備課 ================== -->
+  <script type="text/plain" id="slide-05-operations"
+          data-label="⑤ 教學營運準備"
+          data-order="5"
+          data-format="html">
+<div class="cards-wrap">
+  <div class="cards-head">
+    <strong>⑤ 教學營運準備</strong>
+    <span>· 穿插議題 · 失敗故事庫 · 教學風格 · 備課策略 ·</span>
+  </div>
+
+  <div class="flow-section-title">
+    <strong>資安 / AI 風險穿插設計</strong> &nbsp;—&nbsp; 不獨立成週,綁到相關週次自然融入,每處約 5 分鐘
+  </div>
+  <div class="cards-grid cols-3" style="margin-bottom: 18px;">
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">W3 · 🔒</span></div>
+      <div class="card-title">沒治理 = 安全漏洞溫床</div>
+      <div class="card-body">用真實事故說明治理不只是流程美感,是實質防護。</div>
+    </div>
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">W5 · 🤖</span></div>
+      <div class="card-title">LLM 幻覺類型</div>
+      <div class="card-body">列出常見幻覺(虛構函式、編造 API、計算錯誤),教怎麼快速辨識。</div>
+    </div>
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">W7 · 🤖</span></div>
+      <div class="card-title">設計決策不能交給 AI</div>
+      <div class="card-body">AI 不知道你的業務脈絡,架構決策不能丟給它。</div>
+    </div>
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">W8 · 🔒</span></div>
+      <div class="card-title">AI code 出事的責任歸屬</div>
+      <div class="card-body">即使是 AI 寫的,送出去的是你的名字 — 法律、職場、合規責任都還在你身上。</div>
+    </div>
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">W10 · 🔒</span></div>
+      <div class="card-title">Secret 外洩事件</div>
+      <div class="card-body">API key 寫死、push 到 GitHub 的真實後果(業界已有多起公開事件)。</div>
+    </div>
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">W12 · 🔒</span></div>
+      <div class="card-title">不走 PR 的後果</div>
+      <div class="card-body">後門 code、無追溯、合規問題。</div>
+    </div>
+  </div>
+
+  <div class="flow-section-title">
+    <strong>教具替代方案 + 失敗故事庫</strong> &nbsp;—&nbsp; 不依賴特定平台,用通用素材教學
+  </div>
+  <div class="cards-grid cols-2" style="margin-bottom: 18px;">
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">A · 教具來源</span></div>
+      <div class="card-title">不靠特定平台,用通用素材</div>
+      <div class="card-body">非工程師看不懂自家內部系統 — 改用人人可理解的例子。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">課堂素材清單</div>
+        <ul>
+          <li><strong>日常 App 拆解</strong> — 外送 / 銀行 / 訂房(W6 架構)</li>
+          <li><strong>公開 GitHub PR</strong> — React / VS Code 的真實 PR(W12)</li>
+          <li><strong>業界事故新聞</strong> — Secret 外洩、production 掛掉(W3, W8, W10)</li>
+          <li><strong>學員自己的爛 prompt / code</strong> — 匿名化後當教材</li>
+          <li><strong>講師以前的爛 code</strong> — 開場破冰,降低防備</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">B · 失敗故事庫</span></div>
+      <div class="card-title">每週開場 5 分鐘的真實故事</div>
+      <div class="card-body">「不要變成故事裡那個人」是課程的學習動力來源。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">故事類型 × 週次</div>
+        <ul>
+          <li><strong>治理缺位事故</strong> — W3, W8, W12</li>
+          <li><strong>Secret 外洩</strong> — W10</li>
+          <li><strong>AI 寫出問題 code</strong> — W5, W7, W8</li>
+          <li><strong>Prompt 模糊做歪</strong> — W2, W4</li>
+          <li><strong>本地能跑線上不能</strong> — W9, W10</li>
+          <li><strong>沒版控的災難</strong> — W11</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-section-title">
+    <strong>教學風格 + 講師備課策略</strong> &nbsp;—&nbsp; 痛感先行,階段式備課
+  </div>
+  <div class="cards-grid cols-2" style="margin-bottom: 16px;">
+    <div class="card user">
+      <div class="card-badges"><span class="card-badge">教學風格</span></div>
+      <div class="card-title">痛感先行,概念後到</div>
+      <div class="card-body">直接講觀念會被當官腔。學員聽完故事,規則就會自己接受 — 不是「老師說要這樣」,是「我不要變成故事裡那個人」。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">對完全新手的設計要點</div>
+        <ul>
+          <li><strong>用日常例子</strong> — 外送、銀行、Email 這類非工程師熟悉的事</li>
+          <li><strong>翻譯技術術語</strong> — 每個 jargon 都要有一個生活語言版本</li>
+          <li><strong>不要假設前提</strong> — 「commit 是什麼」、「PR 是什麼」都從零講起</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">備課策略</span></div>
+      <div class="card-title">階段式準備,不一次寫完</div>
+      <div class="card-body">備課工作量約 12 小時上課 = <strong>36–60 小時備課</strong>。因為每週獨立,可分階段準備、試教、調整。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">建議準備順序</div>
+        <ul>
+          <li><strong>① 先備好 W1–W3</strong> — 認識 AI 協作與治理是課程入口</li>
+          <li><strong>② 試教 1–2 場</strong> — 找非工程師同事當白老鼠,收回饋</li>
+          <li><strong>③ 再寫 W4–W8</strong> — Prompt 與系統思維</li>
+          <li><strong>④ 最後 W9–W12</strong> — 部署與工具</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="cards-foot">
+    <strong>開課前必備清單:</strong>&nbsp;&nbsp;12 個真實失敗故事 · 5–10 個爛 prompt / code 樣本 · 幾個公開 GitHub PR 範例 · GitHub Desktop 教學環境 · 每週 A4 速查卡 · 講師自己以前的爛 code(破冰用)
+  </div>
+</div>
+  </script>
+
+
+  <!-- ================== 工具列 + 舞台 ================== -->
+  <header class="toolbar">
+    <h1 id="title">DF 內部 Vibe Coding 治理講座 v1.0</h1>
+    <button id="prev" class="nav-btn" title="上一頁(←)">‹</button>
+    <span id="counter" class="counter">0 / 0</span>
+    <button id="next" class="nav-btn" title="下一頁(→)">›</button>
+    <select id="picker" class="picker"></select>
+    <span class="divider"></span>
+    <label>主題
+      <select id="theme">
+        <option value="default">Light</option>
+        <option value="dark">Dark</option>
+        <option value="neutral">Neutral</option>
+        <option value="forest">Forest</option>
+      </select>
+    </label>
+    <label>字體
+      <input type="number" id="font-size" value="18" min="10" max="32" step="1" style="width: 56px;">
+      <span>px</span>
+    </label>
+    <span class="divider"></span>
+    <button id="zoom-out" class="nav-btn" title="縮小(- 鍵)">−</button>
+    <span id="zoom-label" class="zoom-label" title="點擊重設為 100%(0 鍵)">100%</span>
+    <button id="zoom-in" class="nav-btn" title="放大(+ 鍵)">+</button>
+    <button id="zoom-fit" title="符合視窗(F 鍵)">Fit</button>
+  </header>
+
+  <main>
+    <div class="preview" id="preview"></div>
+  </main>
+
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+
+    const preview = document.getElementById('preview');
+    const themeSelect = document.getElementById('theme');
+    const fontSizeInput = document.getElementById('font-size');
+    const picker = document.getElementById('picker');
+    const counterEl = document.getElementById('counter');
+    const prevBtn = document.getElementById('prev');
+    const nextBtn = document.getElementById('next');
+    const titleEl = document.getElementById('title');
+    const zoomLabel = document.getElementById('zoom-label');
+    const zoomIn = document.getElementById('zoom-in');
+    const zoomOut = document.getElementById('zoom-out');
+    const zoomFitBtn = document.getElementById('zoom-fit');
+
+    let zoom = 1;
+    const ZOOM_STEPS = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.15, 1.3, 1.5, 1.75, 2.0, 2.5, 3.0];
+
+    function findZoomIdx(z) {
+      let best = 0, diff = Infinity;
+      ZOOM_STEPS.forEach((v, i) => {
+        const d = Math.abs(v - z);
+        if (d < diff) { diff = d; best = i; }
+      });
+      return best;
+    }
+    function setZoom(z) {
+      zoom = Math.max(0.3, Math.min(4, z));
+      const wrap = preview.querySelector('.svg-wrap');
+      if (wrap) {
+        wrap.style.transform = `scale(${zoom})`;
+        const svg = wrap.querySelector('svg');
+        if (svg) {
+          const w = parseFloat(svg.dataset.origW || svg.getBoundingClientRect().width / zoom);
+          const h = parseFloat(svg.dataset.origH || svg.getBoundingClientRect().height / zoom);
+          wrap.style.width = (w * zoom) + 'px';
+          wrap.style.height = (h * zoom) + 'px';
+        }
+      }
+      preview.classList.toggle('zoomed', zoom > 1.01);
+      zoomLabel.textContent = Math.round(zoom * 100) + '%';
+    }
+    function zoomStep(dir) {
+      const idx = findZoomIdx(zoom);
+      const ni = Math.max(0, Math.min(ZOOM_STEPS.length - 1, idx + dir));
+      setZoom(ZOOM_STEPS[ni]);
+    }
+    function zoomFit() {
+      const svg = preview.querySelector('svg');
+      if (!svg) { setZoom(1); return; }
+      const w = parseFloat(svg.dataset.origW);
+      const h = parseFloat(svg.dataset.origH);
+      if (!w || !h) { setZoom(1); return; }
+      const pad = 56;
+      const fitX = (preview.clientWidth - pad) / w;
+      const fitY = (preview.clientHeight - pad) / h;
+      setZoom(Math.min(fitX, fitY, 4));
+    }
+
+    const slides = Array.from(document.querySelectorAll('script[type="text/plain"][id]'))
+      .map(el => ({
+        el,
+        id: el.id,
+        label: el.dataset.label || el.id,
+        order: parseFloat(el.dataset.order || '99'),
+        format: el.dataset.format || 'mermaid',
+      }))
+      .sort((a, b) => a.order - b.order);
+
+    let currentIndex = 0;
+    let renderToken = 0;
+
+    function buildPicker() {
+      picker.innerHTML = '';
+      slides.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.label;
+        picker.appendChild(opt);
+      });
+    }
+
+    function updateCounter() {
+      counterEl.textContent = `${currentIndex + 1} / ${slides.length}`;
+      prevBtn.disabled = currentIndex === 0;
+      nextBtn.disabled = currentIndex === slides.length - 1;
+    }
+
+    function initMermaid() {
+      const theme = themeSelect.value;
+      mermaid.initialize({
+        startOnLoad: false, theme,
+        themeVariables: {
+          fontFamily: '"Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif',
+          fontSize: fontSizeInput.value + 'px',
+        },
+        flowchart: { useMaxWidth: true, htmlLabels: true },
+        securityLevel: 'loose',
+      });
+      document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
+    }
+
+    async function render() {
+      const slide = slides[currentIndex];
+      if (!slide) return;
+      const code = slide.el.textContent.trim();
+      const token = ++renderToken;
+
+      titleEl.textContent = slide.label;
+      zoom = 1;
+
+      try {
+        if (slide.format === 'html') {
+          initMermaid();
+          preview.innerHTML = code;
+          preview.scrollTop = 0; preview.scrollLeft = 0;
+          preview.classList.remove('zoomed', 'draggable', 'dragging');
+          zoomLabel.textContent = '100%';
+          const inlineMermaid = preview.querySelectorAll('pre.mermaid, div.mermaid');
+          if (inlineMermaid.length > 0) {
+            inlineMermaid.forEach(n => {
+              if (!n.dataset.mermaidSource) n.dataset.mermaidSource = n.textContent;
+            });
+            try {
+              await mermaid.run({ nodes: inlineMermaid });
+              inlineMermaid.forEach(node => {
+                const svgEl = node.querySelector('svg');
+                if (svgEl) { liftEdgeLabelsOffNodes(svgEl); backdropEdgeLabels(svgEl); elevateClusterLabels(svgEl); }
+              });
+            } catch (e) { /* 個別塊失敗不影響其他文字 */ }
+          }
+        } else {
+          initMermaid();
+          const { svg } = await mermaid.render('diagram-' + token, code);
+          if (token !== renderToken) return;
+          preview.innerHTML = '<div class="svg-wrap">' + svg + '</div>';
+          preview.classList.add('draggable');
+          const svgEl = preview.querySelector('svg');
+          if (svgEl) {
+            const vb = svgEl.viewBox && svgEl.viewBox.baseVal;
+            const origW = (vb && vb.width) || svgEl.getBoundingClientRect().width;
+            const origH = (vb && vb.height) || svgEl.getBoundingClientRect().height;
+            svgEl.dataset.origW = origW;
+            svgEl.dataset.origH = origH;
+            svgEl.removeAttribute('style');
+          }
+          liftEdgeLabelsOffNodes(svgEl);
+          backdropEdgeLabels(svgEl);
+          elevateClusterLabels(svgEl);
+          setZoom(1);
+        }
+      } catch (e) {
+        if (token !== renderToken) return;
+        const msg = (e && (e.message || e.str)) || String(e);
+        preview.innerHTML = '<div class="error">' + escapeHtml(msg) + '</div>';
+      }
+    }
+
+    function elevateClusterLabels(svg) {
+      if (!svg) return;
+      const root = svg.firstElementChild && svg.firstElementChild.tagName.toLowerCase() === 'g'
+        ? svg.firstElementChild : svg;
+      const labels = Array.from(svg.querySelectorAll('.cluster-label'));
+      if (!labels.length) return;
+      const pageBg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#ffffff';
+
+      const entries = labels.map(label => {
+        const text = (label.textContent || '').trim();
+        if (!text) { label.style.opacity = '0'; return null; }
+        const cluster = label.closest('.cluster');
+        const clusterRect = cluster && cluster.querySelector(':scope > rect');
+        let stroke = '#cbd5e1';
+        if (clusterRect) {
+          stroke = clusterRect.getAttribute('stroke')
+                || getComputedStyle(clusterRect).stroke
+                || stroke;
+        }
+        return { label, ctm: label.getCTM(), bbox: label.getBBox(), stroke };
+      }).filter(Boolean);
+
+      for (const { label, ctm, bbox, stroke } of entries) {
+        if (!ctm) continue;
+        const wrapper = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        wrapper.setAttribute('transform', `matrix(${ctm.a} ${ctm.b} ${ctm.c} ${ctm.d} ${ctm.e} ${ctm.f})`);
+
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', bbox.x - 8);
+        rect.setAttribute('y', bbox.y - 2);
+        rect.setAttribute('width', bbox.width + 16);
+        rect.setAttribute('height', bbox.height + 4);
+        rect.setAttribute('fill', pageBg);
+        rect.setAttribute('fill-opacity', '0.78');
+        rect.setAttribute('stroke', stroke);
+        rect.setAttribute('stroke-width', '1');
+        rect.setAttribute('stroke-opacity', '0.6');
+        rect.setAttribute('rx', '4');
+        wrapper.appendChild(rect);
+
+        const clone = label.cloneNode(true);
+        clone.removeAttribute('transform');
+        wrapper.appendChild(clone);
+
+        label.style.opacity = '0';
+        root.appendChild(wrapper);
+      }
+    }
+
+    function backdropEdgeLabels(svg) {
+      if (!svg) return;
+      const pageBg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#ffffff';
+      const labels = Array.from(svg.querySelectorAll('g.edgeLabel'));
+      for (const label of labels) {
+        if (!(label.textContent || '').trim()) continue;
+        if (label.querySelector(':scope > rect.label-backdrop')) continue;
+        let bbox;
+        try { bbox = label.getBBox(); } catch (e) { continue; }
+        if (!bbox.width || !bbox.height) continue;
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('class', 'label-backdrop');
+        rect.setAttribute('x', bbox.x - 4);
+        rect.setAttribute('y', bbox.y - 2);
+        rect.setAttribute('width', bbox.width + 8);
+        rect.setAttribute('height', bbox.height + 4);
+        rect.setAttribute('fill', pageBg);
+        rect.setAttribute('rx', '3');
+        label.insertBefore(rect, label.firstChild);
+      }
+    }
+
+    function liftEdgeLabelsOffNodes(svg) {
+      if (!svg || typeof svg.createSVGTransform !== 'function') return;
+      const rootBox = el => {
+        let bbox, ctm;
+        try { bbox = el.getBBox(); ctm = el.getCTM(); } catch (e) { return null; }
+        if (!ctm || !bbox || !bbox.width) return null;
+        let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+        for (const px of [bbox.x, bbox.x + bbox.width]) {
+          for (const py of [bbox.y, bbox.y + bbox.height]) {
+            const x = ctm.a * px + ctm.c * py + ctm.e;
+            const y = ctm.b * px + ctm.d * py + ctm.f;
+            x1 = Math.min(x1, x); y1 = Math.min(y1, y);
+            x2 = Math.max(x2, x); y2 = Math.max(y2, y);
+          }
+        }
+        return { x1, y1, x2, y2 };
+      };
+      const nodeBoxes = Array.from(svg.querySelectorAll('g.node')).map(rootBox).filter(Boolean);
+      if (!nodeBoxes.length) return;
+      const GAP = 8, MAX_LIFT = 200;
+      for (const label of svg.querySelectorAll('g.edgeLabel')) {
+        if (!(label.textContent || '').trim()) continue;
+        const lb = rootBox(label);
+        if (!lb) continue;
+        let lift = 0;
+        for (const nb of nodeBoxes) {
+          const overlapX = Math.min(lb.x2, nb.x2) - Math.max(lb.x1, nb.x1);
+          const overlapY = Math.min(lb.y2, nb.y2) - Math.max(lb.y1, nb.y1);
+          if (overlapX > 2 && overlapY > 2) {
+            lift = Math.max(lift, lb.y2 - nb.y1 + GAP);
+          }
+        }
+        if (lift > 0) {
+          const t = svg.createSVGTransform();
+          t.setTranslate(0, -Math.min(lift, MAX_LIFT));
+          label.transform.baseVal.insertItemBefore(t, 0);
+        }
+      }
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    }
+
+    function goTo(idx) {
+      currentIndex = Math.max(0, Math.min(slides.length - 1, idx));
+      picker.value = slides[currentIndex].id;
+      updateCounter();
+      render();
+    }
+
+    function goToId(id) {
+      const idx = slides.findIndex(s => s.id === id);
+      if (idx >= 0) goTo(idx);
+    }
+
+    buildPicker();
+    picker.addEventListener('change', e => goToId(e.target.value));
+    themeSelect.addEventListener('change', render);
+    fontSizeInput.addEventListener('input', render);
+    prevBtn.addEventListener('click', () => goTo(currentIndex - 1));
+    nextBtn.addEventListener('click', () => goTo(currentIndex + 1));
+
+    zoomIn.addEventListener('click', () => zoomStep(1));
+    zoomOut.addEventListener('click', () => zoomStep(-1));
+    zoomFitBtn.addEventListener('click', zoomFit);
+    zoomLabel.addEventListener('click', () => setZoom(1));
+
+    preview.addEventListener('wheel', e => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      zoomStep(e.deltaY < 0 ? 1 : -1);
+    }, { passive: false });
+
+    let drag = null;
+    preview.addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
+      if (!preview.classList.contains('draggable')) return;
+      drag = {
+        startX: e.clientX, startY: e.clientY,
+        scrollX: preview.scrollLeft, scrollY: preview.scrollTop,
+        moved: false,
+      };
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', e => {
+      if (!drag) return;
+      const dx = e.clientX - drag.startX;
+      const dy = e.clientY - drag.startY;
+      if (!drag.moved && Math.abs(dx) + Math.abs(dy) > 3) {
+        drag.moved = true;
+        preview.classList.add('dragging');
+      }
+      if (drag.moved) {
+        preview.scrollLeft = drag.scrollX - dx;
+        preview.scrollTop = drag.scrollY - dy;
+      }
+    });
+    document.addEventListener('mouseup', () => {
+      if (!drag) return;
+      drag = null;
+      preview.classList.remove('dragging');
+    });
+    document.addEventListener('mouseleave', () => {
+      if (!drag) return;
+      drag = null;
+      preview.classList.remove('dragging');
+    });
+
+    document.addEventListener('keydown', e => {
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+        e.preventDefault(); goTo(currentIndex + 1);
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault(); goTo(currentIndex - 1);
+      } else if (e.key === 'Home') {
+        e.preventDefault(); goTo(0);
+      } else if (e.key === 'End') {
+        e.preventDefault(); goTo(slides.length - 1);
+      } else if (e.key === '+' || e.key === '=') {
+        e.preventDefault(); zoomStep(1);
+      } else if (e.key === '-' || e.key === '_') {
+        e.preventDefault(); zoomStep(-1);
+      } else if (e.key === '0') {
+        e.preventDefault(); setZoom(1);
+      } else if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault(); zoomFit();
+      }
+    });
+
+    themeSelect.value = 'default';
+
+    function openDiagramInNewWindow(code, title, theme) {
+      const safeCode = String(code).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const safeTitle = String(title || '圖表').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      const isDark = theme === 'dark';
+      const safeTheme = isDark ? 'dark' : 'default';
+      const themeAttr = isDark ? 'dark' : 'light';
+
+      const html = '<!DOCTYPE html>\n'
+        + '<html lang="zh-Hant" data-theme="' + themeAttr + '">\n'
+        + '<head><meta charset="UTF-8"><title>' + safeTitle + ' — 放大檢視</title>\n'
+        + '<style>\n'
+        + 'html,body{margin:0;padding:0;height:100%;background:#fff;color:#0f172a;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;overflow:hidden;}\n'
+        + 'html[data-theme="dark"],html[data-theme="dark"] body{background:#0f172a;color:#f1f5f9;}\n'
+        + 'body{display:flex;flex-direction:column;height:100vh;}\n'
+        + 'header{padding:10px 16px;border-bottom:2px solid #e2e8f0;display:flex;gap:10px;align-items:center;background:#f8fafc;flex-shrink:0;}\n'
+        + 'html[data-theme="dark"] header{background:#1e293b;border-bottom-color:#334155;}\n'
+        + 'header h1{font-size:15px;margin:0 auto 0 0;color:#2563eb;font-weight:700;padding-left:10px;border-left:4px solid #2563eb;}\n'
+        + 'header button{padding:5px 11px;font-size:13px;border:1px solid #e2e8f0;background:#fff;color:inherit;border-radius:5px;cursor:pointer;font-family:inherit;}\n'
+        + 'html[data-theme="dark"] header button{background:#1e293b;border-color:#334155;}\n'
+        + 'header button:hover{background:#f1f5f9;border-color:#2563eb;}\n'
+        + 'header .lbl{font-size:12px;color:#64748b;min-width:48px;text-align:center;font-weight:700;cursor:pointer;}\n'
+        + 'main{flex:1;min-height:0;overflow:auto;padding:32px;cursor:grab;user-select:none;}\n'
+        + 'main.dragging{cursor:grabbing;}\n'
+        + 'main.dragging *{pointer-events:none;}\n'
+        + '.wrap{display:inline-block;transform-origin:top left;transition:transform 0.12s ease;}\n'
+        + 'main.dragging .wrap{transition:none;}\n'
+        + '.wrap svg{display:block;}\n'
+        + '.hint{padding:6px 16px;font-size:12px;color:#64748b;background:#f8fafc;border-top:1px solid #e2e8f0;flex-shrink:0;}\n'
+        + 'html[data-theme="dark"] .hint{background:#1e293b;border-top-color:#334155;}\n'
+        + '</style></head>\n'
+        + '<body>\n'
+        + '<header><h1>' + safeTitle + '</h1>'
+        + '<button id="zo">−</button><span class="lbl" id="zl" title="點擊重設為 100%">100%</span><button id="zi">+</button>'
+        + '<button id="zf">符合視窗</button></header>\n'
+        + '<main id="m"><div class="wrap" id="w"><pre class="mermaid">' + safeCode + '</pre></div></main>\n'
+        + '<div class="hint">滑鼠左鍵拖曳平移 · Ctrl + 滾輪縮放 · 鍵盤 +/− 縮放 · 0 重設 · F 符合視窗</div>\n'
+        + '<script type="module">\n'
+        + 'import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";\n'
+        + 'mermaid.initialize({startOnLoad:false,theme:"' + safeTheme + '",'
+        + 'themeVariables:{fontFamily:\'"Noto Sans TC","PingFang TC",system-ui,sans-serif\',fontSize:"20px"},'
+        + 'flowchart:{useMaxWidth:false,htmlLabels:true},state:{useMaxWidth:false},stateDiagram:{useMaxWidth:false},securityLevel:"loose"});\n'
+        + 'const m=document.getElementById("m"),w=document.getElementById("w"),zl=document.getElementById("zl");\n'
+        + 'const node=document.querySelector("pre.mermaid");\n'
+        + 'await mermaid.run({nodes:[node]});\n'
+        + 'const svg=node.querySelector("svg"); if(svg) svg.removeAttribute("style");\n'
+        + 'const STEPS=[0.5,0.7,0.85,1.0,1.25,1.5,1.75,2.0,2.5,3.0,4.0]; let z=1;\n'
+        + 'function setZ(v){z=Math.max(0.3,Math.min(5,v));w.style.transform="scale("+z+")";zl.textContent=Math.round(z*100)+"%";}\n'
+        + 'function stepZ(d){let i=0,df=Infinity;STEPS.forEach((v,k)=>{const x=Math.abs(v-z); if(x<df){df=x;i=k;}});setZ(STEPS[Math.max(0,Math.min(STEPS.length-1,i+d))]);}\n'
+        + 'document.getElementById("zi").onclick=()=>stepZ(1);\n'
+        + 'document.getElementById("zo").onclick=()=>stepZ(-1);\n'
+        + 'zl.onclick=()=>setZ(1);\n'
+        + 'document.getElementById("zf").onclick=()=>{const s=w.querySelector("svg"); if(!s) return; const vb=s.viewBox&&s.viewBox.baseVal; const ww=(vb&&vb.width)||s.getBoundingClientRect().width/z; const hh=(vb&&vb.height)||s.getBoundingClientRect().height/z; setZ(Math.min((m.clientWidth-48)/ww,(m.clientHeight-48)/hh,5));};\n'
+        + 'setTimeout(()=>document.getElementById("zf").click(),50);\n'
+        + 'let dr=null;\n'
+        + 'm.addEventListener("mousedown",e=>{if(e.button!==0) return; dr={x:e.clientX,y:e.clientY,sx:m.scrollLeft,sy:m.scrollTop,moved:false}; e.preventDefault();});\n'
+        + 'window.addEventListener("mousemove",e=>{if(!dr) return; const dx=e.clientX-dr.x,dy=e.clientY-dr.y; if(!dr.moved&&Math.abs(dx)+Math.abs(dy)>3){dr.moved=true; m.classList.add("dragging");} if(dr.moved){m.scrollLeft=dr.sx-dx; m.scrollTop=dr.sy-dy;}});\n'
+        + 'window.addEventListener("mouseup",()=>{if(dr){m.classList.remove("dragging");dr=null;}});\n'
+        + 'm.addEventListener("wheel",e=>{if(!e.ctrlKey) return; e.preventDefault(); stepZ(e.deltaY<0?1:-1);},{passive:false});\n'
+        + 'window.addEventListener("keydown",e=>{if(e.key==="+"||e.key==="="){e.preventDefault();stepZ(1);} else if(e.key==="-"||e.key==="_"){e.preventDefault();stepZ(-1);} else if(e.key==="0"){e.preventDefault();setZ(1);} else if(e.key==="f"||e.key==="F"){e.preventDefault();document.getElementById("zf").click();}});\n'
+        + '<\/script>\n'
+        + '</body></html>';
+
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const win = window.open(url, '_blank');
+      if (!win) {
+        URL.revokeObjectURL(url);
+        alert('彈出視窗被瀏覽器擋下，請允許此頁面開啟新分頁');
+        return;
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }
+
+    preview.addEventListener('click', e => {
+      const btn = e.target.closest('[data-action="zoom-diagram"]');
+      if (!btn) return;
+      e.preventDefault();
+      const targetId = btn.dataset.target;
+      if (!targetId) return;
+      const node = preview.querySelector('#' + (window.CSS && CSS.escape ? CSS.escape(targetId) : targetId));
+      if (!node) return;
+      const code = (node.dataset.mermaidSource || node.textContent || '').trim();
+      if (!code) return;
+      openDiagramInNewWindow(code, btn.dataset.title || '圖表', themeSelect.value);
+    });
+
+    goTo(0);
+  </script>
+</body>
+</html>
