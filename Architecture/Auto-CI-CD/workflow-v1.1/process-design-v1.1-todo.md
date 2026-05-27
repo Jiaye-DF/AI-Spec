@@ -6,15 +6,14 @@
 
 ## 進度總覽
 
-- [x] **Step 1 · CI 並行檢查階段** — 6 張卡片(人話 + 技術細節)+ 垂直系統流程圖 + 垂直狀態機;等使用者確認雙圖排版與細節深度
-- [ ] **Step 2 · 三服務命名統一** — Agent Platform / CI-CD Platform / CI/CD 管理平台 三套稱呼要選一個
+- [ ] **Step 2 · CI/CD 管理平台完整重寫** — baseline(/review pipeline 子集)已 commit;待用戶定整體平台架構後重寫,要納入:RAG / 報告中心 / SMTP / 成本管理 / 效率機制
 - [ ] **Step 3 · CI 紅燈時 /review 是否短路** — workflow 端短路 / Platform 也吃 CI 結果 / 混合
 - [ ] **Step 4 · /review 同步 vs 非同步** — 同步 long-poll / 非同步 webhook 回呼 / 折衷
 - [ ] **Step 5 · PR 評論誰寫** — Platform 寫 / workflow 寫 / 兩邊都寫(各司其職)
 - [ ] **Step 6 · 保護路徑判定點** — 只 workflow 判 / Platform 也感知作為審查 context
 - [ ] **Step 7 · Audit DB 是否獨立第四服務** — 獨立服務 / 內嵌 Platform / Notifier 兼任
 - [ ] **Step 8 · 熔斷狀態存哪、誰判** — GitHub repo variable / Platform DB / Notifier Redis
-- [ ] **Step 9 · 整體資料狀態流轉圖** — 整合 Step 1~8 的決策成 SA 收尾圖
+- [ ] **Step 9 · 整體資料狀態流轉圖** — 整合 Step 2~8 的決策成 SA 收尾圖
 
 ---
 
@@ -43,15 +42,23 @@
 
 ## 各步驟展開
 
-### Step 2 · 三服務命名統一
+### Step 2 · CI/CD 管理平台完整重寫
 
-| 文件 | 目前稱呼 |
-| --- | --- |
-| `workflow-v1.1.md` | Agent Platform |
-| `process-design-v1.1.md`(舊版) | CI-CD Platform |
-| `workflow-v1.1.html` | CI/CD 管理平台 |
+**Baseline 狀態**(commit `27075dd`):
+- 6 張卡片(健康檢查 + 5 模組:接收入口 / 機密過濾 / OpenRouter / 判決引擎 / 發布器)
+- 系統流程圖(workflow runner ↔ 平台 5 模組)
+- 完整設計圖(從 /health 到 verdict 全程 + 每模組退路)
+- verdict legend(4 verdict 對 workflow 動作)
 
-**待決定**:三個服務的正名 → 影響 HTML slide 名稱、mermaid 節點 label、所有後續文件對外稱呼。
+**待用戶定整體平台架構**,要納入:
+
+- **成本管理** — LLM token 成本 / OpenRouter model 動態挑選 / 配額
+- **效率機制** — caching / 並行 / 批次處理
+- **RAG**(完整前後端平台)— knowledge base / 規則庫檢索 / context 注入
+- **CI / CD 報告中心** — 各 PR 報告聚合 / 歷史查詢 / dashboard
+- **SMTP 集中管理** — 從獨立 Notifier service 收回平台內
+
+**影響**:Step 2 slide 會整個重寫;系統流程圖、完整設計圖、卡片數量、verdict legend 都要改;後續 Step 3~8 的設計決策也要對齊新架構。
 
 ---
 
@@ -122,7 +129,7 @@
 
 ### Step 9 · 整體資料狀態流轉圖(SA 收尾)
 
-**目標**:把 Step 1~8 對齊的決策整合成一張完整圖。
+**目標**:把 Step 1 已對齊決策(reference)+ Step 2~8 對齊決策整合成一張完整圖。
 
 **內容構想**:
 - PR 整體生命週期狀態(從 push 到 deploy / rollback / reject 等所有結束狀態)
