@@ -641,13 +641,13 @@ flowchart TB
 
   <!-- ================== Step 2 · CI/CD 管理平台 ================== -->
   <script type="text/plain" id="step2-platform"
-          data-label="Step 2 · CI/CD 管理平台"
+          data-label="Step 2 · CI/CD 管理平台（一階段）"
           data-order="2"
           data-kind="flow"
           data-format="html">
 <div class="cards-wrap">
   <div class="cards-head">
-    <strong>Step 2 · CI/CD 管理平台</strong>
+    <strong>Step 2 · CI/CD 管理平台（一階段）</strong>
     <span>· /health 確認活著 · L2 隱形濾網把關 · 5 模組鏈式處理 · 回 verdict ·</span>
   </div>
 
@@ -752,7 +752,7 @@ flowchart TB
 %%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
 flowchart TB
   In([Step 1 通過<br>verdict = mergeable]):::user
-  Health{檢查服務是否正常<br>(5 秒超時機制)}:::it
+  Health{"檢查服務是否正常<br>(5 秒超時機制)"}:::it
   Review[POST /review<br>diff + pr_body + rules_ref]:::it
 
   subgraph Platform[CI/CD 管理平台 · FastAPI service]
@@ -795,9 +795,9 @@ flowchart TB
   Start(( )):::start
   In[Step 1 通過<br>verdict = mergeable]:::it
 
-  subgraph GATE[L2~L4 入口防線]
+  subgraph GATE[入口防線 · L2 至 L4]
     direction TB
-    H0{檢查服務是否正常<br>(5 秒超時機制)}:::it
+    H0{"檢查服務是否正常<br>(5 秒超時機制)"}:::it
     G1[① 接收入口<br>L2 隱形濾網 + L3 Bearer + L4 限流]:::it
     H0 -->|200 OK| G1
     H0 -.->|非 200 / timeout| GH(((健康檢查失敗))):::stManual
@@ -883,7 +883,7 @@ flowchart TB
   </div>
 
   <div class="cards-foot">
-    <strong>設計重點:</strong>&nbsp;&nbsp;5 模組鏈式處理，任一節點失敗都有對應 verdict 退路，workflow 端永不卡死。
+    <strong>設計重點:</strong>&nbsp;&nbsp;5 模組鏈式處理，任一節點失敗都有對應 verdict 退路，workflow 端永不卡死。本頁聚焦「一階段」;二、三階段（成本 / 效率 / 報告 / SMTP）與 RAG 平台後續再進行設計。
   </div>
 </div>
   </script>
