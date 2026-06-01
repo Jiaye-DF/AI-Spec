@@ -4,7 +4,8 @@
 # 再把各自的 job result 以 inputs.frontend_result / inputs.backend_result 傳進來,本檔據此走後續。
 #
 # 含:機密掃描 → 原始碼安全掃描 → CI 彙整 → AI 審查 → 四態判決自動合併 → CD 觸發。
-# 對齊 Architecture/Auto-CI-CD/workflow-v1.0/workflow-v1.0.md §一 步驟 ④~⑦ + §二 保護路徑 + §四.5 熔斷 + §五 Audit。
+# 對齊 Architecture/Auto-CI-CD/workflow-v1.1/(workflow-v1.1.md + process-design-v1.1.md)步驟 ④~⑦ + 保護路徑 + 熔斷 + Audit。
+# AI 審查打「CI-CD 管理平台」/review;L2 隱形濾網(Bearer + 5 個 X-DF-*,任一不對 → 平台回 404)見 workflow-v1.1/cicd-platform-plan.md Step 1。
 #
 # 【部署】放中央 repo `Dafon-IT/DF-AI-Spec` 的 `.github/workflows/auto-cicd.yml`。
 name: auto-cicd (reusable)
@@ -123,7 +124,7 @@ jobs:
             --data @ci-report.json
 
   # ───────────────────────────────────────────────
-  # 步驟 ④⑤ — 打 Agent Platform 做 AI code review(僅 pull_request 且 CI 全綠)
+  # 步驟 ④⑤ — 打 CI-CD Platform 做 AI code review(僅 pull_request 且 CI 全綠)
   # ───────────────────────────────────────────────
   ai-review:
     needs: [secret-scan, security-scan]
@@ -144,20 +145,20 @@ jobs:
         with:
           fetch-depth: 0               # git diff origin/main...HEAD 需完整歷史
 
-      # ④.0 Agent Platform 健康檢查(連線 5s + 讀取 10s timeout)
-      - name: Agent Platform health check
+      # ④.0 CI-CD Platform 健康檢查(連線 5s + 讀取 10s timeout)
+      - name: CI-CD Platform health check
         id: health
         env:
-          PLATFORM_URL: ${{ vars.AGENT_PLATFORM_URL }}
+          PLATFORM_URL: ${{ vars.CICD_PLATFORM_URL }}
         run: |
           code=$(curl -sS -o /dev/null -w "%{http_code}" \
                       --connect-timeout 5 --max-time 10 \
                       "$PLATFORM_URL/health" || echo "000")
-          echo "Agent Platform /health => HTTP $code"
+          echo "CI-CD Platform /health => HTTP $code"
           if [ "$code" = "200" ]; then
             echo "skipped=false" >> "$GITHUB_OUTPUT"
           else
-            echo "::warning::Agent Platform unhealthy (HTTP $code) → 跳過 AI Review,降級走人工"
+            echo "::warning::CI-CD Platform unhealthy (HTTP $code) → 跳過 AI Review,降級走人工"
             echo "skipped=true" >> "$GITHUB_OUTPUT"
           fi
 
@@ -167,27 +168,34 @@ jobs:
         run: git diff origin/main...HEAD > /tmp/pr.diff
       - name: Secret pre-check before送審
         if: steps.health.outputs.skipped == 'false'
-        # 第二道遮罩;Agent Platform 機密過濾模組為第三道(authoritative)
+        # 第二道遮罩;CI-CD Platform 機密過濾模組為第三道(authoritative)
         run: gitleaks detect --no-git --source /tmp/pr.diff --redact --no-banner || true
-      - name: Call Agent Platform /review
+      - name: Call CI-CD Platform /review
         id: review
         if: steps.health.outputs.skipped == 'false'
         env:
-          PLATFORM_URL: ${{ vars.AGENT_PLATFORM_URL }}
-          PLATFORM_KEY: ${{ secrets.AGENT_PLATFORM_KEY }}
+          PLATFORM_URL: ${{ vars.CICD_PLATFORM_URL }}
+          PLATFORM_KEY: ${{ secrets.CICD_PLATFORM_KEY }}
           PR_BODY: ${{ github.event.pull_request.body }}
         run: |
           jq -n \
             --argjson pr_number "${{ github.event.pull_request.number }}" \
             --arg commit_sha "${{ github.sha }}" \
+            --arg repo "${{ github.repository }}" \
             --arg diff "$(cat /tmp/pr.diff)" \
             --arg pr_body "$PR_BODY" \
-            '{pr_number:$pr_number, commit_sha:$commit_sha, diff:$diff,
+            '{pr_number:$pr_number, commit_sha:$commit_sha, repo:$repo, diff:$diff,
               pr_body:$pr_body, rules_ref:"99-code-review/v1.0"}' > /tmp/req.json
-          # §四.2:Agent Platform 失敗重試 2 次
+          # §四.2:CI-CD Platform 失敗重試 2 次;§Step1 L2 隱形濾網 = Bearer + 5 個 X-DF-* header(任一不對 → 平台回 404)
           curl --fail --retry 2 -X POST "$PLATFORM_URL/review" \
+            -H "X-DF-Author:       ${{ github.event.pull_request.user.login }}" \
+            -H "X-DF-Author-Email: ${{ github.event.pull_request.user.email }}" \
+            -H "X-DF-Repo:         ${{ github.repository }}" \
+            -H "X-DF-PR:           ${{ github.event.pull_request.number }}" \
+            -H "X-DF-Commit-SHA:   ${{ github.sha }}" \
             -H "Authorization: Bearer $PLATFORM_KEY" \
             -H "Content-Type: application/json" \
+            --max-time 300 \
             --data @/tmp/req.json > /tmp/review.json
           echo "verdict=$(jq -r .verdict /tmp/review.json)" >> "$GITHUB_OUTPUT"
 
@@ -302,13 +310,13 @@ jobs:
           elif [ "$R_SEC" != "success" ]; then
             v=reject;   rule=row2   # 安全掃描失敗(含高危漏洞)
           elif [ "$AI_VERDICT" = "reject" ]; then
-            v=reject;   rule=row3   # Agent Platform 判 reject
+            v=reject;   rule=row3   # CI-CD Platform 判 reject
           elif [ "$frontfail" = "yes" ] || [ "$backfail" = "yes" ]; then
             v=conflict; rule=row4   # 前 / 後端檢查失敗
           elif [ "$mergeable" = "CONFLICTING" ]; then
             v=conflict; rule=row5   # 與 main 有 git conflict
           elif [ "$AI_VERDICT" = "manual" ]; then
-            v=manual;   rule=row6   # Agent Platform 判 manual
+            v=manual;   rule=row6   # CI-CD Platform 判 manual
           elif [ "$protected" = "yes" ]; then
             v=manual;   rule=row7   # 改動含保護路徑
           elif [ "$AI_VERDICT" = "mergeable" ]; then
