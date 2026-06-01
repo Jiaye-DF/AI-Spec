@@ -37,9 +37,9 @@ backend-ci:
 | MAJOR(`vX.0.0`) | breaking change:改 input 名 / 改既有 input 預設行為 / 拿掉 step / `auto-cicd.yml` 判決邏輯改 | User 端 caller 必須改 tag + 確認相容性 |
 
 對應目前狀態:
-- 實作對齊 workflow-v1.0.md 規格 → 首版打 `v1.0.0`
+- 實作對齊 workflow-v1.1.md 規格(已含 Agent Platform → CI/CD 管理平台 改名,變數即 `CICD_PLATFORM_URL` / `CICD_PLATFORM_KEY`)→ 首版打 `v1.0.0`
 - 之後加 migration_tool 偵測 / custom_undo_cmd / Java OWASP DC 都是 MINOR(向下相容,預設行為不變)→ 打 `v1.1.0`
-- workflow-v1.1.md 規格(Agent Platform → CI/CD 管理平台 改名)實作完成後 = MAJOR → 打 `v2.0.0`(改 `AGENT_PLATFORM_URL` → `CICD_PLATFORM_URL` 是 breaking)
+- 未來若改既有 input 名 / 拿掉 step / 改 `auto-cicd.yml` 判決邏輯 = MAJOR → 屆時才打 `v2.0.0`
 
 ---
 
@@ -79,7 +79,7 @@ gh release create v1.1.0 --notes-file <(echo "...")
 - 跑 grace period(例 2~4 週),期間舊 tag `v1.x.x` 不刪,User 自行升版
 
 ```bash
-git tag -a v2.0.0 -m "major: Agent Platform → CI/CD 管理平台 改名;AGENT_PLATFORM_URL → CICD_PLATFORM_URL"
+git tag -a v2.0.0 -m "major: <breaking change 一句話描述,例:改既有 input 名 / 拿掉 step / 判決邏輯改>"
 git push origin v2.0.0
 ```
 

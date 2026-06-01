@@ -107,8 +107,8 @@ caller 裡每個 job 的 `uses:` 各指向中央 repo `Dafon-IT/DF-AI-Spec/.gith
 
 | 類型 | 項目 |
 | --- | --- |
-| Variables | `AGENT_PLATFORM_URL`、`NOTIFIER_URL`、`AUDIT_URL`、`AUTO_MERGE_ENABLED` |
-| Secrets | `GITLEAKS_LICENSE`、`AGENT_PLATFORM_KEY`、`AUDIT_KEY`、`AUTO_MERGE_TOKEN` |
+| Variables | `CICD_PLATFORM_URL`、`NOTIFIER_URL`、`AUDIT_URL`、`AUTO_MERGE_ENABLED` |
+| Secrets | `GITLEAKS_LICENSE`、`CICD_PLATFORM_KEY`、`AUDIT_KEY`、`AUTO_MERGE_TOKEN` |
 
 > `COOLIFY_DEPLOY_WEBHOOK` / `COOLIFY_TOKEN` 每個專案的 Coolify app 不同,走 repo-level secret。`AUTO_MERGE_ENABLED`(熔斷開關)建議 repo-level,單一專案熔斷不影響其他。
 

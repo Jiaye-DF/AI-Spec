@@ -1,11 +1,11 @@
 ---
 name: setup-cicd
-description: 掃描專案技術棧(React / Vue / Jinja2 / Node.js / FastAPI / Java),自動產生對接中央 ci-workflows 的 GitHub Actions caller(.github/workflows/ci-cd.yml,有獨立前端再加 e2e.yml)。當使用者說「設定 CI/CD / 接 Auto-CI-CD / 產生 workflow / setup ci」時觸發。
+description: 掃描專案技術棧(React / Vue / Jinja2 / Node.js / FastAPI / Java),自動產生對接中央 Dafon-IT/DF-AI-Spec 的 GitHub Actions caller(.github/workflows/ci-cd.yml,有獨立前端再加 e2e.yml)。當使用者說「設定 CI/CD / 接 Auto-CI-CD / 產生 workflow / setup ci」時觸發。
 ---
 
 # setup-cicd — 產生 Auto-CI-CD caller
 
-把 User 專案接上公司 Auto-CI-CD。CI/CD 的實際邏輯都在中央私有 repo `ci-workflows` 的 reusable workflow;本 skill 只做兩件事:
+把 User 專案接上公司 Auto-CI-CD。CI/CD 的實際邏輯都在中央私有 repo `Dafon-IT/DF-AI-Spec` 的 reusable workflow;本 skill 只做兩件事:
 
 1. **掃描**專案技術棧 → 判斷該接哪幾支中央 reusable。
 2. 依本資料夾的 `ci-cd.yml` / `e2e.yml` **模板**客製 → 寫進專案 `.github/workflows/`。
@@ -87,8 +87,8 @@ description: 掃描專案技術棧(React / Vue / Jinja2 / Node.js / FastAPI / Ja
 ### 5. 回報使用者
 
 - 列出偵測結果(前端 / 後端各判成什麼)與產生的檔。
-- 提醒:caller 不含 CI/CD 細節,實際邏輯在中央 `ci-workflows`,User 無須也無從得知內部。
+- 提醒:caller 不含 CI/CD 細節,實際邏輯在中央 `Dafon-IT/DF-AI-Spec`,User 無須也無從得知內部。
 - 中央團隊須在「組織層級」備妥下列項(本專案無須逐項設):
-  - **Variables**:`AGENT_PLATFORM_URL`、`NOTIFIER_URL`、`AUDIT_URL`、`AUTO_MERGE_ENABLED`
-  - **Secrets**:`GITLEAKS_LICENSE`、`AGENT_PLATFORM_KEY`、`AUDIT_KEY`、`AUTO_MERGE_TOKEN`、`COOLIFY_DEPLOY_WEBHOOK`、`COOLIFY_TOKEN`
+  - **Variables**:`CICD_PLATFORM_URL`、`NOTIFIER_URL`、`AUDIT_URL`、`AUTO_MERGE_ENABLED`
+  - **Secrets**:`GITLEAKS_LICENSE`、`CICD_PLATFORM_KEY`、`AUDIT_KEY`、`AUTO_MERGE_TOKEN`、`COOLIFY_DEPLOY_WEBHOOK`、`COOLIFY_TOKEN`
 - `main` 分支保護的 required status checks 設定見 Harness 05-CI/07-branch-protection。
