@@ -33,7 +33,7 @@ Dafon-IT/DF-AI-Spec/
 └── Github-CI/                     # 說明文件 + User 端 skill 模板
     ├── Github-CI.md               本檔
     ├── RELEASE.md                 中央 reusable workflow 發版 SOP(SemVer + SHA,禁 floating tag)
-    └── user-template/             給 User 的 skill:掃技術棧 → 產 caller
+    └── setup-cicd/                給 User 的 skill:掃技術棧 → 產 caller
         ├── SKILL.md
         ├── ci-cd.yml              caller 模板
         └── e2e.yml                caller 模板
@@ -62,9 +62,9 @@ CI 綁技術棧、後續流程不綁 —— 沿這條線拆。
 
 ---
 
-## User 端:user-template skill
+## User 端:setup-cicd skill
 
-User 專案不手抄 caller —— 跑 `user-template` skill,讓 AI 掃 `package.json` / `pyproject.toml` / `pom.xml` 自動判斷技術棧 + migration 工具,產出對的 caller。
+User 專案不手抄 caller —— 跑 `setup-cicd` skill,讓 AI 掃 `package.json` / `pyproject.toml` / `pom.xml` 自動判斷技術棧 + migration 工具,產出對的 caller。
 
 skill 做三件事:
 
@@ -72,7 +72,7 @@ skill 做三件事:
 2. **偵測 migration 工具**(見 SKILL.md 步驟 2.5)— 自動填 `with: migration_tool: ...`。
 3. 依 `ci-cd.yml` / `e2e.yml` 模板**客製** → 寫進專案 `.github/workflows/`。
 
-細節見 [user-template/SKILL.md](./user-template/SKILL.md)。
+細節見 [setup-cicd/SKILL.md](./setup-cicd/SKILL.md)。
 
 > **Jinja2 等 server-rendered**:HTML 模板在後端目錄裡,不是獨立可建置前端 → 視為「無獨立前端」,只接後端 CI,模板品質由後端測試涵蓋。
 
@@ -114,7 +114,7 @@ caller 裡每個 job 的 `uses:` 各指向中央 repo `Dafon-IT/DF-AI-Spec/.gith
 
 ### User 專案(每個專案)
 
-1. 把 `Github-CI/user-template/` 複製進專案的 `.claude/skills/`。
+1. 把 `Github-CI/setup-cicd/` 複製進專案的 `.claude/skills/`。
 2. 在專案根目錄跑該 skill → 產出 `.github/workflows/ci-cd.yml`(+ 有前端則 `e2e.yml`)。
 3. 設 `main` 分支保護的 required status checks,見 Harness [07-branch-protection](../Development/Harness-Engineering/docs/Design-Base/05-CI/07-branch-protection.md)。
 

@@ -26,7 +26,7 @@ AI-Spec/
 │       ├── Skills/                   # commit-all、merge-main、init-project、sso-init…
 │       ├── prompts/                  # scan-project / propose-to-tasks / reflect-rules
 │       └── docs/                     # Design-Base / Arch / Tasks
-├── Github-CI/                        # Auto-CI-CD 的 GitHub 實作(ci-workflows + user-template)
+├── Github-CI/                        # Auto-CI-CD 的 GitHub 實作(ci-workflows + setup-cicd)
 └── replit/                           # Replit 手機優先 RWD 規格
 ```
 
@@ -41,7 +41,7 @@ AI-Spec/
 | 套 React + FastAPI 嚴格規範 | [Harness-Engineering/README.md](Development/Harness-Engineering/README.md) |
 | 接 DF-SSO | `Harness-Engineering/Skills/sso-init/` 對應框架 |
 | Replit 個人工具 | [replit/replit-spec-latest.md](replit/replit-spec-latest.md) |
-| 接 Auto-CI-CD(產 GitHub Actions caller) | [Github-CI/Github-CI.md](Github-CI/Github-CI.md) → 跑 `user-template` |
+| 接 Auto-CI-CD(產 GitHub Actions caller) | [Github-CI/Github-CI.md](Github-CI/Github-CI.md) → 跑 `setup-cicd` |
 | 看 Auto-CI-CD 全貌(掃機密→AI 審→自動合併→CD) | **最新 v1.1**:[workflow-v1.1.md](Architecture/Auto-CI-CD/workflow-v1.1/workflow-v1.1.md) / [workflow-v1.1.html](Architecture/Auto-CI-CD/workflow-v1.1/workflow-v1.1.html) ・舊版 v1.0:[workflow-v1.0.md](Architecture/Auto-CI-CD/workflow-v1.0/workflow-v1.0.md) / [workflow-v1.0.html](Architecture/Auto-CI-CD/workflow-v1.0/workflow-v1.0.html) |
 | 寫 Coolify docker-compose | [Docker-Compose-Spec-v1.4.md](Coolify-Deploy/Docker-Compose-Spec-v1.4.md) |
 | 掃架構 / 資安 / 部署違規 | [spec/scan-project-v1.0.md](Development/spec/scan-project-v1.0.md) |
@@ -67,7 +67,7 @@ AI-Spec/
 | `/commit-all` | 提交並推送當前分支變更(AI commit 自動加 `(AI)` 前綴) |
 | `/merge-main` | 合併當前分支至 `main` |
 | `/scan-project` | 健檢專案,結果寫入 `docs/Issues-Scan-Project.md` |
-| `user-template` | 掃技術棧產出 Auto-CI-CD caller |
+| `setup-cicd` | 掃技術棧產出 Auto-CI-CD caller |
 
 ---
 
@@ -75,7 +75,7 @@ AI-Spec/
 
 1. 讀 [00-overview](Development/spec/00-overview-v1.0.md) + [01-design-notes](Development/spec/01-design-notes-v1.0.md) 建骨架。
 2. `/sso-init` 接 SSO(依框架分流)。
-3. 複製 [Github-CI/user-template/](Github-CI/user-template/) 進 `.claude/skills/`,產 `.github/workflows/`。
+3. 複製 [Github-CI/setup-cicd/](Github-CI/setup-cicd/) 進 `.claude/skills/`,產 `.github/workflows/`。
 4. 寫 `docker-compose.yml` 對照 [v1.4 規範](Coolify-Deploy/Docker-Compose-Spec-v1.4.md)。
 5. 上線前 `/scan-project`。
 

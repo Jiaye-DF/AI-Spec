@@ -1,4 +1,4 @@
-# Auto-CI-CD caller 模板 — 由 user-template skill 依專案技術棧客製後寫進 .github/workflows/ci-cd.yml
+# Auto-CI-CD caller 模板 — 由 setup-cicd skill 依專案技術棧客製後寫進 .github/workflows/ci-cd.yml
 #
 # 客製點(見 SKILL.md 步驟 3):
 #   - backend-ci 的 uses: 依後端棧改 ci-backend-python / ci-backend-node / ci-backend-java

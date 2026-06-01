@@ -1,5 +1,5 @@
 # Auto-CI-CD E2E caller 模板 — 有獨立前端的專案才需要
-# 由 user-template skill 寫進 .github/workflows/e2e.yml(中央 repo / tag 一併替換)
+# 由 setup-cicd skill 寫進 .github/workflows/e2e.yml(中央 repo / tag 一併替換)
 name: e2e
 
 on:

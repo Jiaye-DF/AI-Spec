@@ -1,9 +1,9 @@
 ---
-name: user-template
+name: setup-cicd
 description: 掃描專案技術棧(React / Vue / Jinja2 / Node.js / FastAPI / Java),自動產生對接中央 ci-workflows 的 GitHub Actions caller(.github/workflows/ci-cd.yml,有獨立前端再加 e2e.yml)。當使用者說「設定 CI/CD / 接 Auto-CI-CD / 產生 workflow / setup ci」時觸發。
 ---
 
-# user-template — 產生 Auto-CI-CD caller
+# setup-cicd — 產生 Auto-CI-CD caller
 
 把 User 專案接上公司 Auto-CI-CD。CI/CD 的實際邏輯都在中央私有 repo `ci-workflows` 的 reusable workflow;本 skill 只做兩件事:
 
