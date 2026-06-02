@@ -23,7 +23,7 @@ description: 掃描專案技術棧(React / Vue / Jinja2 / Node.js / FastAPI / Ja
 | 項目 | 預設 | 說明 |
 | --- | --- | --- |
 | 中央 repo | `Dafon-IT/DF-AI-Spec` | reusable workflow 放在中央 repo 的 `.github/workflows/`(GitHub Actions 硬性要求) |
-| 版本 ref | `@v1.0.0`(模板預設) | 只用 fixed SemVer tag 或 40-char SHA;**禁用 floating tag(`@v1`)/ 禁用 branch(`@main`)**。完整 SOP 見 [`Github-CI/RELEASE.md`](../RELEASE.md) |
+| 版本 ref | `@v1.0.1`(模板預設) | 只用 fixed SemVer tag 或 40-char SHA;**禁用 floating tag(`@v1`)/ 禁用 branch(`@main`)**。完整 SOP 見 [`Github-CI/RELEASE.md`](../RELEASE.md) |
 
 模板內以此為預設;若不同,產生時一併替換。產生後**建議**幫 User 一併加 `.github/dependabot.yml`(`package-ecosystem: github-actions`),讓中央發新 patch tag 時自動 PR 升版。
 
