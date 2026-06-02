@@ -23,7 +23,7 @@ description: 掃描專案技術棧(React / Vue / Jinja2 / Node.js / FastAPI / Ja
 | 項目 | 預設 | 說明 |
 | --- | --- | --- |
 | 中央 repo | `Dafon-IT/DF-AI-Spec` | reusable workflow 放在中央 repo 的 `.github/workflows/`(GitHub Actions 硬性要求) |
-| 版本 ref | `@v1.0.1`(模板預設) | 只用 fixed SemVer tag 或 40-char SHA;**禁用 floating tag(`@v1`)/ 禁用 branch(`@main`)**。完整 SOP 見 [`Github-CI/RELEASE.md`](../RELEASE.md) |
+| 版本 ref | `@v1.0.2`(模板預設) | 只用 fixed SemVer tag 或 40-char SHA;**禁用 floating tag(`@v1`)/ 禁用 branch(`@main`)**。完整 SOP 見 [`Github-CI/RELEASE.md`](../RELEASE.md) |
 
 模板內以此為預設;若不同,產生時一併替換。產生後**建議**幫 User 一併加 `.github/dependabot.yml`(`package-ecosystem: github-actions`),讓中央發新 patch tag 時自動 PR 升版。
 
@@ -77,7 +77,7 @@ description: 掃描專案技術棧(React / Vue / Jinja2 / Node.js / FastAPI / Ja
 - `backend-ci` 的 `with:` 補 `migration_tool: <步驟 2.5 判定值>`;Gradle 專案 另補 `build_command: "./gradlew build"`。
 - **無獨立前端**:刪整個 `frontend-ci` job、`auto-cicd` 的 `needs` 改 `[backend-ci]`、移除 `with.frontend_result` 那行。
 - 中央 repo / tag 與「中央 repo 參數」一致。
-- **`auto-cicd` job 的 `permissions:` 區塊逐字保留,尤其 `actions: read` 一行不可刪** —— GitHub Actions 規則:job 一旦寫 `permissions:`,沒列到的權限即為 `none`;且 reusable 權限取 caller×callee 交集,caller 缺 `actions: read` 會讓中央 `security-scan` 上傳 SARIF 失敗(`Resource not accessible by integration`)。詳見 [docs/01-codeql-upload-sarif-permission.md](../docs/01-codeql-upload-sarif-permission.md)。
+- **`auto-cicd` job 的 `permissions:` 區塊逐字保留**(含其中的「未來啟用 Code Scanning 補回 `security-events`/`actions`」註解)—— GitHub Actions 規則:job 一旦寫 `permissions:`,沒列到的權限即為 `none`,且 reusable 權限取 caller×callee 交集,隨意刪減會讓中央某 job 失去必要權限。背景見 [docs/01-codeql-upload-sarif-permission.md](../docs/01-codeql-upload-sarif-permission.md)。
 
 寫入專案 `.github/workflows/ci-cd.yml`。
 

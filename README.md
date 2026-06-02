@@ -126,5 +126,5 @@ git revert <commit>                 # 反向 commit(不改歷史,取代 reset --
 
 - 規格檔 `-vX.Y.md` 命名,重大變更升版並保留舊版。
 - 最新:`Coolify-Deploy` **v1.4**、其餘規格檔 **v1.0**。
-- Auto-CI-CD 中央 reusable workflows 走 SemVer git tag,目前釋出 **v1.0.1**(caller 以 `@v1.0.1` 釘版;發版 SOP 見 [Github-CI/RELEASE.md](Github-CI/RELEASE.md))。
+- Auto-CI-CD 中央 reusable workflows 走 SemVer git tag,目前釋出 **v1.0.2**(caller 以 `@v1.0.2` 釘版;發版 SOP 見 [Github-CI/RELEASE.md](Github-CI/RELEASE.md))。
 - 文件互引用相對路徑。

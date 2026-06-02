@@ -5,7 +5,7 @@
 #   - backend-ci 的 with.migration_tool 依專案 migration 套件填(見 SKILL.md 步驟 2.5)
 #   - 無獨立前端(Jinja2 等 server-rendered):刪掉 frontend-ci job、
 #     auto-cicd 的 needs 改 [backend-ci]、移除 with.frontend_result 那行
-#   - @v1.0.1 換成中央 repo 目前最新的 fixed SemVer tag(或 40-char SHA);禁用 @v1 floating tag(見 Github-CI/RELEASE.md)
+#   - @v1.0.2 換成中央 repo 目前最新的 fixed SemVer tag(或 40-char SHA);禁用 @v1 floating tag(見 Github-CI/RELEASE.md)
 name: ci-cd
 
 on:
@@ -21,7 +21,7 @@ concurrency:
 jobs:
   # ── 步驟③ 前端 CI(無獨立前端的專案刪掉整個 frontend-ci job) ──
   frontend-ci:
-    uses: Dafon-IT/DF-AI-Spec/.github/workflows/ci-frontend-node.yml@v1.0.1
+    uses: Dafon-IT/DF-AI-Spec/.github/workflows/ci-frontend-node.yml@v1.0.2
 
   # ── 步驟③ 後端 CI(三選一:python / node / java) ──
   # migration_tool 允許值見各 reusable:
@@ -29,7 +29,7 @@ jobs:
   #   node:    prisma / typeorm / knex / none
   #   java:    flyway / liquibase / none
   backend-ci:
-    uses: Dafon-IT/DF-AI-Spec/.github/workflows/ci-backend-python.yml@v1.0.1
+    uses: Dafon-IT/DF-AI-Spec/.github/workflows/ci-backend-python.yml@v1.0.2
     with:
       migration_tool: alembic
 
@@ -37,7 +37,7 @@ jobs:
   auto-cicd:
     needs: [frontend-ci, backend-ci]
     if: always()
-    uses: Dafon-IT/DF-AI-Spec/.github/workflows/auto-cicd.yml@v1.0.1
+    uses: Dafon-IT/DF-AI-Spec/.github/workflows/auto-cicd.yml@v1.0.2
     with:
       frontend_result: ${{ needs.frontend-ci.result }}
       backend_result: ${{ needs.backend-ci.result }}
@@ -47,5 +47,6 @@ jobs:
       pull-requests: write
       issues: write
       statuses: write
-      security-events: write
-      actions: read            # private repo 上傳 SARIF 需讀 workflow-run;reusable 權限取 caller×callee 交集,此處不給則上面 callee 補的也無效
+      # 【未來】組織帳號啟用 GitHub Code Scanning(GHAS)後,補回下列兩項讓中央 security-scan 能上傳 SARIF:
+      #   security-events: write
+      #   actions: read          # reusable 取 caller×callee 交集,此處不給則 callee 補的也無效

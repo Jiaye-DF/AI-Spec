@@ -43,9 +43,7 @@ jobs:
   security-scan:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      security-events: write           # 上傳 SARIF 到 GitHub Code Scanning
-      actions: read                    # private repo 上傳 SARIF 需讀 workflow-run(否則 upload-sarif 報 Resource not accessible）
+      contents: read                   # 僅讀碼供 semgrep 掃描;不綁 GitHub Code Scanning,故不需 security-events / actions
     steps:
       - uses: actions/checkout@v4
       - uses: returntocorp/semgrep-action@v1
@@ -62,10 +60,23 @@ jobs:
             p/react
             p/java
           generateSarif: "1"
-      - uses: github/codeql-action/upload-sarif@v4
+      # 不上傳 GitHub Code Scanning —— 該功能 private repo 需 GHAS,未開會 fail(Code scanning is not enabled）。
+      # semgrep 掃到 blocking 仍會讓本 job fail → 判決 row2 擋下;掃描報告改存 artifact 供調閱。
+      - uses: actions/upload-artifact@v4
         if: always()
         with:
-          sarif_file: semgrep.sarif
+          name: semgrep-sarif
+          path: semgrep.sarif
+          retention-days: 7
+      # 【未來】切換到組織帳號(含 GHAS / Code scanning 已啟用)後,改回上傳 Code Scanning:
+      #   1) 取消下列註解、移除上面 upload-artifact 步驟
+      #   2) 本 job permissions 補回 `security-events: write` + `actions: read`
+      #   3) caller(setup-cicd/ci-cd.yml)auto-cicd job permissions 同步補回該兩項(reusable 取交集)
+      #   背景見 Github-CI/docs/01-codeql-upload-sarif-permission.md
+      # - uses: github/codeql-action/upload-sarif@v4
+      #   if: always()
+      #   with:
+      #     sarif_file: semgrep.sarif
 
   # ── 步驟③ 末 — CI 結果彙整成 ci-report.json artifact ──
   ci-report:

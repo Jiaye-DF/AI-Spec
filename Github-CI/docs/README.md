@@ -19,4 +19,4 @@
 
 | # | 主題 | 一句話 |
 | --- | --- | --- |
-| [01](01-codeql-upload-sarif-permission.md) | reusable workflow 權限 × CodeQL upload-sarif | private repo 上傳 SARIF 缺 `actions: read` → `Resource not accessible by integration`;且 reusable 權限是 caller×callee 取交集,兩端都要給 |
+| [01](01-codeql-upload-sarif-permission.md) | reusable workflow 權限 × CodeQL upload-sarif | 兩層問題:① 缺 `actions: read`(顯式 permissions 未列=none、reusable 取交集)② Code Scanning 需 GHAS 未開。最終解綁 Code Scanning、SARIF 改存 artifact,待組織帳號再加回 |
