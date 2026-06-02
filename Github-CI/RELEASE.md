@@ -6,6 +6,17 @@
 
 ---
 
+## 為什麼一定要有 tag
+
+兩個前提疊在一起,讓「打 tag」從建議變成必須:
+
+1. **GitHub 語法強制要 ref** — 引用 reusable workflow 的 `uses:` 後面**必填** `@ref`,且只能是 tag / branch / 40-char SHA 三選一。User caller 填的是 `@v1.0.0`,GitHub 解析時會去中央 repo 找這個 ref,**找不到就整個 job 失敗**(`unable to find reusable workflow ...@v1.0.0`)。注意:**push branch ≠ 產生 tag**,tag 要單獨 `git tag` + `git push` 才存在。
+2. **我們刻意選固定 tag 而非 `@main`** — 技術上改 `@main` 就不用 tag,但那等於 main 一有人 push,全公司專案下次觸發就被動換版、且看不出實際跑哪個 commit、爛 commit 會瞬間散播。固定 tag 換來 **immutable(凍結版本)+ 可稽核(看 tag 即知版本)+ 可控爆炸半徑(升版要過 Dependabot PR + CI + review)**。
+
+> 一句話:**打 tag = GitHub 要求 ref 必須存在 + 我們選 immutable tag 換取可稽核與可控升版**。這也是下方禁用 floating tag、以及 §「Tag 保護」要鎖 `v*` 禁 force-push 的根本理由。
+
+---
+
 ## 版本策略 — 只用 fixed SemVer tag 或 SHA
 
 **不使用** floating major tag(`@v1` / `@v2`)。理由:floating tag 可被 force-push 重指,User 端 caller 無法看出實際跑了哪個 commit;單一錯誤 patch 可能瞬間散播到全公司所有專案。
