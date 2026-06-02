@@ -90,10 +90,41 @@ AI-Spec/
 - AI commit 加 `(AI)` 前綴。
 - 禁止 `--force` / `reset --hard` / `--no-verify`。
 
+### 常用指令速查
+
+> 日常提交 / 合併優先用 Slash 指令(`/commit-all`、`/merge-main`),下表為底層對照與發版用。
+
+```bash
+# ── 日常 ──
+git status                          # 看變更
+git switch -c feature/<名稱>        # 切新分支
+git add -A && git commit -m "(AI) Fix: <描述>"
+git push origin <分支>              # 首推加 -u 設定 upstream
+
+# ── 合併回 main(等同 /merge-main)──
+git switch main && git pull --ff-only
+git merge --no-ff feature/<名稱>
+git push origin main
+
+# ── 發版打 tag(中央 reusable workflow;一律 annotated)──
+git tag -a v1.0.1 -m "patch: <一句話>"   # 打在含改動的 commit 上
+git push origin v1.0.1                    # push 預設不帶 tag,要顯式推
+git ls-remote --tags origin v1.0.1        # 確認遠端有了
+gh release create v1.0.1 --notes "<changelog>"   # 建 Release(需 gh CLI)
+
+# ── 查看 / 安全復原 ──
+git log --oneline -10
+git diff v1.0.0..HEAD -- .github/workflows/   # 比對兩版差異
+git revert <commit>                 # 反向 commit(不改歷史,取代 reset --hard)
+```
+
+> 完整發版 SOP(PATCH / MINOR / MAJOR、退版、Tag 保護)見 [Github-CI/RELEASE.md](Github-CI/RELEASE.md)。
+
 ---
 
 ## 版本策略
 
 - 規格檔 `-vX.Y.md` 命名,重大變更升版並保留舊版。
-- 最新:`Coolify-Deploy` **v1.4**、其餘 **v1.0**。
+- 最新:`Coolify-Deploy` **v1.4**、其餘規格檔 **v1.0**。
+- Auto-CI-CD 中央 reusable workflows 走 SemVer git tag,目前釋出 **v1.0.1**(caller 以 `@v1.0.1` 釘版;發版 SOP 見 [Github-CI/RELEASE.md](Github-CI/RELEASE.md))。
 - 文件互引用相對路徑。
