@@ -77,6 +77,7 @@ description: 掃描專案技術棧(React / Vue / Jinja2 / Node.js / FastAPI / Ja
 - `backend-ci` 的 `with:` 補 `migration_tool: <步驟 2.5 判定值>`;Gradle 專案 另補 `build_command: "./gradlew build"`。
 - **無獨立前端**:刪整個 `frontend-ci` job、`auto-cicd` 的 `needs` 改 `[backend-ci]`、移除 `with.frontend_result` 那行。
 - 中央 repo / tag 與「中央 repo 參數」一致。
+- **`auto-cicd` job 的 `permissions:` 區塊逐字保留,尤其 `actions: read` 一行不可刪** —— GitHub Actions 規則:job 一旦寫 `permissions:`,沒列到的權限即為 `none`;且 reusable 權限取 caller×callee 交集,caller 缺 `actions: read` 會讓中央 `security-scan` 上傳 SARIF 失敗(`Resource not accessible by integration`)。詳見 [docs/01-codeql-upload-sarif-permission.md](../docs/01-codeql-upload-sarif-permission.md)。
 
 寫入專案 `.github/workflows/ci-cd.yml`。
 
