@@ -146,3 +146,36 @@ Dependabot 會掃 caller 的 `uses:` 字串,看到 `@v1.0.0` → 偵測中央有
 | 不小心打錯 tag 名(例 `v1.0.1` 打成 `v1.01`)| Tag 一旦 push 就 immutable;改打新 tag `v1.0.1`,把 `v1.01` 留著 |
 | Tag 打到錯的 commit | 同上,打新 tag;舊 tag 在 GitHub Release UI 標 deprecated + 寫 redirect 說明 |
 | 緊急安全 patch | 不走 grace period,直接 PATCH tag + 公告;User 端 Dependabot 通常 24h 內開 PR |
+
+---
+
+## 附錄:tag 指令速查
+
+> 本 repo 一律用 **annotated** tag(`-a`),禁 lightweight。平常只需記最上面那兩行。
+
+```bash
+# ── 最常用:在當前 HEAD 打 annotated tag 並推 ──
+git tag -a v1.0.0 -m "首版:對齊 workflow 規格"
+git push origin v1.0.0
+
+# ── 在「指定 commit」打 tag(非 HEAD)──
+git tag -a v1.0.0 -m "訊息" <commit-SHA>
+git push origin v1.0.0
+
+# ── 查看 / 確認 ──
+git tag -l                    # 列本地所有 tag
+git cat-file -t v1.0.0        # 型態:tag=annotated / commit=lightweight
+git show v1.0.0               # tag 訊息 + 指向 commit + diff
+git ls-remote --tags origin   # 遠端有哪些 tag(確認推上去沒)
+
+# ── 刪除 / 重打(打錯 commit 或誤用 lightweight 時)──
+git push origin --delete v1.0.0   # 刪遠端(= git push origin :v1.0.0)
+git tag -d v1.0.0                 # 刪本地
+# 再重新 git tag -a ... + git push origin v1.0.0
+```
+
+**注意事項**:
+
+- `git push` 預設**不帶 tag**,tag 一定要顯式 `git push origin <tag>`(這就是「push branch ≠ 有 tag」)。
+- `git push origin --tags` 會推「所有」本地未上傳 tag,批次操作小心誤推。
+- 正式 tag 打完後,**去 GitHub 開 Protected tags `v*`**(見 [§ Tag 保護](#tag-保護)),禁 force-push / 禁刪,讓 immutable 落實。重打只在「尚未保護 / 尚未對外」階段才做。
