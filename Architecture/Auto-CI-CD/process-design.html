@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'><circle cx='3' cy='8' r='2' fill='%2316a34a'/><line x1='5' y1='8' x2='11' y2='8' stroke='%232563eb' stroke-width='1.6'/><circle cx='13' cy='8' r='2' fill='%23dc2626'/></svg>">
+  <title>Auto CI/CD — Process Design</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-soft: #f8fafc;
+      --fg: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --toolbar-bg: #f8fafc;
+      --btn-bg: #ffffff;
+      --btn-hover: #f1f5f9;
+      --accent: #2563eb;
+      --error: #dc2626;
+      --user: #16a34a;
+      --it: #2563eb;
+      --shared: #9333ea;
+      --critical: #dc2626;
+    }
+    [data-theme="dark"] {
+      --bg: #0f172a;
+      --bg-soft: #1e293b;
+      --fg: #f1f5f9;
+      --muted: #94a3b8;
+      --border: #334155;
+      --toolbar-bg: #1e293b;
+      --btn-bg: #1e293b;
+      --btn-hover: #334155;
+      --accent: #60a5fa;
+      --error: #f87171;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      font-family: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--fg);
+    }
+    body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+    .toolbar {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      padding: 12px 20px;
+      background: var(--toolbar-bg);
+      border-bottom: 2px solid var(--border);
+      align-items: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+      flex-shrink: 0;
+    }
+    .toolbar h1 {
+      font-size: 16px;
+      margin: 0;
+      margin-right: auto;
+      font-weight: 700;
+      color: var(--accent);
+      padding-left: 12px;
+      border-left: 4px solid var(--accent);
+      line-height: 1.3;
+      letter-spacing: 0.02em;
+      max-width: 40%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .toolbar .divider { width: 1px; height: 22px; background: var(--border); margin: 0 4px; }
+    .toolbar button, .toolbar select, .toolbar input {
+      padding: 6px 11px; font-size: 13px;
+      border: 1px solid var(--border);
+      background: var(--btn-bg); color: var(--fg);
+      border-radius: 5px; cursor: pointer; font-family: inherit;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .toolbar button:hover, .toolbar select:hover {
+      background: var(--btn-hover); border-color: var(--accent);
+    }
+    .toolbar button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .toolbar label {
+      font-size: 12px; color: var(--muted);
+      display: inline-flex; align-items: center; gap: 6px;
+      font-weight: 500;
+    }
+    .toolbar .picker {
+      font-weight: 600; min-width: 280px;
+      border-color: var(--accent); color: var(--fg);
+    }
+    .counter {
+      font-size: 12px; color: var(--muted); font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      padding: 0 8px;
+    }
+    .nav-btn {
+      width: 32px; height: 30px; padding: 0 !important;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 600;
+    }
+
+    main {
+      flex: 1; min-height: 0;
+      display: flex; flex-direction: column;
+    }
+    .preview {
+      flex: 1; min-height: 0;
+      overflow: auto;
+      padding: 28px 24px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+    .preview.zoomed { justify-content: flex-start; }
+    .preview.draggable { cursor: grab; user-select: none; }
+    .preview.draggable.dragging { cursor: grabbing; }
+    .preview.draggable.dragging * { pointer-events: none; }
+    .preview svg { display: block; margin: 0 auto; }
+    .preview .svg-wrap {
+      display: inline-block;
+      transform-origin: top left;
+      transition: transform 0.12s ease;
+    }
+    .preview.dragging .svg-wrap { transition: none; }
+    .zoom-label {
+      font-size: 12px; color: var(--muted); font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      min-width: 42px; text-align: center;
+      cursor: pointer;
+    }
+    .zoom-label:hover { color: var(--accent); }
+    .error {
+      color: var(--error); padding: 16px;
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 13px; white-space: pre-wrap; text-align: left;
+    }
+
+    .cards-wrap { max-width: 1280px; width: 100%; }
+    .cards-head {
+      margin-bottom: 18px;
+      font-size: 15px; color: var(--muted);
+      display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center;
+    }
+    .cards-head strong { color: var(--accent); font-size: 19px; }
+    .cards-grid { display: grid; gap: 16px; }
+    .cards-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+    .cards-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .cards-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+    .cards-grid.cols-5 { grid-template-columns: repeat(5, 1fr); }
+    .card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-left-width: 5px;
+      border-radius: 10px;
+      padding: 16px 18px;
+      display: flex; flex-direction: column;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.1);
+    }
+    .card.user { border-left-color: #16a34a; }
+    .card.it { border-left-color: #2563eb; }
+    .card.shared { border-left-color: #9333ea; }
+    .card.critical { border-left-color: #dc2626; }
+    .card-badges {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      margin-bottom: 10px;
+    }
+    .card-badge {
+      display: inline-block;
+      font-size: 12.5px; font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 5px;
+      letter-spacing: 0.02em;
+    }
+    .card-tag {
+      display: inline-block;
+      font-size: 11.5px;
+      padding: 3px 8px;
+      border-radius: 5px;
+      background: var(--btn-hover);
+      color: var(--muted);
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    [data-theme="dark"] .card-tag { background: rgba(148, 163, 184, 0.15); }
+    .ver-v10 { background: #dbeafe; color: #1e3a8a; }
+    .ver-v11 { background: #dcfce7; color: #14532d; }
+    .ver-v12 { background: #fef3c7; color: #78350f; }
+    [data-theme="dark"] .ver-v10 { background: rgba(96,165,250,0.2); color: #93c5fd; }
+    [data-theme="dark"] .ver-v11 { background: rgba(34,197,94,0.2); color: #86efac; }
+    [data-theme="dark"] .ver-v12 { background: rgba(251,191,36,0.2); color: #fcd34d; }
+    .card.user .card-badge { background: #dcfce7; color: #14532d; }
+    .card.it .card-badge { background: #dbeafe; color: #1e3a8a; }
+    .card.shared .card-badge { background: #f3e8ff; color: #581c87; }
+    .card.critical .card-badge { background: #fee2e2; color: #7f1d1d; }
+    [data-theme="dark"] .card.user .card-badge { background: rgba(34,197,94,0.2); color: #86efac; }
+    [data-theme="dark"] .card.it .card-badge { background: rgba(96,165,250,0.2); color: #93c5fd; }
+    [data-theme="dark"] .card.shared .card-badge { background: rgba(168,85,247,0.2); color: #d8b4fe; }
+    [data-theme="dark"] .card.critical .card-badge { background: rgba(248,113,113,0.2); color: #fca5a5; }
+    .card-title {
+      font-size: 16px; font-weight: 700;
+      margin: 0 0 9px;
+      color: var(--fg); line-height: 1.35;
+    }
+    .card-body {
+      font-size: 14px;
+      color: var(--fg);
+      line-height: 1.6;
+    }
+    .card-body strong { color: var(--accent); }
+    .card-body code {
+      background: var(--btn-hover);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-family: 'JetBrains Mono', Consolas, monospace;
+    }
+    .card-body ul {
+      margin: 6px 0 0;
+      padding-left: 20px;
+    }
+    .card-body li {
+      margin-bottom: 3px;
+    }
+    .card-tech {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--border);
+      font-size: 12.5px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .card-tech-title {
+      font-weight: 700;
+      color: var(--fg);
+      margin-bottom: 6px;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+    }
+    .card-tech ul { margin: 4px 0 0; padding-left: 16px; }
+    .card-tech li { margin-bottom: 4px; }
+    .card-tech strong { color: var(--fg); font-weight: 700; }
+    .card-tech code {
+      background: var(--btn-hover);
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 11.5px;
+      font-family: 'JetBrains Mono', Consolas, monospace;
+    }
+    .cards-foot {
+      margin-top: 20px;
+      padding: 14px 18px;
+      background: var(--bg-soft);
+      border-left: 4px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      font-size: 15px;
+      color: var(--fg); line-height: 1.6;
+    }
+    .cards-foot strong { color: var(--accent); }
+
+    .preview pre.mermaid {
+      background: var(--bg);
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: auto;
+    }
+    .flow-section-title {
+      font-size: 18px; color: var(--muted);
+      margin: 18px 0 6px;
+      display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px;
+    }
+    .flow-section-title strong { color: var(--fg); }
+    .flow-section-title .diagram-zoom-btn { margin-left: auto; }
+    .diagram-zoom-btn {
+      padding: 5px 12px;
+      font-size: 13px; font-weight: 600;
+      background: var(--btn-bg);
+      color: var(--accent);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .diagram-zoom-btn:hover { background: var(--btn-hover); border-color: var(--accent); }
+    .flow-legend {
+      font-size: 14px; color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.6;
+    }
+    .flow-legend strong { color: var(--fg); }
+
+    .verdict-grid {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    .verdict-grid-head {
+      grid-column: 1 / -1;
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: -4px;
+    }
+    .verdict-grid-head strong { color: var(--fg); }
+    .verdict-card {
+      padding: 12px 14px;
+      border-radius: 8px;
+      border-left: 4px solid;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .verdict-card .verdict-name {
+      font-size: 15px; font-weight: 700;
+      color: var(--fg);
+    }
+    .verdict-card .verdict-code {
+      font-size: 12px; font-weight: 700;
+      align-self: flex-start;
+      padding: 2px 8px; border-radius: 4px;
+      font-family: 'JetBrains Mono', Consolas, monospace;
+    }
+    .verdict-card .verdict-desc {
+      font-size: 13px; line-height: 1.5;
+      color: var(--fg);
+    }
+    .verdict-pass   { background: #f0fdf4; border-left-color: #16a34a; }
+    .verdict-warn   { background: #fffbeb; border-left-color: #d97706; }
+    .verdict-manual { background: #eef2ff; border-left-color: #6366f1; }
+    .verdict-reject { background: #fef2f2; border-left-color: #dc2626; }
+    .verdict-pass   .verdict-code { background: #dcfce7; color: #14532d; }
+    .verdict-warn   .verdict-code { background: #fef3c7; color: #78350f; }
+    .verdict-manual .verdict-code { background: #e0e7ff; color: #312e81; }
+    .verdict-reject .verdict-code { background: #fee2e2; color: #7f1d1d; }
+    [data-theme="dark"] .verdict-pass   { background: rgba(34,197,94,0.12); }
+    [data-theme="dark"] .verdict-warn   { background: rgba(217,119,6,0.12); }
+    [data-theme="dark"] .verdict-manual { background: rgba(99,102,241,0.14); }
+    [data-theme="dark"] .verdict-reject { background: rgba(220,38,38,0.12); }
+    [data-theme="dark"] .verdict-pass   .verdict-code { background: rgba(34,197,94,0.25); color: #86efac; }
+    [data-theme="dark"] .verdict-warn   .verdict-code { background: rgba(217,119,6,0.25); color: #fcd34d; }
+    [data-theme="dark"] .verdict-manual .verdict-code { background: rgba(99,102,241,0.3); color: #c7d2fe; }
+    [data-theme="dark"] .verdict-reject .verdict-code { background: rgba(220,38,38,0.25); color: #fca5a5; }
+  </style>
+</head>
+<body>
+  <!--
+    process-design-v1.1.html
+    SA 視角 — 系統技術結構流程圖 + 資料狀態流轉
+    每張 slide = 一個設計步驟
+    鍵盤: ← / → 翻頁 ; + / − 縮放 ; 0 重設 ; F 符合視窗
+  -->
+
+  <!-- ================== Slide 0 · 版本索引 ================== -->
+  <script type="text/plain" id="slide0-version-index"
+          data-label="版本索引"
+          data-order="0"
+          data-kind="cards"
+          data-format="html">
+<div class="cards-wrap">
+  <div class="cards-head">
+    <strong>Auto CI/CD — Process Design</strong>
+    <span>· 架構演進版本索引 ·</span>
+  </div>
+
+  <table style="width:100%;border-collapse:collapse;font-size:14px;line-height:1.7;">
+    <thead>
+      <tr style="border-bottom:2px solid var(--border);">
+        <th style="text-align:left;padding:10px 14px;color:var(--muted);font-weight:700;font-size:12px;letter-spacing:0.06em;width:110px;">版本</th>
+        <th style="text-align:left;padding:10px 14px;color:var(--muted);font-weight:700;font-size:12px;letter-spacing:0.06em;width:100px;">日期</th>
+        <th style="text-align:left;padding:10px 14px;color:var(--muted);font-weight:700;font-size:12px;letter-spacing:0.06em;width:80px;">狀態</th>
+        <th style="text-align:left;padding:10px 14px;color:var(--muted);font-weight:700;font-size:12px;letter-spacing:0.06em;">主要異動</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:12px 14px;vertical-align:top;"><span class="card-tag ver-v10" style="font-size:13px;font-weight:700;">v1.0</span></td>
+        <td style="padding:12px 14px;vertical-align:top;color:var(--muted);font-size:13px;">2026-05-19</td>
+        <td style="padding:12px 14px;vertical-align:top;"><span class="card-tag" style="font-size:12px;">Released</span></td>
+        <td style="padding:12px 14px;vertical-align:top;">
+          <ul style="margin:0;padding-left:18px;">
+            <li>GitHub Actions + CI/CD Platform + SMTP Notifier 三服務拆分</li>
+            <li>5 並行 CI job（前端 / 後端 / dependency-audit / 機密 / 安全掃描）</li>
+            <li>四態 verdict（mergeable / conflict / manual / reject）</li>
+            <li>CI/CD Platform 5 模組（接收入口 / 機密過濾 / OpenRouter / 判決引擎 / 發布器）</li>
+            <li>保護路徑、Audit Trail、SMTP 通知策略</li>
+          </ul>
+        </td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:12px 14px;vertical-align:top;"><span class="card-tag ver-v11" style="font-size:13px;font-weight:700;">v1.1</span></td>
+        <td style="padding:12px 14px;vertical-align:top;color:var(--muted);font-size:13px;">2026-05-26</td>
+        <td style="padding:12px 14px;vertical-align:top;"><span class="card-tag" style="font-size:12px;">Released</span></td>
+        <td style="padding:12px 14px;vertical-align:top;">
+          <ul style="margin:0;padding-left:18px;">
+            <li><strong>新增</strong>：DB migration check（paths filter + up→down→up 可逆性）</li>
+            <li><strong>升級</strong>：接收入口 L2 隱形濾網（5 個 X-DF-* header + repo allowlist，非預期呼叫 → 404）</li>
+            <li>Step-by-Step I/O 規格補完（每 stage 技術 / Input / Output / 傳到下一站）</li>
+            <li>dependency-audit 合入 frontend / backend-test</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:12px 14px;vertical-align:top;"><span class="card-tag ver-v12" style="font-size:13px;font-weight:700;">v1.2</span></td>
+        <td style="padding:12px 14px;vertical-align:top;color:var(--muted);font-size:13px;">TBD</td>
+        <td style="padding:12px 14px;vertical-align:top;"><span class="card-tag ver-v12" style="font-size:12px;">Planning</span></td>
+        <td style="padding:12px 14px;vertical-align:top;">
+          <ul style="margin:0;padding-left:18px;">
+            <li>Review 分級 Level 1~4（依風險自動挑 model）</li>
+            <li>Context Builder（diff + 關聯檔案 + 歷史風險 + 規範）</li>
+            <li>Project Memory + Knowledge Graph（Neo4j）</li>
+            <li>Risk Engine（Rule-Based + Semantic-Based + 歷史升級）</li>
+            <li>Multi-Tenant（每租戶獨立 Prompt / Rules / Memory）</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="cards-foot" style="margin-top:20px;">
+    <strong>色標說明：</strong>&nbsp;
+    <span class="card-tag ver-v10" style="margin-right:8px">v1.0</span> 首版引入 &nbsp;·&nbsp;
+    <span class="card-tag ver-v11" style="margin-right:8px">v1.1</span> v1.1 改動 &nbsp;·&nbsp;
+    <span class="card-tag ver-v12" style="margin-right:8px">v1.2</span> 規劃中
+  </div>
+</div>
+  </script>
+
+  <!-- ================== Step 1 · 並行檢查階段狀態機 ================== -->
+  <script type="text/plain" id="step1-ci-fsm"
+          data-label="Step 1 · 並行檢查階段狀態機"
+          data-order="1"
+          data-kind="flow"
+          data-format="html">
+<div class="cards-wrap">
+  <div class="cards-head">
+    <strong>Step 1 · 並行檢查階段狀態機</strong>
+    <span>· 5 種檢查同步啟動 · 各自獨立結束 · 聚合後決定 PR 走向 ·</span>
+  </div>
+
+  <div class="cards-grid cols-3" style="margin-bottom: 16px;">
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">前端檢查</span><span class="card-tag ver-v10">v1.0</span></div>
+      <div class="card-title">前端程式碼能跑、依賴沒漏洞</div>
+      <div class="card-body">確認風格、型別、測試、建置、套件四項都過。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">技術細節</div>
+        <ul>
+          <li><strong>風格 / 型別</strong> — <code>ESLint</code> + <code>tsc --noEmit</code></li>
+          <li><strong>單元測試</strong> — <code>vitest</code> / <code>jest</code></li>
+          <li><strong>建置</strong> — <code>next build</code> / <code>vite build</code></li>
+          <li><strong>套件漏洞稽核</strong> — <code>npm audit</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">後端檢查</span><span class="card-tag ver-v10">v1.0</span></div>
+      <div class="card-title">後端程式碼能跑、依賴沒漏洞</div>
+      <div class="card-body">同前端，換成後端語言對應的工具。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">技術細節</div>
+        <ul>
+          <li><strong>Python</strong> — <code>ruff</code> + <code>mypy</code> + <code>pytest</code></li>
+          <li><strong>Java</strong> — <code>checkstyle</code> + <code>spotbugs</code> + <code>mvn test</code></li>
+          <li><strong>Node.js</strong> — <code>ESLint</code> + <code>tsc</code> + <code>jest</code> / <code>vitest</code></li>
+          <li><strong>套件漏洞稽核</strong> — <code>pip-audit</code> / OWASP DC / <code>npm audit</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">資料庫變更檢查</span><span class="card-tag ver-v11">v1.1 新增</span></div>
+      <div class="card-title">結構變更能套上、也能還原</div>
+      <div class="card-body">動到 migrations 才跑，工具錯 vs 內容不合規分開處理。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">技術細節</div>
+        <ul>
+          <li><strong>啟用條件</strong> — <code>paths:</code> filter 動到 <code>**/migrations/**</code></li>
+          <li><strong>可逆性檢查</strong> — 跑 up → down → up 三步</li>
+          <li><strong>工具錯 → manual</strong> — DB container 啟不來、runner OOM</li>
+          <li><strong>不合規 → reject</strong> — 缺 down 腳本、schema 不一致</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">機密外洩掃描</span><span class="card-tag ver-v10">v1.0</span></div>
+      <div class="card-title">PR 沒把密碼 / 憑證寫進程式碼</div>
+      <div class="card-body">命中即視為高風險，直接拒絕。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">技術細節</div>
+        <ul>
+          <li><strong>掃描範圍</strong> — 整個 git 歷史(<code>fetch-depth: 0</code>)</li>
+          <li><strong>工具</strong> — <code>gitleaks</code> + 公司自訂 pattern</li>
+          <li><strong>位置</strong> — 第一道，避免機密進入後續 LLM 審查</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">原始碼安全掃描</span><span class="card-tag ver-v10">v1.0</span></div>
+      <div class="card-title">PR 沒引入常見的安全漏洞模式</div>
+      <div class="card-body">高風險 → reject，中風險 → conflict。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">技術細節</div>
+        <ul>
+          <li><strong>程式碼模式</strong> — <code>semgrep</code> 抓 SQL injection / XSS / SSRF 等</li>
+          <li><strong>套件 / 設定</strong> — <code>trivy fs</code> 抓 CVE + Dockerfile / K8s 設定</li>
+          <li><strong>風險分級</strong> — HIGH/CRITICAL → reject，WARNING/MEDIUM → conflict</li>
+          <li><strong>SARIF 上傳</strong> — 結果進 GitHub Code Scanning</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card shared">
+      <div class="card-badges"><span class="card-badge">★ 共通輸出</span></div>
+      <div class="card-title">每個檢查留下「結果 + 分類」</div>
+      <div class="card-body">5 個 job 結束後，聚合層讀欄位決定 PR 走向。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">技術細節</div>
+        <ul>
+          <li><strong>結果欄位</strong> — <code>needs.&lt;job&gt;.result</code></li>
+          <li><strong>分類欄位</strong> — <code>needs.&lt;job&gt;.outputs.*</code>(各 job 自設)</li>
+          <li><strong>聚合 job</strong> — <code>if: always()</code> 等 5 個 job 全結束</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="flow-section-title">
+      <strong>系統流程圖</strong> &nbsp;—&nbsp; 元件之間的觸發與資料流向
+      <button class="diagram-zoom-btn" data-action="zoom-diagram" data-target="step1-flow" data-title="Step 1 · 系統流程圖">↗ 新視窗放大</button>
+    </div>
+    <pre class="mermaid" id="step1-flow">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart TB
+  Dev([開發者<br>push PR → main]):::user
+
+  Trigger[GitHub Workflow 自動觸發<br>同一 PR 取消舊跑]:::it
+
+  subgraph CI[5 個獨立檢查 · 並行 · 無相依]
+    direction LR
+    Front[前端檢查<br>風格 / 型別 / 測試 / 建置 / 依賴]:::it
+    Back[後端檢查<br>風格 / 型別 / 測試 / 建置 / 依賴]:::it
+    Mig[資料庫變更檢查<br>動到結構檔才跑<br>可逆性驗證]:::it
+    Sec[機密外洩掃描<br>掃整個 git 歷史]:::critical
+    SecSc[原始碼安全掃描<br>程式碼模式 + 套件 CVE]:::critical
+  end
+
+  Fanin[聚合節點<br>讀各檢查的 result + outputs]:::shared
+
+  Next([→ Step 2 · 進入 CI/CD 管理平台]):::shared
+
+  Dev ==> Trigger
+  Trigger ==> Front
+  Trigger ==> Back
+  Trigger ==> Mig
+  Trigger ==> Sec
+  Trigger ==> SecSc
+
+  Front --> Fanin
+  Back --> Fanin
+  Mig --> Fanin
+  Sec --> Fanin
+  SecSc --> Fanin
+
+  Fanin ==> Next
+
+  classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
+  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+    </pre>
+  </div>
+
+  <div>
+    <div class="flow-section-title">
+      <strong>完整設計圖</strong> &nbsp;—&nbsp; 流程圖 + 狀態機 整合 · 觸發 → 5 並行檢查內部 pipeline → 聚合判定 → 4 verdict
+      <button class="diagram-zoom-btn" data-action="zoom-diagram" data-target="step1-state" data-title="Step 1 · 完整設計圖">↗ 新視窗放大</button>
+    </div>
+    <pre class="mermaid" id="step1-state">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart TB
+  Start(( )):::start
+  Trigger[工作流觸發<br>同一 PR 取消舊跑]:::it
+
+  subgraph FE[前端檢查]
+    direction TB
+    F0[裝依賴]:::it
+    F1[跑 ESLint + tsc + vitest + build + npm audit]:::it
+    F0 -->|npm ci 成功| F1
+    F0 -.->|依賴解析錯 / lockfile 不一致| FX(((失敗))):::stFail
+    F1 -.->|任一項紅| FX
+    F1 -->|5 項全綠| FP(((通過))):::stPass
+  end
+
+  subgraph BE[後端檢查]
+    direction TB
+    B0[裝依賴]:::it
+    B1[跑 lint + 型別 + 單元測試 + 套件稽核]:::it
+    B0 -->|pip / mvn / npm install 成功| B1
+    B0 -.->|依賴解析錯 / 環境缺套件| BX(((失敗))):::stFail
+    B1 -.->|任一項紅| BX
+    B1 -->|4 項全綠| BP(((通過))):::stPass
+  end
+
+  subgraph DB[資料庫結構變更檢查]
+    direction TB
+    D0{{判斷 PR 是否動到結構檔}}:::it
+    D1[啟動 DB container]:::it
+    D2[跑 up → down → up 可逆性]:::it
+    D0 -->|未碰 migrations/| DS(((跳過))):::stSkip
+    D0 -->|改了 migrations/| D1
+    D1 -->|container 健康| D2
+    D1 -.->|container 啟不來 / runner OOM| DM(((工具錯))):::stManual
+    D2 -->|三步全綠| DP(((通過))):::stPass
+    D2 -.->|缺 down / down 完不一致| DR(((不合規))):::stReject
+  end
+
+  subgraph SEC[機密外洩掃描]
+    direction TB
+    S0[拉完整 git 歷史]:::critical
+    S1[跑 gitleaks]:::critical
+    S0 -->|fetch-depth = 0| S1
+    S1 -->|0 命中| SP(((通過))):::stPass
+    S1 -.->|≥ 1 命中| SR(((命中))):::stReject
+  end
+
+  subgraph SCAN[原始碼安全掃描]
+    direction TB
+    A0[跑 semgrep]:::critical
+    A1[跑 trivy]:::critical
+    A0 -->|semgrep 結束| A1
+    A1 -->|semgrep 0 + trivy 0| AP(((通過))):::stPass
+    A1 -.->|WARNING 或 MEDIUM| AW(((中風險))):::stWarn
+    A1 -.->|ERROR 或 HIGH / CRITICAL| AR(((高風險))):::stReject
+  end
+
+  Agg[聚合判定<br>讀 5 個 job result + outputs]:::shared
+
+  V1([全綠通過 · mergeable<br>→ 進 Step 2 · 交給 CI/CD 管理平台]):::vPass
+  V2([待作者修正 · conflict<br>→ CI 檢查未過 · 留評論等作者修完重 push]):::vWarn
+  V3([需人工介入 · manual<br>→ PR 轉 draft + needs-tech-lead label]):::vManual
+  V4([直接拒絕 · reject<br>→ PR 直接關閉 · 不應重試]):::vReject
+
+  Start ==> Trigger
+  Trigger ==>|5 種檢查同步啟動| FE
+  Trigger ==> BE
+  Trigger ==> DB
+  Trigger ==> SEC
+  Trigger ==> SCAN
+
+  FP --> Agg
+  FX --> Agg
+  BP --> Agg
+  BX --> Agg
+  DS --> Agg
+  DP --> Agg
+  DM --> Agg
+  DR --> Agg
+  SP --> Agg
+  SR --> Agg
+  AP --> Agg
+  AW --> Agg
+  AR --> Agg
+
+  Agg ==>|5 項皆 ∈ 通過 / 跳過| V1
+  Agg ==>|前端失敗 ∨ 後端失敗 ∨ 安全中風險| V2
+  Agg ==>|結構工具錯| V3
+  Agg ==>|機密命中 ∨ 安全高風險 ∨ 結構不合規| V4
+
+  classDef start fill:#0f172a,stroke:#0f172a,color:#fff
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
+  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef stPass fill:#dcfce7,stroke:#16a34a,color:#14532d,font-weight:700
+  classDef stSkip fill:#f1f5f9,stroke:#64748b,color:#334155,font-weight:700
+  classDef stFail fill:#fef3c7,stroke:#d97706,color:#78350f,font-weight:700
+  classDef stWarn fill:#fed7aa,stroke:#ea580c,color:#7c2d12,font-weight:700
+  classDef stManual fill:#e0e7ff,stroke:#6366f1,color:#312e81,font-weight:700
+  classDef stReject fill:#fee2e2,stroke:#dc2626,color:#7f1d1d,font-weight:700
+  classDef vPass fill:#dcfce7,stroke:#16a34a,color:#14532d,font-weight:700
+  classDef vWarn fill:#fef3c7,stroke:#d97706,color:#78350f,font-weight:700
+  classDef vManual fill:#e0e7ff,stroke:#6366f1,color:#312e81,font-weight:700
+  classDef vReject fill:#fee2e2,stroke:#dc2626,color:#7f1d1d,font-weight:700
+    </pre>
+    <div class="verdict-grid">
+      <div class="verdict-grid-head"><strong>4 個結束狀態 · 對應 workflow verdict</strong></div>
+      <div class="verdict-card verdict-pass">
+        <div class="verdict-name">全綠通過</div>
+        <code class="verdict-code">mergeable</code>
+        <div class="verdict-desc">PR 進入 Step 2，交給 CI/CD 管理平台繼續處理</div>
+      </div>
+      <div class="verdict-card verdict-warn">
+        <div class="verdict-name">待作者修正</div>
+        <code class="verdict-code">conflict</code>
+        <div class="verdict-desc">CI 檢查項目未過，留評論等作者修完重 push 後再跑</div>
+      </div>
+      <div class="verdict-card verdict-manual">
+        <div class="verdict-name">需人工介入</div>
+        <code class="verdict-code">manual</code>
+        <div class="verdict-desc">基建類錯誤，PR 轉 draft 並加上 <code>needs-tech-lead</code> label</div>
+      </div>
+      <div class="verdict-card verdict-reject">
+        <div class="verdict-name">直接拒絕</div>
+        <code class="verdict-code">reject</code>
+        <div class="verdict-desc">PR 直接關閉，問題本身不應重試</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cards-foot">
+    <strong>設計重點:</strong>&nbsp;&nbsp;5 個子狀態彼此獨立，失敗只影響自己。聚合層才決定整個 PR 的下一步。
+  </div>
+</div>
+  </script>
+
+
+  <!-- ================== Step 2 · CI/CD 管理平台 ================== -->
+  <script type="text/plain" id="step2-platform"
+          data-label="Step 2 · CI/CD 管理平台（一階段）"
+          data-order="2"
+          data-kind="flow"
+          data-format="html">
+<div class="cards-wrap">
+  <div class="cards-head">
+    <strong>Step 2 · CI/CD 管理平台（一階段）</strong>
+    <span>· /health 確認活著 · L2 隱形濾網把關 · 5 模組鏈式處理 · 回 verdict ·</span>
+  </div>
+
+  <div class="cards-grid cols-3" style="margin-bottom: 16px;">
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">健康檢查</span><span class="card-tag ver-v10">v1.0</span></div>
+      <div class="card-title">平台活著才打 /review</div>
+      <div class="card-body">先確認 endpoint 可達，避免 LLM 等到死。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">技術細節</div>
+        <ul>
+          <li><strong>端點</strong> — GET <code>/health</code></li>
+          <li><strong>timeout</strong> — 連線 5s / 總 10s</li>
+          <li><strong>非 200 / timeout</strong> — verdict=manual 降級</li>
+          <li><strong>200 才繼續</strong> — POST <code>/review</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">① 接收入口</span><span class="card-tag ver-v10">v1.0</span><span class="card-tag ver-v11">v1.1 L2 細化</span></div>
+      <div class="card-title">L2~L4 隱形濾網 + 驗 token + 限流</div>
+      <div class="card-body">HTTP 進來第一道，先擋 robot 掃描、綁身份、過濾外部 repo。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">技術細節</div>
+        <ul>
+          <li><strong>L2 隱形濾網</strong> — 5 個 <code>X-DF-*</code> header + repo allowlist（<code>Dafon-IT/</code> 開頭）</li>
+          <li><strong>任一不對 → 404</strong> — 讓 scanner 以為 endpoint 不存在</li>
+          <li><strong>L3 驗 token</strong> — Bearer (<code>CICD_PLATFORM_KEY</code>)</li>
+          <li><strong>L4 限流</strong> — Redis 30 req/min/repo → 429 → manual</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">② 機密過濾(雙保險)</span><span class="card-tag ver-v10">v1.0</span></div>
+      <div class="card-title">平台端再掃一次 redacted diff</div>
+      <div class="card-body">workflow 端已掃，這是進 LLM 前的最後一道。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">技術細節</div>
+        <ul>
+          <li><strong>工具</strong> — <code>gitleaks protect</code></li>
+          <li><strong>命中</strong> — 立刻 verdict=reject 終止</li>
+          <li><strong>為何雙掃</strong> — workflow 端可能漏設規則</li>
+          <li><strong>原則</strong> — 機密一進 LLM 就回不來</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">③ OpenRouter Dispatch</span><span class="card-tag ver-v10">v1.0</span></div>
+      <div class="card-title">依 diff size 挑 model</div>
+      <div class="card-body">大 diff 用 Opus、小 diff 用 Sonnet，省 token 又顧品質。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">技術細節</div>
+        <ul>
+          <li><strong>HTTP client</strong> — python <code>httpx</code></li>
+          <li><strong>挑 model</strong> — diff &gt; 50K → Opus 否則 Sonnet</li>
+          <li><strong>retry</strong> — 2 次間隔 30s</li>
+          <li><strong>LLM 全掛</strong> — verdict=manual</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card shared">
+      <div class="card-badges"><span class="card-badge">④ 判決引擎</span><span class="card-tag ver-v10">v1.0</span></div>
+      <div class="card-title">LLM 回應 + YAML 規則庫</div>
+      <div class="card-body">對齊鎖定版本的規則庫，出 verdict + findings。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">技術細節</div>
+        <ul>
+          <li><strong>規則版本</strong> — <code>rules_ref</code> 對應 git tag</li>
+          <li><strong>LLM 結構驗證</strong> — pydantic schema</li>
+          <li><strong>schema 不符</strong> — verdict=manual</li>
+          <li><strong>輸出</strong> — verdict / summary / findings[]</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">⑤ 發布器</span><span class="card-tag ver-v10">v1.0</span></div>
+      <div class="card-title">寫 PR 評論 + 通知 + 回 verdict</div>
+      <div class="card-body">把判決結果擴散到 GitHub PR、Notifier、workflow runner。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">技術細節</div>
+        <ul>
+          <li><strong>PR 評論</strong> — GitHub App token</li>
+          <li><strong>寄事件</strong> — POST Notifier <code>/events</code></li>
+          <li><strong>回 workflow</strong> — HTTP 200 + verdict JSON</li>
+          <li><strong>寫評論失敗</strong> — 不阻塞 verdict 回應</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="flow-section-title">
+      <strong>系統流程圖</strong> &nbsp;—&nbsp; workflow runner ↔ 平台 5 模組鏈
+      <button class="diagram-zoom-btn" data-action="zoom-diagram" data-target="step2-flow" data-title="Step 2 · 系統流程圖">↗ 新視窗放大</button>
+    </div>
+    <pre class="mermaid" id="step2-flow">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart TB
+  In([Step 1 通過<br>verdict = mergeable]):::user
+  Health{"檢查服務是否正常<br>(5 秒超時機制)"}:::it
+  Review[POST /review<br>diff + pr_body + rules_ref]:::it
+
+  subgraph Platform[CI/CD 管理平台 · FastAPI service]
+    direction TB
+    M1[① 接收入口<br>隱形濾網 + Bearer + 限流]:::it
+    M2[② 機密過濾<br>gitleaks 二次掃]:::critical
+    M3[③ OpenRouter Dispatch<br>依 diff size 挑 model]:::it
+    M4[④ 判決引擎<br>LLM + YAML 規則庫]:::shared
+    M5[⑤ 發布器<br>評論 + 通知 + 回 verdict]:::it
+    M1 ==> M2 ==> M3 ==> M4 ==> M5
+  end
+
+  Out([verdict JSON 回 runner]):::it
+  Comment[workflow 寫 PR 評論<br>設 status check]:::it
+  Next([→ Step 3 · 四態分派]):::shared
+
+  In ==> Health
+  Health -->|200 OK| Review
+  Health -.非 200 / timeout.-> Out
+  Review ==> M1
+  M5 ==> Out
+  Out ==> Comment
+  Comment ==> Next
+
+  classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
+  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+    </pre>
+  </div>
+
+  <div>
+    <div class="flow-section-title">
+      <strong>完整設計圖</strong> &nbsp;—&nbsp; 從 /health 到 verdict 全程 · 每模組退路明示
+      <button class="diagram-zoom-btn" data-action="zoom-diagram" data-target="step2-state" data-title="Step 2 · 完整設計圖">↗ 新視窗放大</button>
+    </div>
+    <pre class="mermaid" id="step2-state">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart TB
+  Start(( )):::start
+  In[Step 1 通過<br>verdict = mergeable]:::it
+
+  subgraph GATE[入口防線 · L2 至 L4]
+    direction TB
+    H0{"檢查服務是否正常<br>(5 秒超時機制)"}:::it
+    G1[① 接收入口<br>L2 隱形濾網 + L3 Bearer + L4 限流]:::it
+    H0 -->|200 OK| G1
+    H0 -.->|非 200 / timeout| GH(((健康檢查失敗))):::stManual
+    G1 -->|驗證 + 配額通過| GP(((放行))):::stPass
+    G1 -.->|header / bearer / allowlist 不對| GD(((非預期呼叫))):::stReject
+    G1 -.->|429 配額超限| GR(((限流))):::stManual
+  end
+
+  subgraph CHAIN[平台審查鏈 · ②→⑤]
+    direction TB
+    C1[② 機密過濾<br>gitleaks 二次掃]:::critical
+    C2[③ OpenRouter Dispatch<br>依 diff 挑 Opus / Sonnet]:::it
+    C3[④ 判決引擎<br>LLM + YAML 規則庫]:::shared
+    C4[⑤ 發布器<br>PR 評論 + 通知]:::it
+    C1 -->|無命中| C2
+    C1 -.->|命中機密| CX(((命中))):::stReject
+    C2 -->|model 有回應| C3
+    C2 -.->|LLM 全掛| CM(((LLM 不可用))):::stManual
+    C3 -->|schema 通過| C4
+    C3 -.->|schema 不符| CS(((格式錯))):::stManual
+    C4 -->|verdict = mergeable| CP(((可合併))):::stPass
+    C4 -.->|verdict = conflict| CW(((有 finding))):::stFail
+    C4 -.->|LLM 判 blocker| CB(((blocker))):::stReject
+  end
+
+  V1([全綠通過 · mergeable<br>→ 進 Step 3 · workflow 執行 merge]):::vPass
+  V2([待作者修正 · conflict<br>→ LLM 找到 finding · 留 PR 評論等修]):::vWarn
+  V3([需人工介入 · manual<br>→ /health 死 / 限流 / LLM 掛 / schema 不符 · tech-lead 介入]):::vManual
+  V4([直接拒絕 · reject<br>→ 機密命中 或 LLM blocker · PR 關閉 + 寄信]):::vReject
+  Drop404([404 · 隱形濾網靜默丟棄<br>非預期呼叫 · 不進審查也不回 verdict]):::vReject
+
+  Start ==> In
+  In ==> H0
+  GP ==> C1
+
+  GH --> V3
+  GR --> V3
+  GD --> Drop404
+  CP ==> V1
+  CW --> V2
+  CB --> V4
+  CX --> V4
+  CM --> V3
+  CS --> V3
+
+  classDef start fill:#0f172a,stroke:#0f172a,color:#fff
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
+  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef stPass fill:#dcfce7,stroke:#16a34a,color:#14532d,font-weight:700
+  classDef stFail fill:#fef3c7,stroke:#d97706,color:#78350f,font-weight:700
+  classDef stManual fill:#e0e7ff,stroke:#6366f1,color:#312e81,font-weight:700
+  classDef stReject fill:#fee2e2,stroke:#dc2626,color:#7f1d1d,font-weight:700
+  classDef vPass fill:#dcfce7,stroke:#16a34a,color:#14532d,font-weight:700
+  classDef vWarn fill:#fef3c7,stroke:#d97706,color:#78350f,font-weight:700
+  classDef vManual fill:#e0e7ff,stroke:#6366f1,color:#312e81,font-weight:700
+  classDef vReject fill:#fee2e2,stroke:#dc2626,color:#7f1d1d,font-weight:700
+    </pre>
+
+    <div class="verdict-grid">
+      <div class="verdict-grid-head"><strong>Step 2 出口 · 4 個 verdict · 對應 workflow 動作</strong></div>
+      <div class="verdict-card verdict-pass">
+        <div class="verdict-name">AI 審查通過</div>
+        <code class="verdict-code">mergeable</code>
+        <div class="verdict-desc">LLM 判決可合併，PR 進 Step 3 由 workflow 執行 merge</div>
+      </div>
+      <div class="verdict-card verdict-warn">
+        <div class="verdict-name">AI 找到問題</div>
+        <code class="verdict-code">conflict</code>
+        <div class="verdict-desc">LLM 找到 major/minor finding，留 PR 評論等作者修</div>
+      </div>
+      <div class="verdict-card verdict-manual">
+        <div class="verdict-name">平台無法判決</div>
+        <code class="verdict-code">manual</code>
+        <div class="verdict-desc">/health 死 / LLM 全掛 / schema 不符，tech-lead 介入</div>
+      </div>
+      <div class="verdict-card verdict-reject">
+        <div class="verdict-name">AI 直接拒絕</div>
+        <code class="verdict-code">reject</code>
+        <div class="verdict-desc">機密二次命中 或 LLM 判決 blocker，PR 直接關閉</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cards-foot">
+    <strong>設計重點:</strong>&nbsp;&nbsp;5 模組鏈式處理，任一節點失敗都有對應 verdict 退路，workflow 端永不卡死。本頁聚焦「一階段」;二、三階段（成本 / 效率 / 報告 / SMTP）與 RAG 平台後續再進行設計。
+  </div>
+</div>
+  </script>
+
+
+  <!-- ================== 工具列 + 舞台 ================== -->
+  <header class="toolbar">
+    <h1 id="title">Auto CI/CD — Process Design</h1>
+    <button id="prev" class="nav-btn" title="上一頁(←)">‹</button>
+    <span id="counter" class="counter">0 / 0</span>
+    <button id="next" class="nav-btn" title="下一頁(→)">›</button>
+    <select id="picker" class="picker"></select>
+    <span class="divider"></span>
+    <label>主題
+      <select id="theme">
+        <option value="default">Light</option>
+        <option value="dark">Dark</option>
+        <option value="neutral">Neutral</option>
+        <option value="forest">Forest</option>
+      </select>
+    </label>
+    <label>字體
+      <input type="number" id="font-size" value="18" min="10" max="32" step="1" style="width: 56px;">
+      <span>px</span>
+    </label>
+    <span class="divider"></span>
+    <button id="zoom-out" class="nav-btn" title="縮小(- 鍵)">−</button>
+    <span id="zoom-label" class="zoom-label" title="點擊重設為 100%(0 鍵)">100%</span>
+    <button id="zoom-in" class="nav-btn" title="放大(+ 鍵)">+</button>
+    <button id="zoom-fit" title="符合視窗(F 鍵)">Fit</button>
+  </header>
+
+  <main>
+    <div class="preview" id="preview"></div>
+  </main>
+
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+
+    const preview = document.getElementById('preview');
+    const themeSelect = document.getElementById('theme');
+    const fontSizeInput = document.getElementById('font-size');
+    const picker = document.getElementById('picker');
+    const counterEl = document.getElementById('counter');
+    const prevBtn = document.getElementById('prev');
+    const nextBtn = document.getElementById('next');
+    const titleEl = document.getElementById('title');
+    const zoomLabel = document.getElementById('zoom-label');
+    const zoomIn = document.getElementById('zoom-in');
+    const zoomOut = document.getElementById('zoom-out');
+    const zoomFitBtn = document.getElementById('zoom-fit');
+
+    let zoom = 1;
+    const ZOOM_STEPS = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.15, 1.3, 1.5, 1.75, 2.0, 2.5, 3.0];
+
+    function findZoomIdx(z) {
+      let best = 0, diff = Infinity;
+      ZOOM_STEPS.forEach((v, i) => {
+        const d = Math.abs(v - z);
+        if (d < diff) { diff = d; best = i; }
+      });
+      return best;
+    }
+    function setZoom(z) {
+      zoom = Math.max(0.3, Math.min(4, z));
+      const wrap = preview.querySelector('.svg-wrap');
+      if (wrap) {
+        wrap.style.transform = `scale(${zoom})`;
+        const svg = wrap.querySelector('svg');
+        if (svg) {
+          const w = parseFloat(svg.dataset.origW || svg.getBoundingClientRect().width / zoom);
+          const h = parseFloat(svg.dataset.origH || svg.getBoundingClientRect().height / zoom);
+          wrap.style.width = (w * zoom) + 'px';
+          wrap.style.height = (h * zoom) + 'px';
+        }
+      }
+      preview.classList.toggle('zoomed', zoom > 1.01);
+      zoomLabel.textContent = Math.round(zoom * 100) + '%';
+    }
+    function zoomStep(dir) {
+      const idx = findZoomIdx(zoom);
+      const ni = Math.max(0, Math.min(ZOOM_STEPS.length - 1, idx + dir));
+      setZoom(ZOOM_STEPS[ni]);
+    }
+    function zoomFit() {
+      const svg = preview.querySelector('svg');
+      if (!svg) { setZoom(1); return; }
+      const w = parseFloat(svg.dataset.origW);
+      const h = parseFloat(svg.dataset.origH);
+      if (!w || !h) { setZoom(1); return; }
+      const pad = 56;
+      const fitX = (preview.clientWidth - pad) / w;
+      const fitY = (preview.clientHeight - pad) / h;
+      setZoom(Math.min(fitX, fitY, 4));
+    }
+
+    const slides = Array.from(document.querySelectorAll('script[type="text/plain"][id]'))
+      .map(el => ({
+        el,
+        id: el.id,
+        label: el.dataset.label || el.id,
+        order: parseFloat(el.dataset.order || '99'),
+        format: el.dataset.format || 'mermaid',
+      }))
+      .sort((a, b) => a.order - b.order);
+
+    let currentIndex = 0;
+    let renderToken = 0;
+
+    function buildPicker() {
+      picker.innerHTML = '';
+      slides.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.label;
+        picker.appendChild(opt);
+      });
+    }
+
+    function updateCounter() {
+      counterEl.textContent = `${currentIndex + 1} / ${slides.length}`;
+      prevBtn.disabled = currentIndex === 0;
+      nextBtn.disabled = currentIndex === slides.length - 1;
+    }
+
+    function initMermaid() {
+      const theme = themeSelect.value;
+      mermaid.initialize({
+        startOnLoad: false, theme,
+        themeVariables: {
+          fontFamily: '"Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif',
+          fontSize: fontSizeInput.value + 'px',
+        },
+        flowchart: { useMaxWidth: true, htmlLabels: true },
+        securityLevel: 'loose',
+      });
+      document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
+    }
+
+    async function render() {
+      const slide = slides[currentIndex];
+      if (!slide) return;
+      const code = slide.el.textContent.trim();
+      const token = ++renderToken;
+
+      titleEl.textContent = slide.label;
+      zoom = 1;
+
+      try {
+        if (slide.format === 'html') {
+          initMermaid();
+          preview.innerHTML = code;
+          preview.scrollTop = 0; preview.scrollLeft = 0;
+          preview.classList.remove('zoomed', 'draggable', 'dragging');
+          zoomLabel.textContent = '100%';
+          const inlineMermaid = preview.querySelectorAll('pre.mermaid, div.mermaid');
+          if (inlineMermaid.length > 0) {
+            inlineMermaid.forEach(n => {
+              if (!n.dataset.mermaidSource) n.dataset.mermaidSource = n.textContent;
+            });
+            try {
+              await mermaid.run({ nodes: inlineMermaid });
+              inlineMermaid.forEach(node => {
+                const svgEl = node.querySelector('svg');
+                if (svgEl) { liftEdgeLabelsOffNodes(svgEl); backdropEdgeLabels(svgEl); elevateClusterLabels(svgEl); }
+              });
+            } catch (e) { /* 個別塊失敗不影響其他文字 */ }
+          }
+        } else {
+          initMermaid();
+          const { svg } = await mermaid.render('diagram-' + token, code);
+          if (token !== renderToken) return;
+          preview.innerHTML = '<div class="svg-wrap">' + svg + '</div>';
+          preview.classList.add('draggable');
+          const svgEl = preview.querySelector('svg');
+          if (svgEl) {
+            const vb = svgEl.viewBox && svgEl.viewBox.baseVal;
+            const origW = (vb && vb.width) || svgEl.getBoundingClientRect().width;
+            const origH = (vb && vb.height) || svgEl.getBoundingClientRect().height;
+            svgEl.dataset.origW = origW;
+            svgEl.dataset.origH = origH;
+            svgEl.removeAttribute('style');
+          }
+          liftEdgeLabelsOffNodes(svgEl);
+          backdropEdgeLabels(svgEl);
+          elevateClusterLabels(svgEl);
+          setZoom(1);
+        }
+      } catch (e) {
+        if (token !== renderToken) return;
+        const msg = (e && (e.message || e.str)) || String(e);
+        preview.innerHTML = '<div class="error">' + escapeHtml(msg) + '</div>';
+      }
+    }
+
+    function elevateClusterLabels(svg) {
+      if (!svg) return;
+      const root = svg.firstElementChild && svg.firstElementChild.tagName.toLowerCase() === 'g'
+        ? svg.firstElementChild : svg;
+      const labels = Array.from(svg.querySelectorAll('.cluster-label'));
+      if (!labels.length) return;
+      const pageBg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#ffffff';
+
+      const entries = labels.map(label => {
+        const text = (label.textContent || '').trim();
+        if (!text) { label.style.opacity = '0'; return null; }
+        const cluster = label.closest('.cluster');
+        const clusterRect = cluster && cluster.querySelector(':scope > rect');
+        let stroke = '#cbd5e1';
+        if (clusterRect) {
+          stroke = clusterRect.getAttribute('stroke')
+                || getComputedStyle(clusterRect).stroke
+                || stroke;
+        }
+        return { label, ctm: label.getCTM(), bbox: label.getBBox(), stroke };
+      }).filter(Boolean);
+
+      for (const { label, ctm, bbox, stroke } of entries) {
+        if (!ctm) continue;
+        const wrapper = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        wrapper.setAttribute('transform', `matrix(${ctm.a} ${ctm.b} ${ctm.c} ${ctm.d} ${ctm.e} ${ctm.f})`);
+
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', bbox.x - 8);
+        rect.setAttribute('y', bbox.y - 2);
+        rect.setAttribute('width', bbox.width + 16);
+        rect.setAttribute('height', bbox.height + 4);
+        rect.setAttribute('fill', pageBg);
+        rect.setAttribute('fill-opacity', '0.78');
+        rect.setAttribute('stroke', stroke);
+        rect.setAttribute('stroke-width', '1');
+        rect.setAttribute('stroke-opacity', '0.6');
+        rect.setAttribute('rx', '4');
+        wrapper.appendChild(rect);
+
+        const clone = label.cloneNode(true);
+        clone.removeAttribute('transform');
+        wrapper.appendChild(clone);
+
+        label.style.opacity = '0';
+        root.appendChild(wrapper);
+      }
+    }
+
+    function backdropEdgeLabels(svg) {
+      if (!svg) return;
+      const pageBg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#ffffff';
+      const labels = Array.from(svg.querySelectorAll('g.edgeLabel'));
+      for (const label of labels) {
+        if (!(label.textContent || '').trim()) continue;
+        if (label.querySelector(':scope > rect.label-backdrop')) continue;
+        let bbox;
+        try { bbox = label.getBBox(); } catch (e) { continue; }
+        if (!bbox.width || !bbox.height) continue;
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('class', 'label-backdrop');
+        rect.setAttribute('x', bbox.x - 4);
+        rect.setAttribute('y', bbox.y - 2);
+        rect.setAttribute('width', bbox.width + 8);
+        rect.setAttribute('height', bbox.height + 4);
+        rect.setAttribute('fill', pageBg);
+        rect.setAttribute('rx', '3');
+        label.insertBefore(rect, label.firstChild);
+      }
+    }
+
+    function liftEdgeLabelsOffNodes(svg) {
+      if (!svg || typeof svg.createSVGTransform !== 'function') return;
+      const rootBox = el => {
+        let bbox, ctm;
+        try { bbox = el.getBBox(); ctm = el.getCTM(); } catch (e) { return null; }
+        if (!ctm || !bbox || !bbox.width) return null;
+        let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+        for (const px of [bbox.x, bbox.x + bbox.width]) {
+          for (const py of [bbox.y, bbox.y + bbox.height]) {
+            const x = ctm.a * px + ctm.c * py + ctm.e;
+            const y = ctm.b * px + ctm.d * py + ctm.f;
+            x1 = Math.min(x1, x); y1 = Math.min(y1, y);
+            x2 = Math.max(x2, x); y2 = Math.max(y2, y);
+          }
+        }
+        return { x1, y1, x2, y2 };
+      };
+      const nodeBoxes = Array.from(svg.querySelectorAll('g.node')).map(rootBox).filter(Boolean);
+      if (!nodeBoxes.length) return;
+      const GAP = 8, MAX_LIFT = 200;
+      for (const label of svg.querySelectorAll('g.edgeLabel')) {
+        if (!(label.textContent || '').trim()) continue;
+        const lb = rootBox(label);
+        if (!lb) continue;
+        let lift = 0;
+        for (const nb of nodeBoxes) {
+          const overlapX = Math.min(lb.x2, nb.x2) - Math.max(lb.x1, nb.x1);
+          const overlapY = Math.min(lb.y2, nb.y2) - Math.max(lb.y1, nb.y1);
+          if (overlapX > 2 && overlapY > 2) {
+            lift = Math.max(lift, lb.y2 - nb.y1 + GAP);
+          }
+        }
+        if (lift > 0) {
+          const t = svg.createSVGTransform();
+          t.setTranslate(0, -Math.min(lift, MAX_LIFT));
+          label.transform.baseVal.insertItemBefore(t, 0);
+        }
+      }
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    }
+
+    function goTo(idx) {
+      currentIndex = Math.max(0, Math.min(slides.length - 1, idx));
+      picker.value = slides[currentIndex].id;
+      updateCounter();
+      render();
+    }
+
+    function goToId(id) {
+      const idx = slides.findIndex(s => s.id === id);
+      if (idx >= 0) goTo(idx);
+    }
+
+    buildPicker();
+    picker.addEventListener('change', e => goToId(e.target.value));
+    themeSelect.addEventListener('change', render);
+    fontSizeInput.addEventListener('input', render);
+    prevBtn.addEventListener('click', () => goTo(currentIndex - 1));
+    nextBtn.addEventListener('click', () => goTo(currentIndex + 1));
+
+    zoomIn.addEventListener('click', () => zoomStep(1));
+    zoomOut.addEventListener('click', () => zoomStep(-1));
+    zoomFitBtn.addEventListener('click', zoomFit);
+    zoomLabel.addEventListener('click', () => setZoom(1));
+
+    preview.addEventListener('wheel', e => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      zoomStep(e.deltaY < 0 ? 1 : -1);
+    }, { passive: false });
+
+    let drag = null;
+    preview.addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
+      if (!preview.classList.contains('draggable')) return;
+      drag = {
+        startX: e.clientX, startY: e.clientY,
+        scrollX: preview.scrollLeft, scrollY: preview.scrollTop,
+        moved: false,
+      };
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', e => {
+      if (!drag) return;
+      const dx = e.clientX - drag.startX;
+      const dy = e.clientY - drag.startY;
+      if (!drag.moved && Math.abs(dx) + Math.abs(dy) > 3) {
+        drag.moved = true;
+        preview.classList.add('dragging');
+      }
+      if (drag.moved) {
+        preview.scrollLeft = drag.scrollX - dx;
+        preview.scrollTop = drag.scrollY - dy;
+      }
+    });
+    document.addEventListener('mouseup', () => {
+      if (!drag) return;
+      drag = null;
+      preview.classList.remove('dragging');
+    });
+    document.addEventListener('mouseleave', () => {
+      if (!drag) return;
+      drag = null;
+      preview.classList.remove('dragging');
+    });
+
+    document.addEventListener('keydown', e => {
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+        e.preventDefault(); goTo(currentIndex + 1);
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault(); goTo(currentIndex - 1);
+      } else if (e.key === 'Home') {
+        e.preventDefault(); goTo(0);
+      } else if (e.key === 'End') {
+        e.preventDefault(); goTo(slides.length - 1);
+      } else if (e.key === '+' || e.key === '=') {
+        e.preventDefault(); zoomStep(1);
+      } else if (e.key === '-' || e.key === '_') {
+        e.preventDefault(); zoomStep(-1);
+      } else if (e.key === '0') {
+        e.preventDefault(); setZoom(1);
+      } else if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault(); zoomFit();
+      }
+    });
+
+    themeSelect.value = 'default';
+
+    function openDiagramInNewWindow(code, title, theme) {
+      const safeCode = String(code).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const safeTitle = String(title || '圖表').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      const isDark = theme === 'dark';
+      const safeTheme = isDark ? 'dark' : 'default';
+      const themeAttr = isDark ? 'dark' : 'light';
+
+      const html = '<!DOCTYPE html>\n'
+        + '<html lang="zh-Hant" data-theme="' + themeAttr + '">\n'
+        + '<head><meta charset="UTF-8"><title>' + safeTitle + ' — 放大檢視</title>\n'
+        + '<style>\n'
+        + 'html,body{margin:0;padding:0;height:100%;background:#fff;color:#0f172a;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;overflow:hidden;}\n'
+        + 'html[data-theme="dark"],html[data-theme="dark"] body{background:#0f172a;color:#f1f5f9;}\n'
+        + 'body{display:flex;flex-direction:column;height:100vh;}\n'
+        + 'header{padding:10px 16px;border-bottom:2px solid #e2e8f0;display:flex;gap:10px;align-items:center;background:#f8fafc;flex-shrink:0;}\n'
+        + 'html[data-theme="dark"] header{background:#1e293b;border-bottom-color:#334155;}\n'
+        + 'header h1{font-size:15px;margin:0 auto 0 0;color:#2563eb;font-weight:700;padding-left:10px;border-left:4px solid #2563eb;}\n'
+        + 'header button{padding:5px 11px;font-size:13px;border:1px solid #e2e8f0;background:#fff;color:inherit;border-radius:5px;cursor:pointer;font-family:inherit;}\n'
+        + 'html[data-theme="dark"] header button{background:#1e293b;border-color:#334155;}\n'
+        + 'header button:hover{background:#f1f5f9;border-color:#2563eb;}\n'
+        + 'header .lbl{font-size:12px;color:#64748b;min-width:48px;text-align:center;font-weight:700;cursor:pointer;}\n'
+        + 'main{flex:1;min-height:0;overflow:auto;padding:32px;cursor:grab;user-select:none;}\n'
+        + 'main.dragging{cursor:grabbing;}\n'
+        + 'main.dragging *{pointer-events:none;}\n'
+        + '.wrap{display:inline-block;transform-origin:top left;transition:transform 0.12s ease;}\n'
+        + 'main.dragging .wrap{transition:none;}\n'
+        + '.wrap svg{display:block;}\n'
+        + '.hint{padding:6px 16px;font-size:12px;color:#64748b;background:#f8fafc;border-top:1px solid #e2e8f0;flex-shrink:0;}\n'
+        + 'html[data-theme="dark"] .hint{background:#1e293b;border-top-color:#334155;}\n'
+        + '</style></head>\n'
+        + '<body>\n'
+        + '<header><h1>' + safeTitle + '</h1>'
+        + '<button id="zo">−</button><span class="lbl" id="zl" title="點擊重設為 100%">100%</span><button id="zi">+</button>'
+        + '<button id="zf">符合視窗</button></header>\n'
+        + '<main id="m"><div class="wrap" id="w"><pre class="mermaid">' + safeCode + '</pre></div></main>\n'
+        + '<div class="hint">滑鼠左鍵拖曳平移 · Ctrl + 滾輪縮放 · 鍵盤 +/− 縮放 · 0 重設 · F 符合視窗</div>\n'
+        + '<script type="module">\n'
+        + 'import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";\n'
+        + 'mermaid.initialize({startOnLoad:false,theme:"' + safeTheme + '",'
+        + 'themeVariables:{fontFamily:\'"Noto Sans TC","PingFang TC",system-ui,sans-serif\',fontSize:"20px"},'
+        + 'flowchart:{useMaxWidth:false,htmlLabels:true},state:{useMaxWidth:false},stateDiagram:{useMaxWidth:false},securityLevel:"loose"});\n'
+        + 'const m=document.getElementById("m"),w=document.getElementById("w"),zl=document.getElementById("zl");\n'
+        + 'const node=document.querySelector("pre.mermaid");\n'
+        + 'await mermaid.run({nodes:[node]});\n'
+        + 'const svg=node.querySelector("svg"); if(svg) svg.removeAttribute("style");\n'
+        + 'const STEPS=[0.5,0.7,0.85,1.0,1.25,1.5,1.75,2.0,2.5,3.0,4.0]; let z=1;\n'
+        + 'function setZ(v){z=Math.max(0.3,Math.min(5,v));w.style.transform="scale("+z+")";zl.textContent=Math.round(z*100)+"%";}\n'
+        + 'function stepZ(d){let i=0,df=Infinity;STEPS.forEach((v,k)=>{const x=Math.abs(v-z); if(x<df){df=x;i=k;}});setZ(STEPS[Math.max(0,Math.min(STEPS.length-1,i+d))]);}\n'
+        + 'document.getElementById("zi").onclick=()=>stepZ(1);\n'
+        + 'document.getElementById("zo").onclick=()=>stepZ(-1);\n'
+        + 'zl.onclick=()=>setZ(1);\n'
+        + 'document.getElementById("zf").onclick=()=>{const s=w.querySelector("svg"); if(!s) return; const vb=s.viewBox&&s.viewBox.baseVal; const ww=(vb&&vb.width)||s.getBoundingClientRect().width/z; const hh=(vb&&vb.height)||s.getBoundingClientRect().height/z; setZ(Math.min((m.clientWidth-48)/ww,(m.clientHeight-48)/hh,5));};\n'
+        + 'setTimeout(()=>document.getElementById("zf").click(),50);\n'
+        + 'let dr=null;\n'
+        + 'm.addEventListener("mousedown",e=>{if(e.button!==0) return; dr={x:e.clientX,y:e.clientY,sx:m.scrollLeft,sy:m.scrollTop,moved:false}; e.preventDefault();});\n'
+        + 'window.addEventListener("mousemove",e=>{if(!dr) return; const dx=e.clientX-dr.x,dy=e.clientY-dr.y; if(!dr.moved&&Math.abs(dx)+Math.abs(dy)>3){dr.moved=true; m.classList.add("dragging");} if(dr.moved){m.scrollLeft=dr.sx-dx; m.scrollTop=dr.sy-dy;}});\n'
+        + 'window.addEventListener("mouseup",()=>{if(dr){m.classList.remove("dragging");dr=null;}});\n'
+        + 'm.addEventListener("wheel",e=>{if(!e.ctrlKey) return; e.preventDefault(); stepZ(e.deltaY<0?1:-1);},{passive:false});\n'
+        + 'window.addEventListener("keydown",e=>{if(e.key==="+"||e.key==="="){e.preventDefault();stepZ(1);} else if(e.key==="-"||e.key==="_"){e.preventDefault();stepZ(-1);} else if(e.key==="0"){e.preventDefault();setZ(1);} else if(e.key==="f"||e.key==="F"){e.preventDefault();document.getElementById("zf").click();}});\n'
+        + '<\/script>\n'
+        + '</body></html>';
+
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const win = window.open(url, '_blank');
+      if (!win) {
+        URL.revokeObjectURL(url);
+        alert('彈出視窗被瀏覽器擋下，請允許此頁面開啟新分頁');
+        return;
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }
+
+    preview.addEventListener('click', e => {
+      const btn = e.target.closest('[data-action="zoom-diagram"]');
+      if (!btn) return;
+      e.preventDefault();
+      const targetId = btn.dataset.target;
+      if (!targetId) return;
+      const node = preview.querySelector('#' + (window.CSS && CSS.escape ? CSS.escape(targetId) : targetId));
+      if (!node) return;
+      const code = (node.dataset.mermaidSource || node.textContent || '').trim();
+      if (!code) return;
+      openDiagramInNewWindow(code, btn.dataset.title || '圖表', themeSelect.value);
+    });
+
+    goTo(0);
+  </script>
+</body>
+</html>
