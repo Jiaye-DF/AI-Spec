@@ -378,7 +378,7 @@
       <tr style="border-bottom:1px solid var(--border);">
         <td style="padding:12px 14px;vertical-align:top;"><span class="card-tag ver-v10" style="font-size:13px;font-weight:700;">v1.0</span></td>
         <td style="padding:12px 14px;vertical-align:top;color:var(--muted);font-size:13px;">2026-05-19</td>
-        <td style="padding:12px 14px;vertical-align:top;"><span class="card-tag" style="font-size:12px;">Released</span></td>
+        <td style="padding:12px 14px;vertical-align:top;"><span class="card-tag" style="font-size:12px;background:#ffedd5;color:#9a3412;">In Progress</span></td>
         <td style="padding:12px 14px;vertical-align:top;">
           <ul style="margin:0;padding-left:18px;">
             <li>GitHub Actions + CI/CD Platform + SMTP Notifier 三服務拆分</li>
@@ -392,7 +392,7 @@
       <tr style="border-bottom:1px solid var(--border);">
         <td style="padding:12px 14px;vertical-align:top;"><span class="card-tag ver-v11" style="font-size:13px;font-weight:700;">v1.1</span></td>
         <td style="padding:12px 14px;vertical-align:top;color:var(--muted);font-size:13px;">2026-05-26</td>
-        <td style="padding:12px 14px;vertical-align:top;"><span class="card-tag" style="font-size:12px;">Released</span></td>
+        <td style="padding:12px 14px;vertical-align:top;"><span class="card-tag" style="font-size:12px;background:#ffedd5;color:#9a3412;">In Progress</span></td>
         <td style="padding:12px 14px;vertical-align:top;">
           <ul style="margin:0;padding-left:18px;">
             <li><strong>新增</strong>：DB migration check（paths filter + up→down→up 可逆性）</li>
@@ -965,6 +965,418 @@ flowchart TB
 
   <div class="cards-foot">
     <strong>設計重點:</strong>&nbsp;&nbsp;5 模組鏈式處理，任一節點失敗都有對應 verdict 退路，workflow 端永不卡死。本頁聚焦「一階段」;二、三階段（成本 / 效率 / 報告 / SMTP）與 RAG 平台後續再進行設計。
+  </div>
+</div>
+  </script>
+
+
+  <!-- ================== Step 3-A · AI Review 同步流程（Stage 1）================== -->
+  <script type="text/plain" id="step3a-ai-review"
+          data-label="Step 3-A · AI Review 同步流程（Stage 1）"
+          data-order="3"
+          data-kind="flow"
+          data-format="html">
+<div class="cards-wrap">
+  <div class="cards-head">
+    <strong>Step 3-A · AI Review 同步流程（Stage 1）</strong>
+    <span>· Risk Engine 決定深度 · Context Builder 組裝上下文 · Model Router 省成本 ·</span>
+    <span class="card-tag ver-v12">v1.2 規劃中</span>
+  </div>
+
+  <div class="cards-grid cols-3" style="margin-bottom: 16px;">
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">① 接收層</span><span class="card-tag ver-v12">v1.2</span></div>
+      <div class="card-title">Review Gateway + Queue</div>
+      <div class="card-body">PR 事件進來第一道，驗來源、建 Job、推非同步 Queue，讓後段審查不阻塞 webhook 回應。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">技術細節</div>
+        <ul>
+          <li><strong>觸發</strong> — GitHub Webhook / GitHub Action</li>
+          <li><strong>驗證</strong> — 來源簽名 + repo allowlist</li>
+          <li><strong>Queue</strong> — 非同步緩衝，Review 不回壓 webhook</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card shared">
+      <div class="card-badges"><span class="card-badge">② Risk Engine</span><span class="card-tag ver-v12">v1.2</span></div>
+      <div class="card-title">三種升級規則 → Level 1~4</div>
+      <div class="card-body">綜合路徑規則、語意分析、歷史風險三維度，自動決定這次 PR 要做多深的 Review。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">升級規則</div>
+        <ul>
+          <li><strong>Rule-Based</strong> — <code>auth/**</code> <code>payment/**</code> 直接升 L3</li>
+          <li><strong>Semantic-Based</strong> — 含 JWT / Role / Encryption → 升級</li>
+          <li><strong>Historical</strong> — 曾有安全問題的模組自動升</li>
+          <li><strong>業務重要性</strong> — 金融最低 L3，行銷最低 L1</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">③ Context Builder</span><span class="card-tag ver-v12">v1.2</span></div>
+      <div class="card-title">AI 不只看 diff，看整個背景</div>
+      <div class="card-body">依 Level 組裝不同深度的上下文，讓 AI 知道這段程式碼在整個系統裡的角色。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">來源組合（依 Level 遞增）</div>
+        <ul>
+          <li><strong>L1</strong> — Diff Only</li>
+          <li><strong>L2</strong> — Diff + Related Files + Import Chain</li>
+          <li><strong>L3</strong> — + Historical Risks + Architecture Rules</li>
+          <li><strong>L4</strong> — + Full Project Scan + Knowledge Graph</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">④ Model Router</span><span class="card-tag ver-v12">v1.2</span></div>
+      <div class="card-title">Level 決定模型 · 省 Token 不省品質</div>
+      <div class="card-body">不用 Opus 去 review README — 依風險等級自動挑出最划算的模型。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">模型對應</div>
+        <ul>
+          <li><strong>L1</strong> — GPT-4o Mini（文件 / CSS）</li>
+          <li><strong>L2</strong> — Gemini Flash（Service 邏輯）</li>
+          <li><strong>L3</strong> — Claude Sonnet（Auth / Payment）</li>
+          <li><strong>L4</strong> — Multi-Agent Review（架構重構）</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card user">
+      <div class="card-badges"><span class="card-badge">⑤ Review 輸出</span><span class="card-tag ver-v12">v1.2</span></div>
+      <div class="card-title">verdict + findings → PR Comment</div>
+      <div class="card-body">AI 輸出結構化報告，發布到 GitHub PR Comment，同時回傳 verdict 給 workflow。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">輸出欄位</div>
+        <ul>
+          <li><strong>verdict</strong> — mergeable / conflict / manual / reject</li>
+          <li><strong>findings[]</strong> — 位置 + 說明 + 嚴重度</li>
+          <li><strong>summary</strong> — 整體評語</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card critical">
+      <div class="card-badges"><span class="card-badge">CD Gate 整合</span><span class="card-tag ver-v12">v1.2</span></div>
+      <div class="card-title">verdict ≠ reject 才放行部署</div>
+      <div class="card-body">AI Review 的 verdict 直接成為 CD 的放行條件，不通過等同不部署。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">閘門規則</div>
+        <ul>
+          <li><strong>reject → 擋 CD</strong> — AI 判定阻塞問題，部署停止</li>
+          <li><strong>manual → 降級</strong> — AI 掛掉時 fallback 到人工</li>
+          <li><strong>mergeable → 放行</strong> — 觸發正常 CD pipeline</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="verdict-grid" style="margin-bottom: 20px;">
+    <div class="verdict-grid-head"><strong>Review Level · 風險等級對應分析深度與模型選型</strong></div>
+    <div class="verdict-card" style="background:#f0fdf4;border-left-color:#16a34a;">
+      <div class="verdict-name" style="color:#14532d;">Level 1 — 低風險</div>
+      <code class="verdict-code" style="background:#dcfce7;color:#14532d;">GPT-4o Mini</code>
+      <div class="verdict-desc">README / CSS / UI 文案<br>Diff Only · 通常不更新 Memory</div>
+    </div>
+    <div class="verdict-card" style="background:#eff6ff;border-left-color:#2563eb;">
+      <div class="verdict-name" style="color:#1e3a8a;">Level 2 — 中風險</div>
+      <code class="verdict-code" style="background:#dbeafe;color:#1e3a8a;">Gemini Flash</code>
+      <div class="verdict-desc">API / Service 邏輯 / Import 變更<br>Diff + 關聯檔 + Import Chain</div>
+    </div>
+    <div class="verdict-card" style="background:#fffbeb;border-left-color:#d97706;">
+      <div class="verdict-name" style="color:#78350f;">Level 3 — 高風險</div>
+      <code class="verdict-code" style="background:#fef3c7;color:#78350f;">Claude Sonnet</code>
+      <div class="verdict-desc">Auth / Payment / Permission<br>+ 歷史風險 + 架構規則</div>
+    </div>
+    <div class="verdict-card" style="background:#fdf4ff;border-left-color:#9333ea;">
+      <div class="verdict-name" style="color:#581c87;">Level 4 — 架構級</div>
+      <code class="verdict-code" style="background:#f3e8ff;color:#581c87;">Multi-Agent</code>
+      <div class="verdict-desc">大規模重構 / Framework 升級<br>完整專案 + Knowledge Graph</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="flow-section-title">
+      <strong>系統流程圖</strong> &nbsp;—&nbsp; 接收層 → 決策層 → 執行層 → 輸出層
+      <button class="diagram-zoom-btn" data-action="zoom-diagram" data-target="step3a-flow" data-title="Step 3-A · 系統流程圖">↗ 新視窗放大</button>
+    </div>
+    <pre class="mermaid" id="step3a-flow">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart TB
+  In([Step 2 通過<br>PR 進入 AI Review]):::user
+
+  subgraph RECV[接收層]
+    G1[Review Gateway<br>Webhook 驗證 + Review Job 建立]:::it
+    Q1[Review Queue<br>非同步緩衝]:::it
+    G1 --> Q1
+  end
+
+  subgraph DECIDE[決策層 · Risk Engine]
+    direction LR
+    RB[Rule-Based<br>auth/** payment/**]:::it
+    SB[Semantic-Based<br>JWT · Role · Encryption]:::it
+    HB[Historical Risk<br>過去問題模組自動升]:::it
+    LVL([Level 1 ~ 4 決策結果]):::shared
+    RB --> LVL
+    SB --> LVL
+    HB --> LVL
+  end
+
+  subgraph EXEC[執行層]
+    CB[Context Builder<br>diff · 關聯檔 · 歷史風險 · 規範]:::it
+    MR[Model Router<br>L1:GPT Mini · L2:Gemini · L3:Sonnet · L4:Multi]:::it
+    CB --> MR
+  end
+
+  LLM[LLM Provider<br>實際執行 AI Review]:::it
+
+  subgraph OUT[輸出層]
+    RP[Review Report<br>verdict + findings]:::shared
+    GC[GitHub PR Comment]:::user
+    RP --> GC
+  end
+
+  Async([→ Stage 2<br>非同步觸發知識更新]):::shared
+
+  In ==> G1
+  Q1 ==> RB
+  Q1 ==> SB
+  Q1 ==> HB
+  LVL ==> CB
+  MR ==> LLM
+  LLM ==> RP
+  GC ==> Async
+
+  classDef user fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
+  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+    </pre>
+  </div>
+
+  <div>
+    <div class="flow-section-title">
+      <strong>完整設計圖</strong> &nbsp;—&nbsp; Risk Engine 三種升級規則 · 四 Level 分流 · 對應模型
+      <button class="diagram-zoom-btn" data-action="zoom-diagram" data-target="step3a-state" data-title="Step 3-A · 完整設計圖">↗ 新視窗放大</button>
+    </div>
+    <pre class="mermaid" id="step3a-state">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart TB
+  Start(( )):::start
+  In[Step 2 通過 · PR 進入 AI Review]:::it
+  G1[接收層<br>Review Gateway → Queue]:::it
+
+  subgraph RISK[決策層 · Risk Engine]
+    RB[Rule-Based<br>auth/** security/** payment/**]:::it
+    SB[Semantic-Based<br>程式碼含 JWT / Role / Encryption]:::it
+    HB[Historical Risk<br>曾有問題的模組自動升]:::it
+    BC[業務重要性<br>金融最低 L3 · 行銷最低 L1]:::it
+    LVL{Level 決策}:::shared
+    RB --> LVL
+    SB --> LVL
+    HB --> LVL
+    BC --> LVL
+  end
+
+  subgraph LEVELS[四 Level 分流 · 分析深度 + 模型]
+    direction LR
+    LL1[Level 1 低風險<br>Diff Only<br>GPT-4o Mini]:::stL1
+    LL2[Level 2 中風險<br>+ Related Files<br>Gemini Flash]:::stL2
+    LL3[Level 3 高風險<br>+ 歷史風險 + 規則<br>Claude Sonnet]:::stL3
+    LL4[Level 4 架構級<br>完整掃 + KG<br>Multi-Agent]:::stL4
+  end
+
+  subgraph EXEC[執行層]
+    CB[Context Builder<br>組裝 AI 上下文]:::it
+    MR[Model Router<br>依 Level + 成本控制]:::it
+    CB --> MR
+  end
+
+  LLM[LLM Provider]:::it
+  RP[Review Report<br>verdict + findings]:::shared
+  GH[GitHub PR Comment]:::user
+  CD[CD Gate<br>verdict = reject 阻擋部署]:::critical
+  Async([→ Stage 2 · 非同步知識更新]):::shared
+
+  Start ==> In ==> G1
+  G1 ==> RB
+  G1 ==> SB
+  G1 ==> HB
+  G1 ==> BC
+  LVL --> LL1
+  LVL --> LL2
+  LVL --> LL3
+  LVL --> LL4
+  LL1 ==> CB
+  LL2 ==> CB
+  LL3 ==> CB
+  LL4 ==> CB
+  MR ==> LLM ==> RP
+  RP --> GH
+  RP -.->|verdict = reject| CD
+  GH ==> Async
+
+  classDef start fill:#0f172a,stroke:#0f172a,color:#fff
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
+  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef stL1 fill:#f0fdf4,stroke:#16a34a,color:#14532d,font-weight:700
+  classDef stL2 fill:#eff6ff,stroke:#2563eb,color:#1e3a8a,font-weight:700
+  classDef stL3 fill:#fffbeb,stroke:#d97706,color:#78350f,font-weight:700
+  classDef stL4 fill:#fdf4ff,stroke:#9333ea,color:#581c87,font-weight:700
+    </pre>
+  </div>
+
+  <div class="cards-foot">
+    <strong>核心差異（v1.2 vs v1.x）:</strong>&nbsp;&nbsp;v1.x 固定模型審查所有 PR；v1.2 用 Risk Engine 動態決定深度與模型——高風險用貴模型、低風險省成本，知識同步傳至 Stage 2 累積。
+  </div>
+</div>
+  </script>
+
+
+  <!-- ================== Step 3-B · Project Memory 知識更新（Stage 2）================== -->
+  <script type="text/plain" id="step3b-project-memory"
+          data-label="Step 3-B · Project Memory 知識更新（Stage 2）"
+          data-order="4"
+          data-kind="flow"
+          data-format="html">
+<div class="cards-wrap">
+  <div class="cards-head">
+    <strong>Step 3-B · Project Memory 知識更新（Stage 2）</strong>
+    <span>· 非同步觸發 · 選擇性更新 · 讓第 50 次 Review 比第 1 次更準 ·</span>
+    <span class="card-tag ver-v12">v1.2 規劃中</span>
+  </div>
+
+  <div class="cards-grid cols-2" style="margin-bottom: 16px;">
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">① Knowledge Extractor</span><span class="card-tag ver-v12">v1.2</span></div>
+      <div class="card-title">從 Review 結果萃取知識點</div>
+      <div class="card-body">分析本次 Review 的 findings，判斷是否含有值得保留的架構、風險或規範知識。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">萃取對象</div>
+        <ul>
+          <li><strong>架構知識</strong> — 模組依賴、Service 邊界</li>
+          <li><strong>風險知識</strong> — 新發現的漏洞模式</li>
+          <li><strong>規範知識</strong> — 違反 / 遵守的團隊規則</li>
+          <li><strong>領域知識</strong> — 業務邏輯關鍵路徑</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card shared">
+      <div class="card-badges"><span class="card-badge">② Memory Evaluator</span><span class="card-tag ver-v12">v1.2</span></div>
+      <div class="card-title">判斷是否值得更新 Memory</div>
+      <div class="card-body">不是每次 PR 都更新 Memory。只有真正含新資訊的 Review 才觸發更新，避免成本暴增與知識污染。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">更新條件（觸發其一即更新）</div>
+        <ul>
+          <li><strong>架構變更</strong> — 影響模組邊界或依賴關係</li>
+          <li><strong>關鍵模組</strong> — Auth / Payment / Core Service</li>
+          <li><strong>新風險發現</strong> — 過去未記錄的漏洞模式</li>
+          <li><strong>重大重構</strong> — Level 4 審查完成後</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">③ Knowledge Graph</span><span class="card-tag ver-v12">v1.2</span></div>
+      <div class="card-title">模組依賴 + 風險節點圖譜</div>
+      <div class="card-body">以圖結構保存服務間關聯，讓 AI 在 Level 4 審查時能快速找到受影響範圍。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">技術細節</div>
+        <ul>
+          <li><strong>儲存</strong> — Neo4j（初期可用 JSON 替代）</li>
+          <li><strong>節點</strong> — Repository · Module · Service · API · Risk</li>
+          <li><strong>關聯</strong> — CALLS · DEPENDS_ON · HAS_RISK · AFFECTS</li>
+          <li><strong>生命週期</strong> — Create / Update / Expire / Archive</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card it">
+      <div class="card-badges"><span class="card-badge">④ Project Memory</span><span class="card-tag ver-v12">v1.2</span></div>
+      <div class="card-title">專案知識庫 ≠ 傳統 RAG</div>
+      <div class="card-body">不是文件問答系統。保留「架構知識 + 歷史風險 + 規範」，讓未來 Review Context 越來越完整。</div>
+      <div class="card-tech">
+        <div class="card-tech-title">儲存內容</div>
+        <ul>
+          <li><strong>架構摘要</strong> — 關鍵模組 + 設計決策</li>
+          <li><strong>歷史風險</strong> — 過去發現的問題 + 解法</li>
+          <li><strong>團隊規範</strong> — YAML rules + 自訂規則</li>
+          <li><strong>領域知識</strong> — 業務邏輯 + 關鍵路徑說明</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="flow-section-title">
+      <strong>非同步知識更新流程</strong> &nbsp;—&nbsp; Review 完成 → 萃取 → 評估 → 選擇性更新
+      <button class="diagram-zoom-btn" data-action="zoom-diagram" data-target="step3b-flow" data-title="Step 3-B · 非同步知識更新流程">↗ 新視窗放大</button>
+    </div>
+    <pre class="mermaid" id="step3b-flow">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart TB
+  Start(( )):::start
+  In[Stage 1 AI Review 完成<br>非同步觸發]:::it
+
+  KE[① Knowledge Extractor<br>分析 Review 結果<br>萃取架構 / 風險 / 規範知識]:::it
+
+  ME{② Memory Evaluator<br>值得更新嗎?}:::shared
+
+  Skip([跳過<br>L1 低風險 / 無新資訊]):::stSkip
+
+  UPD([觸發更新<br>架構變更 / 新風險 / 重大重構]):::shared
+
+  subgraph UPDATE[③ 知識更新層]
+    direction LR
+    KG[Knowledge Graph<br>模組依賴 + 風險節點<br>Neo4j]:::it
+    PM[Project Memory<br>架構摘要 · 歷史風險<br>規範 · 領域知識]:::it
+  end
+
+  LC[Knowledge Lifecycle<br>Create / Update / Expire / Archive]:::shared
+
+  Out([未來 Review<br>Context 品質提升<br>第 50 次比第 1 次更準]):::user
+
+  Start ==> In ==> KE ==> ME
+  ME -->|否: 低風險 / 無新資訊| Skip
+  ME ==>|是| UPD
+  UPD ==> KG
+  UPD ==> PM
+  KG --> LC
+  PM --> LC
+  LC ==> Out
+
+  classDef start fill:#0f172a,stroke:#0f172a,color:#fff
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
+  classDef critical fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef stSkip fill:#f1f5f9,stroke:#64748b,color:#334155,font-weight:700
+    </pre>
+  </div>
+
+  <div>
+    <div class="flow-section-title">
+      <strong>Multi-Tenant 隔離（未來規劃）</strong>
+    </div>
+    <div class="verdict-grid" style="grid-template-columns: repeat(2, 1fr);">
+      <div class="verdict-grid-head"><strong>每租戶擁有獨立知識空間 · 禁止跨 Tenant 污染</strong></div>
+      <div class="verdict-card" style="background:#eff6ff;border-left-color:#2563eb;">
+        <div class="verdict-name" style="color:#1e3a8a;">Enterprise Mode</div>
+        <code class="verdict-code" style="background:#dbeafe;color:#1e3a8a;">On-Premise</code>
+        <div class="verdict-desc">程式碼不離開企業內網 · Self-Hosted LLM · 完整 Tenant Isolation</div>
+      </div>
+      <div class="verdict-card" style="background:#f0fdf4;border-left-color:#16a34a;">
+        <div class="verdict-name" style="color:#14532d;">SaaS Mode</div>
+        <code class="verdict-code" style="background:#dcfce7;color:#14532d;">OpenRouter</code>
+        <div class="verdict-desc">使用 Claude / GPT / Gemini · 每 Tenant 獨立 Memory + Rules</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cards-foot">
+    <strong>商業價值核心:</strong>&nbsp;&nbsp;Stage 2 讓平台從「每次 PR 獨立看 diff」升級為「有記憶的 AI 審查員」——隨專案演進，Review 品質自動強化，知識不再只留在 PR 評論和工程師腦中。
   </div>
 </div>
   </script>
