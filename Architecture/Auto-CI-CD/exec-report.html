@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'><circle cx='8' cy='8' r='7' fill='%232563eb' opacity='.15'/><circle cx='8' cy='8' r='4' fill='%232563eb'/></svg>">
+  <title>AI 工程治理平台 — 主管簡報</title>
+  <style>
+    :root {
+      --bg: #ffffff; --bg-soft: #f8fafc; --fg: #0f172a; --muted: #64748b;
+      --border: #e2e8f0; --toolbar-bg: #f8fafc; --btn-bg: #ffffff;
+      --btn-hover: #f1f5f9; --accent: #2563eb; --error: #dc2626;
+    }
+    [data-theme="dark"] {
+      --bg: #0f172a; --bg-soft: #1e293b; --fg: #f1f5f9; --muted: #94a3b8;
+      --border: #334155; --toolbar-bg: #1e293b; --btn-bg: #1e293b;
+      --btn-hover: #334155; --accent: #60a5fa; --error: #f87171;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; font-family: 'Noto Sans TC','PingFang TC','Microsoft JhengHei',system-ui,sans-serif; background: var(--bg); color: var(--fg); }
+    body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+    .toolbar { display: flex; flex-direction: row; flex-wrap: wrap; gap: 10px; padding: 10px 20px; align-items: center; background: var(--toolbar-bg); border-bottom: 2px solid var(--border); box-shadow: 0 1px 4px rgba(0,0,0,0.04); flex-shrink: 0; }
+    .toolbar h1 { font-size: 16px; margin: 0; font-weight: 700; color: var(--accent); padding-left: 12px; border-left: 4px solid var(--accent); line-height: 1.3; letter-spacing: 0.02em; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .toolbar .picker { font-weight: 600; width: 220px; flex: none; border-color: var(--accent); color: var(--fg); }
+    .toolbar .divider { width: 1px; height: 22px; background: var(--border); margin: 0 4px; }
+    .toolbar button, .toolbar select, .toolbar input { padding: 6px 11px; font-size: 13px; border: 1px solid var(--border); background: var(--btn-bg); color: var(--fg); border-radius: 5px; cursor: pointer; font-family: inherit; transition: background 0.12s, border-color 0.12s; }
+    .toolbar button:hover, .toolbar select:hover { background: var(--btn-hover); border-color: var(--accent); }
+    .toolbar button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .toolbar label { font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+    .counter { font-size: 12px; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; padding: 0 8px; }
+    .nav-btn { width: 32px; height: 30px; padding: 0 !important; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; }
+
+    main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+    .preview { flex: 1; min-height: 0; overflow: auto; padding: 28px 24px; display: flex; align-items: flex-start; justify-content: center; }
+    .preview.zoomed { justify-content: flex-start; }
+    .preview.draggable { cursor: grab; user-select: none; }
+    .preview.draggable.dragging { cursor: grabbing; }
+    .preview.draggable.dragging * { pointer-events: none; }
+    .preview svg { display: block; margin: 0 auto; }
+    .preview .svg-wrap { display: inline-block; transform-origin: top left; transition: transform 0.12s ease; }
+    .preview.dragging .svg-wrap { transition: none; }
+    .zoom-label { font-size: 12px; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; min-width: 42px; text-align: center; cursor: pointer; }
+    .zoom-label:hover { color: var(--accent); }
+    .error { color: var(--error); padding: 16px; font-family: Consolas,monospace; font-size: 13px; white-space: pre-wrap; }
+
+    .cards-wrap { max-width: 1200px; width: 100%; }
+    .cards-head { margin-bottom: 18px; font-size: 15px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; }
+    .cards-head strong { color: var(--accent); font-size: 19px; }
+    .cards-grid { display: grid; gap: 14px; }
+    .cards-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+    .cards-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .cards-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+    .card { background: var(--bg); border: 1px solid var(--border); border-left-width: 5px; border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; box-shadow: 0 1px 3px rgba(15,23,42,0.04); transition: transform 0.12s, box-shadow 0.12s; }
+    .card:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(15,23,42,0.1); }
+    .card.green  { border-left-color: #16a34a; }
+    .card.blue   { border-left-color: #2563eb; }
+    .card.purple { border-left-color: #9333ea; }
+    .card.amber  { border-left-color: #d97706; }
+    .card-badge { display: inline-block; font-size: 12.5px; font-weight: 700; padding: 3px 9px; border-radius: 5px; margin-bottom: 10px; }
+    .card.green  .card-badge { background: #dcfce7; color: #14532d; }
+    .card.blue   .card-badge { background: #dbeafe; color: #1e3a8a; }
+    .card.purple .card-badge { background: #f3e8ff; color: #581c87; }
+    .card.amber  .card-badge { background: #fef3c7; color: #78350f; }
+    [data-theme="dark"] .card.green  .card-badge { background: rgba(34,197,94,0.2);  color: #86efac; }
+    [data-theme="dark"] .card.blue   .card-badge { background: rgba(96,165,250,0.2); color: #93c5fd; }
+    [data-theme="dark"] .card.purple .card-badge { background: rgba(168,85,247,0.2); color: #d8b4fe; }
+    [data-theme="dark"] .card.amber  .card-badge { background: rgba(251,191,36,0.2); color: #fcd34d; }
+    .card-title { font-size: 16px; font-weight: 700; margin: 0 0 8px; line-height: 1.35; }
+    .card-body  { font-size: 13.5px; color: var(--muted); line-height: 1.6; }
+    .card-body strong { color: var(--fg); }
+    .cards-foot { margin-top: 18px; padding: 14px 18px; background: var(--bg-soft); border-left: 4px solid var(--accent); border-radius: 0 8px 8px 0; font-size: 15px; line-height: 1.6; }
+    .cards-foot strong { color: var(--accent); }
+
+    .flow-section-title { font-size: 15px; color: var(--muted); margin: 16px 0 6px; display: flex; align-items: center; gap: 12px; }
+    .flow-section-title strong { color: var(--fg); }
+    .diagram-zoom-btn { margin-left: auto; padding: 5px 12px; font-size: 13px; font-weight: 600; background: var(--btn-bg); color: var(--accent); border: 1px solid var(--border); border-radius: 5px; cursor: pointer; font-family: inherit; transition: background 0.12s, border-color 0.12s; }
+    .diagram-zoom-btn:hover { background: var(--btn-hover); border-color: var(--accent); }
+    .preview pre.mermaid { background: var(--bg); padding: 12px; border: 1px solid var(--border); border-radius: 8px; overflow: auto; }
+
+    .level-badge { display: inline-block; padding: 3px 10px; border-radius: 5px; font-weight: 700; font-size: 12.5px; }
+    .lvl1 { background: #dcfce7; color: #14532d; }
+    .lvl2 { background: #dbeafe; color: #1e3a8a; }
+    .lvl3 { background: #fef3c7; color: #78350f; }
+    .lvl4 { background: #f3e8ff; color: #581c87; }
+    [data-theme="dark"] .lvl1 { background: rgba(34,197,94,0.2);  color: #86efac; }
+    [data-theme="dark"] .lvl2 { background: rgba(96,165,250,0.2); color: #93c5fd; }
+    [data-theme="dark"] .lvl3 { background: rgba(251,191,36,0.2); color: #fcd34d; }
+    [data-theme="dark"] .lvl4 { background: rgba(168,85,247,0.2); color: #d8b4fe; }
+
+    .decision-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+    .decision-list li { display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; background: var(--bg-soft); border: 1px solid var(--border); border-radius: 8px; font-size: 14px; line-height: 1.6; }
+    .decision-list li .check { font-size: 18px; flex-shrink: 0; margin-top: 2px; }
+
+    /* ── Pain Hero ── */
+    .pain-hero { display: grid; grid-template-columns: auto 1fr auto; border-radius: 14px; overflow: hidden; margin-bottom: 18px; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(15,23,42,0.06); }
+    .ph-left { background: linear-gradient(160deg,#fef2f2,#fee2e2); padding: 28px 36px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    [data-theme="dark"] .ph-left { background: linear-gradient(160deg,rgba(220,38,38,.18),rgba(220,38,38,.12)); }
+    .ph-num { font-size: 62px; font-weight: 900; color: #dc2626; line-height: 1; letter-spacing: -0.03em; }
+    [data-theme="dark"] .ph-num { color: #f87171; }
+    .ph-unit { font-size: 15px; color: #dc2626; font-weight: 700; margin-top: 4px; text-align: center; }
+    [data-theme="dark"] .ph-unit { color: #f87171; }
+    .ph-mid { padding: 24px 28px; display: flex; flex-direction: column; justify-content: center; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+    .ph-mid-title { font-size: 17px; font-weight: 700; margin-bottom: 10px; }
+    .ph-mid-sub { font-size: 13.5px; color: var(--muted); line-height: 1.75; }
+    .ph-right { background: linear-gradient(160deg,#eff6ff,#dbeafe); padding: 28px 32px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 190px; }
+    [data-theme="dark"] .ph-right { background: linear-gradient(160deg,rgba(37,99,235,.15),rgba(37,99,235,.10)); }
+    .ph-fte { font-size: 52px; line-height: 1; margin-bottom: 10px; }
+    .ph-fte-label { font-size: 14px; color: #1e40af; font-weight: 700; text-align: center; line-height: 1.4; }
+    [data-theme="dark"] .ph-fte-label { color: #93c5fd; }
+
+    /* ── Pain Trio ── */
+    .pain-trio { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 16px; }
+    .pain-item { background: var(--bg-soft); border: 1px solid var(--border); border-radius: 12px; padding: 20px 16px; text-align: center; transition: transform 0.12s, box-shadow 0.12s; }
+    .pain-item:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(15,23,42,0.08); }
+    .pain-icon { font-size: 36px; margin-bottom: 12px; line-height: 1; }
+    .pain-metric { font-size: 26px; font-weight: 900; color: var(--error); letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 6px; }
+    .pain-title { font-size: 14px; font-weight: 700; margin-bottom: 5px; }
+    .pain-desc { font-size: 12.5px; color: var(--muted); line-height: 1.55; }
+
+    /* ── Capability Pillars ── */
+    .pillar-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 14px; margin-top: 18px; }
+    .pillar { display: flex; gap: 16px; align-items: flex-start; padding: 18px; background: var(--bg-soft); border: 1px solid var(--border); border-radius: 12px; transition: transform 0.12s, box-shadow 0.12s; }
+    .pillar:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(15,23,42,0.08); }
+    .pillar-icon { flex-shrink: 0; width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+    .pillar-title { font-size: 15px; font-weight: 700; margin-bottom: 5px; }
+    .pillar-desc { font-size: 13px; color: var(--muted); line-height: 1.55; }
+    .pillar-desc strong { color: var(--fg); }
+
+    /* ── Before / After ── */
+    .ba-wrap { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(15,23,42,0.05); }
+    .ba-headers { display: grid; grid-template-columns: 1fr 1fr; }
+    .ba-h { padding: 13px 20px; font-size: 14px; font-weight: 700; text-align: center; letter-spacing: 0.02em; }
+    .ba-h.before { background: #fee2e2; color: #7f1d1d; }
+    .ba-h.after  { background: #dcfce7; color: #14532d; border-left: 1px solid rgba(255,255,255,.5); }
+    [data-theme="dark"] .ba-h.before { background: rgba(220,38,38,.22); color: #fca5a5; }
+    [data-theme="dark"] .ba-h.after  { background: rgba(34,197,94,.22);  color: #86efac; }
+    .ba-row { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--border); }
+    .ba-cell { padding: 12px 20px; font-size: 14px; line-height: 1.55; display: flex; align-items: center; gap: 10px; }
+    .ba-cell.before { background: #fff9f9; }
+    .ba-cell.after  { background: #f9fffc; border-left: 1px solid var(--border); }
+    [data-theme="dark"] .ba-cell.before { background: rgba(220,38,38,.04); }
+    [data-theme="dark"] .ba-cell.after  { background: rgba(34,197,94,.04); }
+    .ba-icon { font-size: 16px; flex-shrink: 0; }
+
+    /* ── Risk Visual Bars ── */
+    .risk-visual { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+    .rv-row { display: grid; grid-template-columns: 84px 1fr 175px; gap: 14px; align-items: center; padding: 10px 14px; background: var(--bg-soft); border-radius: 8px; border: 1px solid var(--border); }
+    .rv-bar-wrap { display: flex; flex-direction: column; gap: 5px; }
+    .rv-scenario { font-size: 13px; color: var(--muted); }
+    .rv-bar { height: 7px; border-radius: 4px; }
+    .rv-model { font-size: 12px; color: var(--muted); font-weight: 600; text-align: right; line-height: 1.4; }
+
+    /* ── Horizontal Roadmap ── */
+    .h-roadmap { display: flex; align-items: stretch; gap: 0; margin-bottom: 20px; }
+    .h-rm-step { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 22px 16px; background: var(--bg-soft); border: 1px solid var(--border); text-align: center; transition: box-shadow 0.12s; }
+    .h-rm-step:first-child { border-radius: 12px 0 0 12px; }
+    .h-rm-step:last-child  { border-radius: 0 12px 12px 0; }
+    .h-rm-step + .h-rm-step { border-left: none; }
+    .h-rm-step:hover { box-shadow: 0 4px 12px rgba(15,23,42,.10); z-index: 1; position: relative; }
+    .h-rm-dot { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; margin-bottom: 14px; }
+    .h-rm-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+    .h-rm-tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 4px; margin-bottom: 10px; }
+    .h-rm-desc { font-size: 13px; color: var(--muted); line-height: 1.65; }
+    .h-rm-desc strong { color: var(--fg); }
+
+    /* ── Platform Center Badge ── */
+    .platform-center { display: flex; justify-content: center; margin: 14px 0 20px; }
+    .platform-badge { display: inline-flex; flex-direction: column; align-items: center; padding: 16px 40px; background: linear-gradient(135deg,#eff6ff,#dbeafe); border: 2px solid #2563eb; border-radius: 14px; }
+    [data-theme="dark"] .platform-badge { background: linear-gradient(135deg,rgba(37,99,235,.15),rgba(37,99,235,.10)); }
+    .platform-title { font-size: 20px; font-weight: 800; color: #1e40af; letter-spacing: -0.01em; }
+    [data-theme="dark"] .platform-title { color: #93c5fd; }
+    .platform-sub { font-size: 13px; color: #3b82f6; margin-top: 4px; }
+    [data-theme="dark"] .platform-sub { color: #60a5fa; }
+  </style>
+</head>
+<body>
+
+<!-- ================== Slide 0 · 困境現況 ================== -->
+<script type="text/plain" id="slide0-problem"
+        data-label="困境現況 · 程式審查已成工程效率瓶頸"
+        data-order="0"
+        data-format="html">
+<div class="cards-wrap">
+  <div class="cards-head">
+    <strong>困境現況</strong>
+    <span>· 每次程式審查，都是從零開始的高成本工作</span>
+  </div>
+
+  <div class="pain-hero">
+    <div class="ph-left">
+      <div class="ph-num">250</div>
+      <div class="ph-unit">小時 / 月</div>
+    </div>
+    <div class="ph-mid">
+      <div class="ph-mid-title">每月消耗在例行程式審查的資深工程師工時</div>
+      <div class="ph-mid-sub">
+        估算基礎：1,000 次程式變更 / 月 × 平均 10–15 分鐘<br>
+        包含：查閱背景脈絡 → 逐行閱讀差異 → 撰寫審查回覆<br>
+        每次都從零開始，<strong>過去的知識完全無法被複用</strong>
+      </div>
+    </div>
+    <div class="ph-right">
+      <div class="ph-fte">👤</div>
+      <div class="ph-fte-label">≈ 1 位全職<br>資深工程師整月<br>只做審查</div>
+    </div>
+  </div>
+
+  <div class="pain-trio">
+    <div class="pain-item">
+      <div class="pain-icon">⏳</div>
+      <div class="pain-metric">2 天</div>
+      <div class="pain-title">程式變更平均等待審查時間</div>
+      <div class="pain-desc">變更積壓，核心功能延誤上線；開發節奏被打斷，工程師需要頻繁切換注意力</div>
+    </div>
+    <div class="pain-item">
+      <div class="pain-icon">🧠</div>
+      <div class="pain-metric">人走帶走</div>
+      <div class="pain-title">審查知識無法系統化保留</div>
+      <div class="pain-desc">審查結論散落在留言欄 / 通訊軟體；人員離職或輪調，知識即消失</div>
+    </div>
+    <div class="pain-item">
+      <div class="pain-icon">📊</div>
+      <div class="pain-metric">因人而異</div>
+      <div class="pain-title">審查品質與標準不一致</div>
+      <div class="pain-desc">不同主管關注點不同；管理層無從量化工程品質；新人難以學習正確規範</div>
+    </div>
+  </div>
+
+  <div class="cards-foot">
+    <strong>核心問題：</strong>程式審查是不可省略的品質把關，但傳統人工方式帶來高工時消耗、知識流失、品質不穩三大困境，且隨團隊成長只會越來越嚴重。
+  </div>
+</div>
+</script>
+
+<!-- ================== Slide 1 · 解法定位 ================== -->
+<script type="text/plain" id="slide1-solution"
+        data-label="解法定位 · 不只省時，更建立工程知識資產"
+        data-order="1"
+        data-format="html">
+<div class="cards-wrap">
+  <div class="cards-head">
+    <strong>解法定位</strong>
+    <span>· 不只是省時工具，而是工程管理的基礎建設</span>
+  </div>
+
+  <div class="platform-center">
+    <div class="platform-badge">
+      <div class="platform-title">AI 智慧程式審查平台</div>
+      <div class="platform-sub">自動審查 · 風險分級 · 知識累積 · 管理可視</div>
+    </div>
+  </div>
+
+  <div class="pillar-grid">
+    <div class="pillar">
+      <div class="pillar-icon" style="background:#dbeafe;">⚡</div>
+      <div>
+        <div class="pillar-title">全自動程式審查</div>
+        <div class="pillar-desc">程式變更提交後 <strong>5 分鐘</strong>內產出結構化審查報告，直接回傳到協作平台，每一個變更 <strong>100% 覆蓋</strong>，不再因人力不足而遺漏</div>
+      </div>
+    </div>
+    <div class="pillar">
+      <div class="pillar-icon" style="background:#f3e8ff;">🎯</div>
+      <div>
+        <div class="pillar-title">智慧風險分級</div>
+        <div class="pillar-desc">依變更重要性<strong>自動分配審查深度</strong>：文件修改用輕量模型；金流 / 身分驗證用高階模型，稽核並參考歷史風險——<strong>深度與成本對應風險，不浪費</strong></div>
+      </div>
+    </div>
+    <div class="pillar">
+      <div class="pillar-icon" style="background:#dcfce7;">📚</div>
+      <div>
+        <div class="pillar-title">工程知識庫（自動累積）</div>
+        <div class="pillar-desc">每次審查結果自動提煉，沉澱成團隊規範與架構摘要。<strong>審查越多，系統越準確</strong>；人員異動不影響知識傳承</div>
+      </div>
+    </div>
+    <div class="pillar">
+      <div class="pillar-icon" style="background:#fef3c7;">📈</div>
+      <div>
+        <div class="pillar-title">管理層可視性</div>
+        <div class="pillar-desc">完整稽核記錄、AI 使用費追蹤、風險趨勢儀表板——讓管理層<strong>看得見工程品質，說得出數字</strong></div>
+      </div>
+    </div>
+  </div>
+</div>
+</script>
+
+<!-- ================== Slide 2 · 運作方式 ================== -->
+<script type="text/plain" id="slide2-how"
+        data-label="運作方式 · 提交 → AI 分析 → 5 分鐘完成"
+        data-order="2"
+        data-format="html">
+<div class="cards-wrap">
+  <div class="cards-head">
+    <strong>運作方式</strong>
+    <span>· 程式變更觸發 → AI 分析 → 報告自動回傳，同步審查 + 非同步知識累積</span>
+  </div>
+
+  <div class="flow-section-title">
+    <strong>完整審查流程</strong>
+    <button class="diagram-zoom-btn" data-action="zoom-diagram" data-target="exec-main-flow" data-title="AI 審查完整流程">↗ 放大</button>
+  </div>
+
+  <pre class="mermaid" id="exec-main-flow">
+%%{init: {'flowchart': {'htmlLabels': true, 'curve': 'basis'}} }%%
+flowchart LR
+  PR[程式變更提交]:::entry
+  GW[審查閘道<br>驗證來源 · 建立任務]:::it
+  RE[風險評估<br>自動分級 1~4 級]:::shared
+  CB[背景組裝<br>抓取相關程式]:::it
+  MR[智慧調度<br>依風險選模型]:::it
+  LLM[AI 深度分析]:::accent
+  RPT[審查報告<br>自動回傳平台]:::pass
+
+  PM[(工程知識庫<br>持續累積)]:::mem
+  KE[知識提煉<br>萃取審查精華]:::mem
+
+  PR ==> GW
+  GW ==> RE
+  RE ==> CB
+  CB ==> MR
+  MR ==> LLM
+  LLM ==> RPT
+  LLM -. 非同步 .-> KE
+  KE -. 更新 .-> PM
+  PM -. 下次審查參考 .-> CB
+
+  classDef entry fill:#0f172a,stroke:#0f172a,color:#fff,font-weight:700
+  classDef it fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef shared fill:#f3e8ff,stroke:#9333ea,color:#581c87
+  classDef accent fill:#2563eb,stroke:#1d4ed8,color:#fff,font-weight:700
+  classDef pass fill:#dcfce7,stroke:#16a34a,color:#14532d,font-weight:700
+  classDef mem fill:#fef3c7,stroke:#d97706,color:#78350f
+  </pre>
+
+  <div style="margin-top:20px;">
+    <div style="font-size:13px;font-weight:700;color:var(--muted);letter-spacing:0.06em;margin-bottom:10px;">風險分級 — 審查深度與成本自動對應，不浪費資源</div>
+    <div class="risk-visual">
+      <div class="rv-row">
+        <span class="level-badge lvl1">低風險</span>
+        <div class="rv-bar-wrap">
+          <div class="rv-scenario">文件修改、UI 文案、樣式調整</div>
+          <div class="rv-bar" style="width:25%;background:#16a34a;"></div>
+        </div>
+        <div class="rv-model">輕量模型<br>秒級回應 · 成本最低</div>
+      </div>
+      <div class="rv-row">
+        <span class="level-badge lvl2">中風險</span>
+        <div class="rv-bar-wrap">
+          <div class="rv-scenario">API 邏輯、服務層異動</div>
+          <div class="rv-bar" style="width:50%;background:#2563eb;"></div>
+        </div>
+        <div class="rv-model">標準模型<br>含相關程式脈絡</div>
+      </div>
+      <div class="rv-row">
+        <span class="level-badge lvl3">高風險</span>
+        <div class="rv-bar-wrap">
+          <div class="rv-scenario">金流處理、身分驗證、加密相關</div>
+          <div class="rv-bar" style="width:75%;background:#d97706;"></div>
+        </div>
+        <div class="rv-model">高階模型<br>含歷史風險記錄</div>
+      </div>
+      <div class="rv-row">
+        <span class="level-badge lvl4">架構級</span>
+        <div class="rv-bar-wrap">
+          <div class="rv-scenario">大規模重構、框架升級</div>
+          <div class="rv-bar" style="width:100%;background:#9333ea;"></div>
+        </div>
+        <div class="rv-model">多 AI 協作審查<br>完整專案分析</div>
+      </div>
+    </div>
+  </div>
+</div>
+</script>
+
+<!-- ================== Slide 3 · 商業價值 ================== -->
+<script type="text/plain" id="slide3-value"
+        data-label="商業價值 · 導入前後具體改變"
+        data-order="3"
+        data-format="html">
+<div class="cards-wrap">
+  <div class="cards-head">
+    <strong>商業價值</strong>
+    <span>· 導入前後，工程效率的具體改變</span>
+  </div>
+
+  <div class="ba-wrap">
+    <div class="ba-headers">
+      <div class="ba-h before">⚠ 導入前（現況）</div>
+      <div class="ba-h after">✓ 導入後（AI 審查）</div>
+    </div>
+    <div class="ba-row">
+      <div class="ba-cell before"><span class="ba-icon">⏳</span> 程式變更等待審查 <strong>平均 2 天</strong></div>
+      <div class="ba-cell after"><span class="ba-icon">✅</span> 提交後 <strong>5 分鐘</strong>完成審查報告</div>
+    </div>
+    <div class="ba-row">
+      <div class="ba-cell before"><span class="ba-icon">⚠</span> 部分變更因人力不足<strong>被跳過</strong></div>
+      <div class="ba-cell after"><span class="ba-icon">✅</span> 每個程式變更 <strong>100% 全覆蓋</strong></div>
+    </div>
+    <div class="ba-row">
+      <div class="ba-cell before"><span class="ba-icon">💸</span> 資深工程師每月 <strong>150–250 小時</strong>投入例行審查</div>
+      <div class="ba-cell after"><span class="ba-icon">✅</span> 工時移轉至<strong>高價值產品開發</strong></div>
+    </div>
+    <div class="ba-row">
+      <div class="ba-cell before"><span class="ba-icon">🧠</span> 審查知識<strong>留在個人腦中</strong>，人員流動即流失</div>
+      <div class="ba-cell after"><span class="ba-icon">✅</span> 自動建立<strong>工程知識庫</strong>，系統永久保存</div>
+    </div>
+    <div class="ba-row">
+      <div class="ba-cell before"><span class="ba-icon">❓</span> 審查品質與標準<strong>因主管而不同</strong></div>
+      <div class="ba-cell after"><span class="ba-icon">✅</span> AI 按<strong>統一標準</strong>執行，結果可量化追蹤</div>
+    </div>
+    <div class="ba-row">
+      <div class="ba-cell before"><span class="ba-icon">🔍</span> 工程品質<strong>無稽核記錄</strong>，管理層看不見</div>
+      <div class="ba-cell after"><span class="ba-icon">✅</span> 完整稽核記錄，<strong>AI 使用費透明可控</strong></div>
+    </div>
+  </div>
+
+  <div class="cards-grid cols-4">
+    <div class="card blue">
+      <div class="card-badge">工程師</div>
+      <div class="card-title">等待變 5 分鐘</div>
+      <div class="card-body">報告直接指出問題位置；新人透過報告學習規範，縮短上手時間</div>
+    </div>
+    <div class="card purple">
+      <div class="card-badge">技術主管</div>
+      <div class="card-title">管理負擔下降</div>
+      <div class="card-body">AI 統一執行審查標準；人員異動不影響知識傳承與團隊水準</div>
+    </div>
+    <div class="card green">
+      <div class="card-badge">技術長 / 高管</div>
+      <div class="card-title">成本可量化</div>
+      <div class="card-body">工時節省有數字；AI 使用費完整記錄，投資報酬率看得見</div>
+    </div>
+    <div class="card amber">
+      <div class="card-badge">企業</div>
+      <div class="card-title">知識成為資產</div>
+      <div class="card-body">稽核記錄完整；工程知識留在系統，不再依賴特定個人</div>
+    </div>
+  </div>
+
+  <div class="cards-foot">
+    <strong>核心主張：</strong>每月節省 150–250 小時資深工程師工時，同時建立不因人員流動而流失的工程知識資產。
+  </div>
+</div>
+</script>
+
+<!-- ================== Slide 4 · 三階段計畫 ================== -->
+<script type="text/plain" id="slide4-roadmap"
+        data-label="三階段計畫 · 4 週起步，逐步建立完整治理"
+        data-order="4"
+        data-format="html">
+<div class="cards-wrap">
+  <div class="cards-head">
+    <strong>三階段計畫</strong>
+    <span>· 第一版 4 週可驗證成效，低風險、見效快</span>
+  </div>
+
+  <div class="h-roadmap">
+    <div class="h-rm-step">
+      <div class="h-rm-dot" style="background:#dcfce7;border:3px solid #16a34a;color:#14532d;">第一版</div>
+      <div class="h-rm-title">立即可驗證</div>
+      <div class="h-rm-tag" style="background:#dcfce7;color:#14532d;">建議起點 · 目標 4 週</div>
+      <div class="h-rm-desc">
+        全自動程式審查<br>
+        風險評估與分級<br>
+        結構化報告輸出<br><br>
+        <strong>目標：用真實數據驗證<br>AI 審查品質與速度</strong>
+      </div>
+    </div>
+    <div class="h-rm-step">
+      <div class="h-rm-dot" style="background:#dbeafe;border:3px solid #2563eb;color:#1e3a8a;">第二版</div>
+      <div class="h-rm-title">知識越累越準</div>
+      <div class="h-rm-tag" style="background:#dbeafe;color:#1e3a8a;">第一版驗收後展開</div>
+      <div class="h-rm-desc">
+        工程知識庫建立<br>
+        歷史風險學習<br>
+        審查準確度持續提升<br><br>
+        <strong>目標：過去踩過的坑<br>不再重複發生</strong>
+      </div>
+    </div>
+    <div class="h-rm-step">
+      <div class="h-rm-dot" style="background:#f3e8ff;border:3px solid #9333ea;color:#581c87;">第三版</div>
+      <div class="h-rm-title">完整治理平台</div>
+      <div class="h-rm-tag" style="background:#f3e8ff;color:#581c87;">長期目標</div>
+      <div class="h-rm-desc">
+        多 AI 協作審查<br>
+        安全 / 架構專項分析<br>
+        跨專案治理儀表板<br><br>
+        <strong>目標：完整工程品質<br>治理與可視能力</strong>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-bottom:10px;font-size:14px;font-weight:700;color:var(--muted);letter-spacing:0.05em;">起步前需要確認的三件事</div>
+  <ul class="decision-list">
+    <li>
+      <span class="check">🏗</span>
+      <div>
+        <strong>程式碼是否可以離開內部網路？</strong><br>
+        <span style="color:var(--muted);font-size:13px;">
+          可選擇自架伺服器（程式碼不出內網，資料主權完整）<br>
+          或使用雲端服務（快速啟動、按量計費、免維護）<br>
+          兩種方式功能相同，差異在資料管控程度與建置成本
+        </span>
+      </div>
+    </li>
+    <li>
+      <span class="check">💰</span>
+      <div>
+        <strong>AI 分析的月預算？</strong><br>
+        <span style="color:var(--muted);font-size:13px;">
+          第一版從低成本模型起步，驗證成效後再擴展到高階分析<br>
+          每筆審查費用完整記錄，成本透明可控，不是黑盒子
+        </span>
+      </div>
+    </li>
+    <li>
+      <span class="check">🎯</span>
+      <div>
+        <strong>選哪個專案做試點？</strong><br>
+        <span style="color:var(--muted);font-size:13px;">
+          建議從內部非核心專案開始，降低試點風險<br>
+          累積數據與信心後，再逐步推廣至核心系統
+        </span>
+      </div>
+    </li>
+  </ul>
+
+  <div class="cards-foot">
+    <strong>建議行動：</strong>確認試點專案與部署方式，以第一版在 4 週內完成 AI 審查閉環驗證，用真實數據說話。
+  </div>
+</div>
+</script>
+
+
+<!-- ================== 工具列 + 舞台 ================== -->
+<header class="toolbar">
+  <h1 id="title">AI 工程治理平台 — 主管簡報</h1>
+  <button id="prev" class="nav-btn" title="上一頁(←)">‹</button>
+  <span id="counter" class="counter">0 / 0</span>
+  <button id="next" class="nav-btn" title="下一頁(→)">›</button>
+  <select id="picker" class="picker"></select>
+  <span class="divider"></span>
+  <label>主題
+    <select id="theme">
+      <option value="default">Light</option>
+      <option value="dark">Dark</option>
+      <option value="neutral">Neutral</option>
+    </select>
+  </label>
+  <label>字體
+    <input type="number" id="font-size" value="18" min="10" max="32" step="1" style="width:56px;">
+    <span>px</span>
+  </label>
+  <span class="divider"></span>
+  <button id="zoom-out" class="nav-btn" title="縮小">−</button>
+  <span id="zoom-label" class="zoom-label" title="點擊重設 100%">100%</span>
+  <button id="zoom-in" class="nav-btn" title="放大">+</button>
+  <button id="zoom-fit" title="符合視窗(F)">Fit</button>
+</header>
+
+<main>
+  <div class="preview" id="preview"></div>
+</main>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+
+  const preview    = document.getElementById('preview');
+  const themeSelect  = document.getElementById('theme');
+  const fontSizeInput = document.getElementById('font-size');
+  const picker     = document.getElementById('picker');
+  const counterEl  = document.getElementById('counter');
+  const prevBtn    = document.getElementById('prev');
+  const nextBtn    = document.getElementById('next');
+  const titleEl    = document.getElementById('title');
+  const zoomLabel  = document.getElementById('zoom-label');
+  const zoomIn     = document.getElementById('zoom-in');
+  const zoomOut    = document.getElementById('zoom-out');
+  const zoomFitBtn = document.getElementById('zoom-fit');
+
+  let zoom = 1;
+  const ZOOM_STEPS = [0.5,0.6,0.7,0.8,0.9,1.0,1.15,1.3,1.5,1.75,2.0,2.5,3.0];
+
+  function findZoomIdx(z) {
+    let best=0, diff=Infinity;
+    ZOOM_STEPS.forEach((v,i)=>{ const d=Math.abs(v-z); if(d<diff){diff=d;best=i;} });
+    return best;
+  }
+  function setZoom(z) {
+    zoom = Math.max(0.3, Math.min(4, z));
+    const wrap = preview.querySelector('.svg-wrap');
+    if (wrap) {
+      wrap.style.transform = `scale(${zoom})`;
+      const svg = wrap.querySelector('svg');
+      if (svg) {
+        const w = parseFloat(svg.dataset.origW || svg.getBoundingClientRect().width / zoom);
+        const h = parseFloat(svg.dataset.origH || svg.getBoundingClientRect().height / zoom);
+        wrap.style.width  = (w * zoom) + 'px';
+        wrap.style.height = (h * zoom) + 'px';
+      }
+    }
+    preview.classList.toggle('zoomed', zoom > 1.01);
+    zoomLabel.textContent = Math.round(zoom * 100) + '%';
+  }
+  function zoomStep(dir) {
+    const idx  = findZoomIdx(zoom);
+    const next = ZOOM_STEPS[Math.max(0, Math.min(ZOOM_STEPS.length-1, idx+dir))];
+    setZoom(next);
+  }
+  function zoomFit() {
+    const svgEl = preview.querySelector('svg');
+    if (!svgEl) return;
+    const w = parseFloat(svgEl.dataset.origW || svgEl.getBoundingClientRect().width / zoom);
+    const h = parseFloat(svgEl.dataset.origH || svgEl.getBoundingClientRect().height / zoom);
+    if (!w || !h) return;
+    const pad = 56;
+    setZoom(Math.min((preview.clientWidth-pad)/w, (preview.clientHeight-pad)/h, 4));
+  }
+
+  const slides = Array.from(document.querySelectorAll('script[type="text/plain"][id]'))
+    .map(el => ({ el, id: el.id, label: el.dataset.label||el.id, order: parseFloat(el.dataset.order||'99'), format: el.dataset.format||'mermaid' }))
+    .sort((a,b) => a.order - b.order);
+
+  let currentIndex = 0;
+  let renderToken  = 0;
+
+  function buildPicker() {
+    picker.innerHTML = '';
+    slides.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id; opt.textContent = s.label;
+      picker.appendChild(opt);
+    });
+  }
+  function updateCounter() {
+    counterEl.textContent = `${currentIndex+1} / ${slides.length}`;
+    prevBtn.disabled = currentIndex === 0;
+    nextBtn.disabled = currentIndex === slides.length-1;
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+  function initMermaid() {
+    const theme = themeSelect.value;
+    mermaid.initialize({
+      startOnLoad: false, theme,
+      themeVariables: { fontFamily:'"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif', fontSize: fontSizeInput.value+'px' },
+      flowchart: { useMaxWidth:true, htmlLabels:true },
+      securityLevel: 'loose',
+    });
+    document.documentElement.setAttribute('data-theme', theme==='dark' ? 'dark' : 'light');
+  }
+
+  async function render() {
+    const slide = slides[currentIndex];
+    if (!slide) return;
+    const code  = slide.el.textContent.trim();
+    const token = ++renderToken;
+    titleEl.textContent = slide.label;
+    zoom = 1;
+    try {
+      if (slide.format === 'html') {
+        initMermaid();
+        preview.innerHTML = code;
+        preview.scrollTop = 0; preview.scrollLeft = 0;
+        preview.classList.remove('zoomed','draggable','dragging');
+        zoomLabel.textContent = '100%';
+        const inlineMermaid = preview.querySelectorAll('pre.mermaid, div.mermaid');
+        if (inlineMermaid.length > 0) {
+          inlineMermaid.forEach(n => { if (!n.dataset.mermaidSource) n.dataset.mermaidSource = n.textContent; });
+          try {
+            await mermaid.run({ nodes: inlineMermaid });
+            inlineMermaid.forEach(node => {
+              const svgEl = node.querySelector('svg');
+              if (svgEl) { backdropEdgeLabels(svgEl); elevateClusterLabels(svgEl); }
+            });
+          } catch(e) { /* ignore per-block failures */ }
+        }
+      } else {
+        initMermaid();
+        const { svg } = await mermaid.render('diagram-'+token, code);
+        if (token !== renderToken) return;
+        preview.innerHTML = '<div class="svg-wrap">'+svg+'</div>';
+        preview.classList.add('draggable');
+        const svgEl = preview.querySelector('svg');
+        if (svgEl) {
+          const vb = svgEl.viewBox && svgEl.viewBox.baseVal;
+          const origW = (vb && vb.width)  || svgEl.getBoundingClientRect().width;
+          const origH = (vb && vb.height) || svgEl.getBoundingClientRect().height;
+          svgEl.dataset.origW = origW; svgEl.dataset.origH = origH;
+          svgEl.removeAttribute('style');
+          backdropEdgeLabels(svgEl); elevateClusterLabels(svgEl);
+        }
+        setZoom(1);
+      }
+    } catch(e) {
+      if (token !== renderToken) return;
+      preview.innerHTML = '<div class="error">'+escapeHtml((e && (e.message||e.str)) || String(e))+'</div>';
+    }
+  }
+
+  function elevateClusterLabels(svg) {
+    if (!svg) return;
+    const root   = svg.firstElementChild && svg.firstElementChild.tagName.toLowerCase()==='g' ? svg.firstElementChild : svg;
+    const labels = Array.from(svg.querySelectorAll('.cluster-label'));
+    if (!labels.length) return;
+    const pageBg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#ffffff';
+    const entries = labels.map(label => {
+      const text = (label.textContent||'').trim();
+      if (!text) { label.style.opacity='0'; return null; }
+      const cluster = label.closest('.cluster');
+      const clusterRect = cluster && cluster.querySelector(':scope > rect');
+      let stroke = '#cbd5e1';
+      if (clusterRect) stroke = clusterRect.getAttribute('stroke') || getComputedStyle(clusterRect).stroke || stroke;
+      return { label, ctm: label.getCTM(), bbox: label.getBBox(), stroke };
+    }).filter(Boolean);
+    for (const { label, ctm, bbox, stroke } of entries) {
+      if (!ctm) continue;
+      const wrapper = document.createElementNS('http://www.w3.org/2000/svg','g');
+      wrapper.setAttribute('transform',`matrix(${ctm.a} ${ctm.b} ${ctm.c} ${ctm.d} ${ctm.e} ${ctm.f})`);
+      const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      rect.setAttribute('x', bbox.x-8); rect.setAttribute('y', bbox.y-2);
+      rect.setAttribute('width', bbox.width+16); rect.setAttribute('height', bbox.height+4);
+      rect.setAttribute('fill', pageBg); rect.setAttribute('fill-opacity','0.78');
+      rect.setAttribute('stroke', stroke); rect.setAttribute('stroke-width','1');
+      rect.setAttribute('stroke-opacity','0.6'); rect.setAttribute('rx','4');
+      wrapper.appendChild(rect);
+      const clone = label.cloneNode(true); clone.removeAttribute('transform');
+      wrapper.appendChild(clone);
+      label.style.opacity = '0'; root.appendChild(wrapper);
+    }
+  }
+
+  function backdropEdgeLabels(svg) {
+    if (!svg) return;
+    const pageBg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#ffffff';
+    for (const label of svg.querySelectorAll('g.edgeLabel')) {
+      if (!(label.textContent||'').trim()) continue;
+      if (label.querySelector(':scope > rect.label-backdrop')) continue;
+      let bbox; try { bbox = label.getBBox(); } catch(e) { continue; }
+      if (!bbox.width || !bbox.height) continue;
+      const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      rect.setAttribute('class','label-backdrop'); rect.setAttribute('x', bbox.x-4); rect.setAttribute('y', bbox.y-2);
+      rect.setAttribute('width', bbox.width+8); rect.setAttribute('height', bbox.height+4);
+      rect.setAttribute('fill', pageBg); rect.setAttribute('rx','3');
+      label.insertBefore(rect, label.firstChild);
+    }
+  }
+
+  function goTo(idx) {
+    currentIndex = Math.max(0, Math.min(slides.length-1, idx));
+    picker.value = slides[currentIndex].id;
+    updateCounter();
+    render();
+  }
+  function goToId(id) {
+    const idx = slides.findIndex(s => s.id === id);
+    if (idx >= 0) goTo(idx);
+  }
+
+  function openDiagramInNewWindow(code, title, theme) {
+    const safeCode  = String(code).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const safeTitle = String(title||'圖表').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const isDark = theme === 'dark';
+    const html = '<!DOCTYPE html><html lang="zh-Hant" data-theme="'+(isDark?'dark':'light')+'"><head><meta charset="UTF-8"><title>'+safeTitle+'</title>'
+      +'<style>html,body{margin:0;padding:0;height:100%;background:#fff;color:#0f172a;font-family:"Noto Sans TC",system-ui,sans-serif;}'
+      +'html[data-theme="dark"],html[data-theme="dark"] body{background:#0f172a;color:#f1f5f9;}'
+      +'body{display:flex;flex-direction:column;height:100vh;}'
+      +'header{padding:10px 16px;border-bottom:2px solid #e2e8f0;display:flex;gap:10px;align-items:center;background:#f8fafc;flex-shrink:0;}'
+      +'html[data-theme="dark"] header{background:#1e293b;border-bottom-color:#334155;}'
+      +'header h1{font-size:15px;margin:0 auto 0 0;color:#2563eb;font-weight:700;padding-left:10px;border-left:4px solid #2563eb;}'
+      +'header button{padding:5px 11px;font-size:13px;border:1px solid #e2e8f0;background:#fff;color:inherit;border-radius:5px;cursor:pointer;font-family:inherit;}'
+      +'header button:hover{background:#f1f5f9;border-color:#2563eb;}'
+      +'header .lbl{font-size:12px;color:#64748b;min-width:48px;text-align:center;font-weight:700;cursor:pointer;}'
+      +'main{flex:1;min-height:0;overflow:auto;padding:32px;cursor:grab;user-select:none;}'
+      +'main.dragging{cursor:grabbing;} main.dragging *{pointer-events:none;}'
+      +'.wrap{display:inline-block;transform-origin:top left;transition:transform 0.12s ease;}'
+      +'.wrap svg{display:block;}'
+      +'</style></head><body>'
+      +'<header><h1>'+safeTitle+'</h1><button id="zo">−</button><span class="lbl" id="zl">100%</span><button id="zi">+</button><button id="zf">Fit</button></header>'
+      +'<main id="m"><div class="wrap" id="w"><pre class="mermaid">'+safeCode+'</pre></div></main>'
+      +'<script type="module">'
+      +'import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";'
+      +'mermaid.initialize({startOnLoad:false,theme:"'+(isDark?'dark':'default')+'",flowchart:{useMaxWidth:false,htmlLabels:true},securityLevel:"loose"});'
+      +'let z=1;const m=document.getElementById("m"),w=document.getElementById("w"),zl=document.getElementById("zl");'
+      +'function sz(v){z=Math.max(0.3,Math.min(4,v));w.style.transform="scale("+z+")";zl.textContent=Math.round(z*100)+"%";}'
+      +'document.getElementById("zo").onclick=()=>sz(z/1.2);'
+      +'document.getElementById("zi").onclick=()=>sz(z*1.2);'
+      +'document.getElementById("zf").onclick=()=>{const s=w.querySelector("svg");if(s){const r=s.getBoundingClientRect();sz(Math.min((m.clientWidth-56)/r.width*z,(m.clientHeight-56)/r.height*z));}};'
+      +'(async()=>{try{await mermaid.run({nodes:document.querySelectorAll("pre.mermaid")});}catch(e){}})();'
+      +'<\/script></body></html>';
+    const url = URL.createObjectURL(new Blob([html],{type:'text/html'}));
+    const win = window.open(url,'_blank');
+    if (!win) { URL.revokeObjectURL(url); alert('彈出視窗被封鎖，請允許此頁面開啟新分頁'); return; }
+    setTimeout(()=>URL.revokeObjectURL(url), 60000);
+  }
+
+  buildPicker();
+  picker.addEventListener('change', e => goToId(e.target.value));
+  themeSelect.addEventListener('change', render);
+  fontSizeInput.addEventListener('input', render);
+  prevBtn.addEventListener('click', ()=>goTo(currentIndex-1));
+  nextBtn.addEventListener('click', ()=>goTo(currentIndex+1));
+  zoomIn.addEventListener('click',  ()=>zoomStep(1));
+  zoomOut.addEventListener('click', ()=>zoomStep(-1));
+  zoomFitBtn.addEventListener('click', zoomFit);
+  zoomLabel.addEventListener('click', ()=>setZoom(1));
+
+  preview.addEventListener('wheel', e => {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    zoomStep(e.deltaY < 0 ? 1 : -1);
+  }, { passive: false });
+
+  let drag = null;
+  preview.addEventListener('mousedown', e => {
+    if (e.button!==0 || !preview.classList.contains('draggable')) return;
+    drag = { startX: e.clientX, startY: e.clientY, scrollX: preview.scrollLeft, scrollY: preview.scrollTop, moved: false };
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e => {
+    if (!drag) return;
+    const dx = e.clientX-drag.startX, dy = e.clientY-drag.startY;
+    if (!drag.moved && Math.abs(dx)+Math.abs(dy)>3) { drag.moved=true; preview.classList.add('dragging'); }
+    if (drag.moved) { preview.scrollLeft = drag.scrollX-dx; preview.scrollTop = drag.scrollY-dy; }
+  });
+  document.addEventListener('mouseup', ()=>{ if(!drag) return; drag=null; preview.classList.remove('dragging'); });
+
+  document.addEventListener('keydown', e => {
+    const tag = e.target.tagName;
+    if (tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA') return;
+    if (e.key==='ArrowRight'||e.key==='PageDown'||e.key===' ') { e.preventDefault(); goTo(currentIndex+1); }
+    else if (e.key==='ArrowLeft'||e.key==='PageUp')  { e.preventDefault(); goTo(currentIndex-1); }
+    else if (e.key==='Home') { e.preventDefault(); goTo(0); }
+    else if (e.key==='End')  { e.preventDefault(); goTo(slides.length-1); }
+    else if (e.key==='+'||e.key==='=') { e.preventDefault(); zoomStep(1); }
+    else if (e.key==='-'||e.key==='_') { e.preventDefault(); zoomStep(-1); }
+    else if (e.key==='0') { e.preventDefault(); setZoom(1); }
+    else if (e.key==='f'||e.key==='F') { e.preventDefault(); zoomFit(); }
+  });
+
+  preview.addEventListener('click', e => {
+    const btn = e.target.closest('[data-action="zoom-diagram"]');
+    if (!btn) return;
+    e.preventDefault();
+    const node = preview.querySelector('#'+(window.CSS && CSS.escape ? CSS.escape(btn.dataset.target) : btn.dataset.target));
+    if (!node) return;
+    const code = (node.dataset.mermaidSource || node.textContent || '').trim();
+    if (code) openDiagramInNewWindow(code, btn.dataset.title||'圖表', themeSelect.value);
+  });
+
+  themeSelect.value = 'default';
+  goTo(0);
+</script>
+</body>
+</html>
