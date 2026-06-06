@@ -80,6 +80,7 @@ jobs:
 
   # ── 步驟③ 末 — CI 結果彙整成 ci-report.json artifact ──
   ci-report:
+    environment: ${{ github.event_name == 'pull_request' && 'staging' || 'production' }}
     needs: [secret-scan, security-scan]
     if: always()
     runs-on: ubuntu-latest
@@ -118,14 +119,6 @@ jobs:
           name: ci-report
           path: ci-report.json
           retention-days: 7
-      # § 五 Audit — append-only,寫入失敗 fail-fast
-      - name: Audit — stage ci
-        if: vars.AUDIT_URL != ''
-        run: |
-          curl --fail -X POST "${{ vars.AUDIT_URL }}/events" \
-            -H "Authorization: Bearer ${{ secrets.AUDIT_KEY }}" \
-            -H "Content-Type: application/json" \
-            --data @ci-report.json
       # 步驟 ⑧ Notifier — best-effort,掛了不卡 merge / deploy
       - name: Notify — ci.completed
         if: vars.NOTIFIER_URL != ''
@@ -134,11 +127,45 @@ jobs:
           curl -X POST "${{ vars.NOTIFIER_URL }}/events" \
             -H "Content-Type: application/json" \
             --data @ci-report.json
+      # CI-CD Platform — health check → report(best-effort;平台不在時不卡流程)
+      - name: CI-CD Platform health check
+        id: ci_health
+        if: vars.CICD_PLATFORM_URL != ''
+        env:
+          PLATFORM_URL: ${{ vars.CICD_PLATFORM_URL }}
+        run: |
+          code=$(curl -sS -o /dev/null -w "%{http_code}" \
+                      --connect-timeout 5 --max-time 10 \
+                      "$PLATFORM_URL/health" || echo "000")
+          echo "CI-CD Platform /health => HTTP $code"
+          if [ "$code" = "200" ]; then
+            echo "healthy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::CI-CD Platform unhealthy (HTTP $code) → 跳過平台回報"
+            echo "healthy=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Report to CI-CD Platform
+        if: vars.CICD_PLATFORM_URL != '' && steps.ci_health.outputs.healthy == 'true'
+        continue-on-error: true
+        env:
+          PLATFORM_URL: ${{ vars.CICD_PLATFORM_URL }}
+          PLATFORM_KEY: ${{ secrets.CICD_PLATFORM_KEY }}
+        run: |
+          curl --fail -X POST "$PLATFORM_URL/events" \
+            -H "Authorization: Bearer $PLATFORM_KEY" \
+            -H "X-DF-Author:       ${{ github.event.pull_request.user.login || github.actor }}" \
+            -H "X-DF-Author-Email: ${{ github.event.pull_request.user.email || github.event.pusher.email }}" \
+            -H "X-DF-Repo:         ${{ github.repository }}" \
+            -H "X-DF-PR:           ${{ github.event.pull_request.number || 'push operation' }}" \
+            -H "X-DF-Commit-SHA:   ${{ github.sha }}" \
+            -H "Content-Type: application/json" \
+            --data @ci-report.json
 
   # ───────────────────────────────────────────────
   # 步驟 ④⑤ — 打 CI-CD Platform 做 AI code review(僅 pull_request 且 CI 全綠)
   # ───────────────────────────────────────────────
   ai-review:
+    environment: staging
     needs: [secret-scan, security-scan]
     if: >-
       github.event_name == 'pull_request' &&
@@ -263,10 +290,10 @@ jobs:
 
       # § 五 Audit — stage ai-review
       - name: Audit — stage ai-review
-        if: vars.AUDIT_URL != ''
+        if: vars.CICD_PLATFORM_URL != ''
         run: |
-          curl --fail -X POST "${{ vars.AUDIT_URL }}/events" \
-            -H "Authorization: Bearer ${{ secrets.AUDIT_KEY }}" \
+          curl --fail -X POST "${{ vars.CICD_PLATFORM_URL }}/events" \
+            -H "Authorization: Bearer ${{ secrets.CICD_PLATFORM_KEY }}" \
             -H "Content-Type: application/json" \
             -d '{"source":"github-actions","stage":"ai-review",
                  "pr_number":"${{ github.event.pull_request.number }}",
@@ -279,6 +306,7 @@ jobs:
   #   判決規則寫在 yaml,由上而下命中即停,對齊 workflow-v1.0.md §一.⑥ row1~row9
   # ───────────────────────────────────────────────
   auto-merge:
+    environment: staging
     needs: [secret-scan, security-scan, ai-review]
     if: always() && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
@@ -379,10 +407,10 @@ jobs:
 
       # § 五 Audit — stage judgement(matched_rule_id 必填)
       - name: Audit — stage judgement
-        if: vars.AUDIT_URL != ''
+        if: vars.CICD_PLATFORM_URL != ''
         run: |
-          curl --fail -X POST "${{ vars.AUDIT_URL }}/events" \
-            -H "Authorization: Bearer ${{ secrets.AUDIT_KEY }}" \
+          curl --fail -X POST "${{ vars.CICD_PLATFORM_URL }}/events" \
+            -H "Authorization: Bearer ${{ secrets.CICD_PLATFORM_KEY }}" \
             -H "Content-Type: application/json" \
             -d '{"source":"github-actions","stage":"judgement",
                  "pr_number":"${{ github.event.pull_request.number }}",
@@ -407,6 +435,7 @@ jobs:
   #   Coolify 自拉 git build,image tag 綁 commit SHA(禁 latest)
   # ───────────────────────────────────────────────
   cd-trigger:
+    environment: production
     needs: [secret-scan, security-scan]
     if: >-
       github.event_name == 'push' &&
@@ -439,9 +468,9 @@ jobs:
           path: cd-report.json
           retention-days: 7
       - name: Audit — stage deploy
-        if: vars.AUDIT_URL != ''
+        if: vars.CICD_PLATFORM_URL != ''
         run: |
-          curl --fail -X POST "${{ vars.AUDIT_URL }}/events" \
-            -H "Authorization: Bearer ${{ secrets.AUDIT_KEY }}" \
+          curl --fail -X POST "${{ vars.CICD_PLATFORM_URL }}/events" \
+            -H "Authorization: Bearer ${{ secrets.CICD_PLATFORM_KEY }}" \
             -H "Content-Type: application/json" \
             --data @cd-report.json
