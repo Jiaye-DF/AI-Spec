@@ -1,10 +1,10 @@
 # CLAUDE.md
 
-Claude Code 在 **React + TypeScript + FastAPI + PostgreSQL** 專案的全局規則,**本地開發優先**。具體規範見 `docs/Design-Base/`。
+Claude Code 在 **Next.js (App Router) + TypeScript + FastAPI + PostgreSQL** 專案的全局規則,**本地開發優先**。具體規範見 `docs/Design-Base/`。
 
 ## 鎖定技術棧
 
-- **Frontend**:React + **TypeScript**(`strict: true`,**禁** `any`)
+- **Frontend**:Next.js 16 (App Router) + **TypeScript**(`strict: true`,**禁** `any`)
 - **Backend**:FastAPI(Python)
 - **Database**:PostgreSQL
 

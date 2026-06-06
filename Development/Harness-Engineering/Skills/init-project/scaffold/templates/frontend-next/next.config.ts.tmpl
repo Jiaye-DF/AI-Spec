@@ -1,0 +1,9 @@
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+{{#if use_docker_compose}}
+  output: 'standalone',
+{{/if}}
+}
+
+export default nextConfig

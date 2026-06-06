@@ -1,25 +1,37 @@
 {
   "$comment": "scaffold manifest — 唯一真相來源(版本 / 檔案地圖 / 條件分支)。改版本只改本檔,template 內用 {{var}} 引用。dst 也支援 {{api_version}} 之類佔位。",
-  "schema_version": "1.1",
+  "schema_version": "1.2",
 
   "versions": {
+    "scaffold_version": "1.2",
     "python": "3.14.1",
     "node": "24.0.0",
     "postgres": "18",
+    "docker": {
+      "frontend_node_image": "node:24-alpine",
+      "backend_python_image": "python:3.14-slim",
+      "postgres_image": "postgres:18-alpine"
+    },
     "frontend": {
-      "react": "19.2.5",
-      "react_dom": "19.2.5",
+      "next": "16.2.7",
+      "react": "19.2.0",
+      "react_dom": "19.2.0",
       "redux_toolkit": "2.11.2",
       "react_redux": "9.2.0",
       "typescript": "5.9.3",
-      "vite": "6.0.7",
-      "vite_plugin_react": "4.3.4",
+      "types_node": "24.0.0",
+      "types_react": "19.1.6",
+      "types_react_dom": "19.1.5",
       "tailwindcss": "4.2.4",
       "tailwindcss_postcss": "4.2.4",
       "postcss": "8.5.12",
       "eslint": "9.39.4",
+      "eslint_config_next": "16.2.7",
+      "eslint_eslintrc": "3.2.0",
       "eslint_js": "9.39.4",
       "typescript_eslint": "9.4.0",
+      "vite": "6.0.7",
+      "vite_plugin_react": "4.3.4",
       "vitest": "2.1.9"
     },
     "backend": {
@@ -44,9 +56,10 @@
   "params": {
     "$comment": "param 預設值;CLI 可覆蓋。postgres_user / postgres_password 預設值由 scaffold.mjs buildPlaceholders() 計算(user=project_name_underscore;password=changeme-development);只在 include_database=true 時用",
     "project_name": { "required": true, "validate": "kebab-case" },
-    "frontend": { "default": "vite", "enum": ["vite", "next"] },
+    "frontend": { "default": "next", "enum": ["next", "vite"] },
     "include_database": { "default": true, "type": "boolean" },
     "include_azure_sso": { "default": false, "type": "boolean" },
+    "use_docker_compose": { "default": false, "type": "boolean", "$note": "由 SKILL.md § 1c Docker 偵測結果設定;true 時 scaffold 額外產 docker-compose.yml + Dockerfile" },
     "frontend_port": { "default": 3000, "type": "number" },
     "backend_port": { "default": 8000, "type": "number" },
     "postgres_port": { "default": 5432, "type": "number" },
@@ -101,6 +114,23 @@
     { "type": "render", "src": "templates/backend/app/models/base.py.tmpl",            "dst": "backend/app/models/base.py",                       "when": { "include_database": true } },
     { "type": "render", "src": "templates/_empty.tmpl",                                "dst": "backend/app/repositories/__init__.py",             "when": { "include_database": true } },
 
+    { "$section": "frontend — next branch (Next.js 16 App Router)" },
+    { "type": "render", "src": "templates/frontend-next/package.json.tmpl",            "dst": "frontend/package.json",                            "when": { "frontend": "next" } },
+    { "type": "render", "src": "templates/frontend-next/tsconfig.json.tmpl",           "dst": "frontend/tsconfig.json",                           "when": { "frontend": "next" } },
+    { "type": "render", "src": "templates/frontend-next/next.config.ts.tmpl",          "dst": "frontend/next.config.ts",                          "when": { "frontend": "next" } },
+    { "type": "render", "src": "templates/frontend-next/postcss.config.mjs.tmpl",      "dst": "frontend/postcss.config.mjs",                      "when": { "frontend": "next" } },
+    { "type": "render", "src": "templates/frontend-next/eslint.config.mjs.tmpl",       "dst": "frontend/eslint.config.mjs",                       "when": { "frontend": "next" } },
+    { "type": "render", "src": "templates/frontend-next/.env.local.example.tmpl",      "dst": "frontend/.env.local.example",                      "when": { "frontend": "next" } },
+    { "type": "render", "src": "templates/frontend-next/src/app/layout.tsx.tmpl",      "dst": "frontend/src/app/layout.tsx",                      "when": { "frontend": "next" } },
+    { "type": "render", "src": "templates/frontend-next/src/app/page.tsx.tmpl",        "dst": "frontend/src/app/page.tsx",                        "when": { "frontend": "next" } },
+    { "type": "render", "src": "templates/frontend-next/src/app/globals.css.tmpl",     "dst": "frontend/src/app/globals.css",                     "when": { "frontend": "next" } },
+    { "type": "render", "src": "templates/frontend-next/src/lib/api/baseApi.ts.tmpl",  "dst": "frontend/src/lib/api/baseApi.ts",                   "when": { "frontend": "next" } },
+    { "type": "render", "src": "templates/frontend-next/src/store/store.ts.tmpl",      "dst": "frontend/src/store/store.ts",                      "when": { "frontend": "next" } },
+    { "type": "render", "src": "templates/frontend-next/src/store/provider.tsx.tmpl",  "dst": "frontend/src/store/provider.tsx",                   "when": { "frontend": "next" } },
+    { "type": "render", "src": "templates/frontend-next/src/utils/datetime.ts.tmpl",   "dst": "frontend/src/utils/datetime.ts",                   "when": { "frontend": "next" } },
+    { "type": "mkdir",  "dst": "frontend/public",                                                                                                  "when": { "frontend": "next" } },
+    { "type": "mkdir",  "dst": "frontend/src/components",                                                                                          "when": { "frontend": "next" } },
+
     { "$section": "frontend — vite branch" },
     { "type": "render", "src": "templates/frontend-vite/package.json.tmpl",            "dst": "frontend/package.json",        "when": { "frontend": "vite" } },
     { "type": "render", "src": "templates/frontend-vite/tsconfig.json.tmpl",           "dst": "frontend/tsconfig.json",       "when": { "frontend": "vite" } },
@@ -118,16 +148,19 @@
     { "type": "render", "src": "templates/frontend-vite/src/smoke.test.ts.tmpl",       "dst": "frontend/src/smoke.test.ts",     "when": { "frontend": "vite" } },
     { "type": "mkdir",  "dst": "frontend/src/components", "when": { "frontend": "vite" } },
 
-    { "$section": "frontend — next branch (placeholder, Phase 3)" },
-    { "$todo": "next branch templates 待 Phase 3 補上",
-      "type": "render", "src": "templates/frontend-next/package.json.tmpl",            "dst": "frontend/package.json",        "when": { "frontend": "next" } },
-
     { "$section": "optional — azure_ad SSO module" },
     { "type": "render", "src": "templates/backend/app/clients/azure_ad/__init__.py.tmpl", "dst": "backend/app/clients/azure_ad/__init__.py", "when": { "include_azure_sso": true } },
     { "type": "render", "src": "templates/backend/app/clients/azure_ad/client.py.tmpl",   "dst": "backend/app/clients/azure_ad/client.py",   "when": { "include_azure_sso": true } },
     { "type": "render", "src": "templates/backend/app/clients/azure_ad/schemas.py.tmpl",  "dst": "backend/app/clients/azure_ad/schemas.py",  "when": { "include_azure_sso": true } },
     { "type": "render", "src": "templates/backend/app/clients/azure_ad/errors.py.tmpl",   "dst": "backend/app/clients/azure_ad/errors.py",   "when": { "include_azure_sso": true } },
-    { "type": "render", "src": "templates/backend/app/clients/azure_ad/README.md.tmpl",   "dst": "backend/app/clients/azure_ad/README.md",   "when": { "include_azure_sso": true } }
+    { "type": "render", "src": "templates/backend/app/clients/azure_ad/README.md.tmpl",   "dst": "backend/app/clients/azure_ad/README.md",   "when": { "include_azure_sso": true } },
+
+    { "$section": "optional — Docker Compose (when use_docker_compose=true)" },
+    { "type": "render", "src": "templates/docker/docker-compose.yml.tmpl",             "dst": "docker-compose.yml",                               "when": { "use_docker_compose": true } },
+    { "type": "render", "src": "templates/docker/frontend/Dockerfile.tmpl",            "dst": "frontend/Dockerfile",                              "when": { "use_docker_compose": true } },
+    { "type": "render", "src": "templates/docker/frontend/.dockerignore.tmpl",         "dst": "frontend/.dockerignore",                           "when": { "use_docker_compose": true } },
+    { "type": "render", "src": "templates/docker/backend/Dockerfile.tmpl",             "dst": "backend/Dockerfile",                               "when": { "use_docker_compose": true } },
+    { "type": "render", "src": "templates/docker/backend/.dockerignore.tmpl",          "dst": "backend/.dockerignore",                            "when": { "use_docker_compose": true } }
   ],
 
   "post_actions": [

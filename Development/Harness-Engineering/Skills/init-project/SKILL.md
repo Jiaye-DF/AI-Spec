@@ -1,6 +1,6 @@
 ---
 name: init-project
-description: 一鍵套用 Harness-Engineering + 產生 React + TypeScript + FastAPI(可選 PostgreSQL)最小可跑骨架。若 cwd 含 Harness-Engineering/,先 cp 規範檔(CLAUDE.md / AGENTS.md / docs/Design-Base / prompts→docs/Prompts)並刪除 Harness-Engineering/,再跑 scaffold.mjs。當使用者說「初始化專案 / scaffold / 建專案 / new project / 開新專案」時觸發。版本鎖定 / 檔案地圖由 scaffold/manifest.json 決定。
+description: 一鍵套用 Harness-Engineering + 產生 Next.js (App Router) + TypeScript + FastAPI(可選 PostgreSQL / Docker Compose)最小可跑骨架。若 cwd 含 Harness-Engineering/,先 cp 規範檔(CLAUDE.md / AGENTS.md / docs/Design-Base / prompts→docs/Prompts)並刪除 Harness-Engineering/,再跑 scaffold.mjs。當使用者說「初始化專案 / scaffold / 建專案 / new project / 開新專案」時觸發。版本鎖定 / 檔案地圖由 scaffold/manifest.json 決定。
 ---
 
 # init-project
@@ -21,7 +21,7 @@ description: 一鍵套用 Harness-Engineering + 產生 React + TypeScript + Fast
 
 1. **不自由發揮**:落檔交給 `scaffold/scaffold.mjs`,LLM 不得自己寫 src/.tmpl 內容
 2. **版本一律鎖到 patch**:版本只在 `scaffold/manifest.json` 一處,LLM 不得自行指定
-3. **本地開發優先**:後端 `uvicorn` + 前端 dev server;若 `include_database=true`,PostgreSQL 由開發者本機 install
+3. **本地開發優先**:後端 `uvicorn` + 前端 dev server;若 `include_database=true`,PostgreSQL 由開發者本機 install 或以 Docker Container 跑(依 § 1c 使用者選擇)
 4. **輸出語言**:繁體中文(回應 / 註解 / 文件 / commit message)
 5. **範圍邊界**:本 skill 含「規範檔展開」與「程式碼骨架產出」兩段 — 但**僅限 cp Harness-Engineering/ 已存在的內容**,LLM 不得自寫 docs/Design-Base / CLAUDE.md / AGENTS.md 任何字句
 6. **不可逆動作要明示**:刪除 `Harness-Engineering/` 前必須再次徵詢確認
@@ -188,6 +188,35 @@ target 目錄允許三種狀態:
 > - `.github/workflows/ci.yml` / `.github/workflows/e2e.yml`
 > - `backend/**` / `frontend/**`(整個子樹)
 
+#### 1c. Docker / Docker Compose 偵測
+
+> **設計目的**:若使用者機器有 Docker 環境,可選用 Docker Compose 統一管理服務(frontend + backend + PostgreSQL);否則沿用 localhost 本機開發模式。偵測在 § 1b 後、§ 2 前執行。
+
+**偵測指令**:
+
+```bash
+docker --version          # Docker daemon 是否存在
+docker compose version    # Compose V2(新版;推薦)
+docker-compose --version  # Compose V1(舊版回退)
+```
+
+**結果分流**:
+
+| 偵測結果 | 行為 |
+| --- | --- |
+| Docker 不存在 / daemon 未啟動(exit ≠ 0) | **直接採用 localhost 模式**,設 `use_docker_compose=false`,跳至 § 2;不詢問使用者 |
+| Docker 存在,但 Compose 不存在 | 同上,採 localhost 模式;可告知「Docker 可用但無 Compose,沿用 localhost」 |
+| Docker 與 Compose(V1 或 V2)皆就緒 | 用 `AskUserQuestion` 詢問使用者(見下) |
+
+**詢問選項**(僅當 Docker + Compose 皆就緒時):
+
+- **localhost 模式 (Recommended)** — 後端 uvicorn + 前端 dev server;PostgreSQL 本機 install;最快 onboard;scaffold 不產 Dockerfile / docker-compose.yml;`use_docker_compose=false`
+- **Docker Compose 模式** — scaffold 額外產 `docker-compose.yml` + `frontend/Dockerfile` + `backend/Dockerfile`;PostgreSQL 以 container 跑;Dev 環境統一;前端 image 使用 `node:24-alpine`;`use_docker_compose=true`
+
+> **注意(Docker Compose 模式)**:acceptance § 6 的 health check 改由 `docker compose up -d` 後執行;backend port 對應 `docker-compose.yml` 定義;前端 `NEXT_PUBLIC_API_URL` 須指向 backend service name。
+
+---
+
 ### 2. 收集參數
 
 #### 2a. 一般參數(用 `AskUserQuestion`)
@@ -197,9 +226,10 @@ target 目錄允許三種狀態:
 | 參數 | 預設 | 說明 |
 | --- | --- | --- |
 | `project_name` | (必填) | kebab-case;校驗 `/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/` |
-| `frontend` | `vite` | `vite` 或 `next`(Phase 3 才支援 next) |
+| `frontend` | `next` | `next`(App Router,推薦) 或 `vite` |
 | `include_database` | `true` | true 時加 SQLAlchemy + asyncpg + Alembic + DB ping;false 則純 FastAPI |
 | `include_azure_sso` | `false` | true 時加 `backend/app/clients/azure_ad/` |
+| `use_docker_compose` | 由 § 1c 決定 | § 1c 偵測後自動設定;true 時額外產 `docker-compose.yml` + Dockerfile |
 | `frontend_port` | `3000` | dev server port |
 | `backend_port` | `8000` | dev server port |
 | `postgres_port` | `5432` | 本機 PostgreSQL port(僅 `include_database=true` 用) |
@@ -235,9 +265,10 @@ skill 安裝後路徑通常為 `~/.claude/skills/init-project/`。呼叫:
 ```bash
 node <skill-root>/scaffold/scaffold.mjs \
   --name <project_name> \
-  --frontend <vite|next> \
+  --frontend <next|vite> \
   [--no-database] \
   [--include-azure-sso] \
+  [--use-docker-compose] \
   --frontend-port <n> --backend-port <n> --postgres-port <n> \
   [--postgres-user <name>] [--postgres-password <pw>] \
   --api-version <v> \
@@ -272,8 +303,8 @@ scaffold.mjs 結束後會自動印出。LLM 不需重述。
 
 commit message 依本次有沒有走 § 0 而異:
 
-- 含 § 0(套過 Harness-Engineering):`(AI) Add: 套用 Harness-Engineering 規範 + 初始化 React + FastAPI 專案骨架`
-- 不含 § 0:`(AI) Add: 初始化 React + FastAPI 專案骨架`
+- 含 § 0(套過 Harness-Engineering):`(AI) Add: 套用 Harness-Engineering 規範 + 初始化 Next.js + FastAPI 專案骨架`
+- 不含 § 0:`(AI) Add: 初始化 Next.js + FastAPI 專案骨架`
 
 ```bash
 git add -A && git commit -m "<上述 message>"
@@ -288,10 +319,14 @@ git add -A && git commit -m "<上述 message>"
 3. `cd backend && uv run ruff check .` exit 0
 4. `cd backend && uv run mypy . --strict` exit 0
 5. `cd frontend && npm ci && npm run typecheck && npm run lint` exit 0
-6. 啟 backend 後驗 `/api/{api_version}/health`,**模式**依 § 2b 使用者選擇分歧:
-   - `include_database=false` → `curl -s localhost:<backend_port>/api/v1/health | jq -e '.data.status == "ok"'` exit 0
-   - `include_database=true && § 2b 選「完整輸入」或「用預設值」` → **HARD**:`curl -s localhost:<backend_port>/api/v1/health | jq -e '.data.db == "ok"'` exit 0(連不上 DB → fail)
-   - `include_database=true && § 2b 選「暫時跳過(SKIP)」` → **SOFT**:`curl -s -o /dev/null -w "%{http_code}" localhost:<backend_port>/api/v1/health` 為 `200`(backend 起得來)即可;`.data.db` 允許 `"error"` 或 `"unknown"`;**警告但不 fail**,並提醒使用者「PG 連線跳過驗證,等你裝好 PG 後重跑 `/start-dev` + 手動 curl /health 確認」
+6. 啟 backend 後驗 `/api/{api_version}/health`,**模式**依 § 1c + § 2b 使用者選擇分歧:
+   - **localhost 模式**(`use_docker_compose=false`):直接 `uvicorn` 啟動,curl localhost
+     - `include_database=false` → `curl -s localhost:<backend_port>/api/v1/health | jq -e '.data.status == "ok"'` exit 0
+     - `include_database=true && § 2b 選「完整輸入」或「用預設值」` → **HARD**:`curl -s localhost:<backend_port>/api/v1/health | jq -e '.data.db == "ok"'` exit 0(連不上 DB → fail)
+     - `include_database=true && § 2b 選「暫時跳過(SKIP)」` → **SOFT**:curl 返回 `200` 即可;`.data.db` 允許 `"error"`;**警告但不 fail**
+   - **Docker Compose 模式**(`use_docker_compose=true`):先 `docker compose up -d --build` 等服務 healthy,再 curl
+     - `include_database=false` → 同 localhost HARD 條件
+     - `include_database=true` → **HARD**:`curl -s localhost:<backend_port>/api/v1/health | jq -e '.data.db == "ok"'` exit 0;DB 由 postgres container 提供,若連不上先 `docker compose logs postgres` 確認
 7. **僅當 cwd 有 `.git/`**:`git status` untracked 為新建檔;**禁** dirty 既有檔;**禁** `.env` 出現在 untracked / staged 清單(被 `.gitignore` 擋住才對,出現代表 .gitignore 沒生效)。無 `.git/` → 跳過本條(對齊 § 4a)
 8. 確認 `~/.claude/skills/start-dev/` 與 `~/.claude/skills/stop-dev/` 已就位(§ 0b 步驟 6 cp 過去)— `ls ~/.claude/skills/` 含這兩個目錄
 9. (可選)實際跑一次 `/start-dev` → backend + frontend 兩個 dev server 起得來;再跑 `/stop-dev` → 正常清掉

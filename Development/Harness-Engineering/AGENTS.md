@@ -1,6 +1,6 @@
 # AGENTS.md — Harness-Engineering
 
-跨工具(Claude Code / Codex / Cursor / Cline / Aider)agent 協議。**鎖定 React + TypeScript + FastAPI + PostgreSQL,本地開發優先**。
+跨工具(Claude Code / Codex / Cursor / Cline / Aider)agent 協議。**鎖定 Next.js (App Router) + TypeScript + FastAPI + PostgreSQL,本地開發優先**。
 
 > ⚠️ **localhost ≠ 部署環境**。本檔 `localhost:*` 範例僅供本地開發;部署規範見 `docs/Design-Base/06-Coolify-CD/`。
 
@@ -10,7 +10,7 @@
 
 ## Tech Stack
 
-- **Frontend**:React + TypeScript(`strict: true`)+ (Vite | Next.js) + Redux Toolkit + RTK Query + Tailwind v4
+- **Frontend**:Next.js 16 (App Router) + TypeScript(`strict: true`)+ Redux Toolkit + RTK Query + Tailwind v4(Vite 為次選)
 - **Backend**:Python + FastAPI + SQLAlchemy 2 async + Pydantic 2 + Alembic + uv + httpx + `pyjwt[crypto]` + `passlib[bcrypt]`
 - **Database**:PostgreSQL(asyncpg)
 - 版本鎖到 patch — 詳見 `docs/Design-Base/00-overview/01-versions.md`
