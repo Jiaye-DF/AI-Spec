@@ -29,15 +29,17 @@ jobs:
   # ── 機密外洩掃描(與技術棧無關) ──
   secret-scan:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0               # gitleaks 需完整歷史
       - uses: gitleaks/gitleaks-action@v2
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
-        with:
-          config-path: .gitleaks.toml
 
   # ── 原始碼安全掃描 SAST(semgrep 自動偵測語言,config 用泛用 ruleset) ──
   security-scan:
