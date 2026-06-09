@@ -104,7 +104,7 @@ jobs:
             "source": "github-actions",
             "event": "ci.completed",
             "stage": "ci",
-            "pr_number": "${{ github.event.pull_request.number }}",
+            "pr_number": ${{ github.event.pull_request.number || -1 }},
             "commit_sha": "${{ github.sha }}",
             "result": "$overall",
             "jobs": {
@@ -220,7 +220,7 @@ jobs:
           PR_BODY: ${{ github.event.pull_request.body }}
         run: |
           jq -n \
-            --argjson pr_number "${{ github.event.pull_request.number }}" \
+            --argjson pr_number "${{ github.event.pull_request.number || -1 }}" \
             --arg commit_sha "${{ github.sha }}" \
             --arg repo "${{ github.repository }}" \
             --arg diff "$(cat /tmp/pr.diff)" \
@@ -265,7 +265,7 @@ jobs:
           curl -X POST "${{ vars.NOTIFIER_URL }}/events" \
             -H "Content-Type: application/json" \
             -d '{"source":"github-actions","event":"review.skipped",
-                 "pr_number":"${{ github.event.pull_request.number }}",
+                 "pr_number":${{ github.event.pull_request.number || -1 }},
                  "commit_sha":"${{ github.sha }}","verdict":"manual",
                  "reason":"platform_unhealthy"}'
 
@@ -298,7 +298,7 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.CICD_PLATFORM_KEY }}" \
             -H "Content-Type: application/json" \
             -d '{"source":"github-actions","stage":"ai-review",
-                 "pr_number":"${{ github.event.pull_request.number }}",
+                 "pr_number":${{ github.event.pull_request.number || -1 }},
                  "commit_sha":"${{ github.sha }}",
                  "verdict":"${{ steps.verdict.outputs.verdict }}",
                  "review_skipped":"${{ steps.health.outputs.skipped }}"}'
@@ -415,7 +415,7 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.CICD_PLATFORM_KEY }}" \
             -H "Content-Type: application/json" \
             -d '{"source":"github-actions","stage":"judgement",
-                 "pr_number":"${{ github.event.pull_request.number }}",
+                 "pr_number":${{ github.event.pull_request.number || -1 }},
                  "commit_sha":"${{ github.sha }}",
                  "verdict":"${{ steps.final.outputs.verdict }}",
                  "matched_rule_id":"${{ steps.final.outputs.matched_rule }}"}'
@@ -428,7 +428,7 @@ jobs:
           curl -X POST "${{ vars.NOTIFIER_URL }}/events" \
             -H "Content-Type: application/json" \
             -d '{"source":"github-actions","event":"merge.done",
-                 "pr_number":"${{ github.event.pull_request.number }}",
+                 "pr_number":${{ github.event.pull_request.number || -1 }},
                  "commit_sha":"${{ github.sha }}",
                  "verdict":"${{ steps.final.outputs.verdict }}"}'
 
