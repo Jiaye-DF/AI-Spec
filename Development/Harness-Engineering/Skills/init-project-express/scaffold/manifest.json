@@ -76,6 +76,7 @@
 
   "actions": [
     { "$section": "always — root files" },
+    { "type": "render", "src": "templates/root/CLAUDE.md.tmpl",                 "dst": "CLAUDE.md" },
     { "type": "render", "src": "templates/root/.gitignore.tmpl",                "dst": ".gitignore" },
     { "type": "render", "src": "templates/root/.env.development.example.tmpl",  "dst": ".env.development.example" },
     { "type": "render", "src": "templates/root/.env.staging.example.tmpl",      "dst": ".env.staging.example" },
@@ -126,6 +127,8 @@
     { "type": "render", "src": "templates/frontend-next/src/store/store.ts.tmpl",      "dst": "frontend/src/store/store.ts",                      "when": { "frontend": "next" } },
     { "type": "render", "src": "templates/frontend-next/src/store/provider.tsx.tmpl",  "dst": "frontend/src/store/provider.tsx",                   "when": { "frontend": "next" } },
     { "type": "render", "src": "templates/frontend-next/src/utils/datetime.ts.tmpl",   "dst": "frontend/src/utils/datetime.ts",                   "when": { "frontend": "next" } },
+    { "type": "render", "src": "templates/frontend-next/vitest.config.ts.tmpl",  "dst": "frontend/vitest.config.ts",                                "when": { "frontend": "next" } },
+    { "type": "render", "src": "templates/frontend-next/src/smoke.test.ts.tmpl","dst": "frontend/src/smoke.test.ts",                               "when": { "frontend": "next" } },
     { "type": "mkdir",  "dst": "frontend/public",                                                                                                  "when": { "frontend": "next" } },
     { "type": "mkdir",  "dst": "frontend/src/components",                                                                                          "when": { "frontend": "next" } },
 

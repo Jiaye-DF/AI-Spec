@@ -12,7 +12,7 @@ healthRouter.get('/health', async (_req: Request, res: Response, next: NextFunct
     try {
       await prisma.$queryRaw`SELECT 1`;
     } catch {
-      dbStatus = 'fail';
+      dbStatus = 'error';
     }
     res.json(success({ db: dbStatus }));
 {{/if}}{{#if !include_database}}
