@@ -1,0 +1,25 @@
+# Express + TypeScript — {{backend_node_image_version}}
+FROM {{backend_node_image_version}} AS deps
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+
+FROM {{backend_node_image_version}} AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+{{#if include_database}}RUN npx prisma generate
+{{/if}}RUN npm run build
+
+FROM {{backend_node_image_version}} AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=builder /app/dist ./dist
+{{#if include_database}}COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY prisma ./prisma
+{{/if}}COPY package*.json ./
+RUN npm ci --omit=dev
+
+EXPOSE {{backend_port}}
+CMD ["node", "dist/server.js"]

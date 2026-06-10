@@ -1,0 +1,32 @@
+import { z } from 'zod';
+
+const JWT_SECRET_KEY_DEFAULT = 'changeme-32-bytes-very-very-secret';
+
+const envSchema = z.object({
+  APP_ENV: z.enum(['development', 'staging', 'production']).default('development'),
+  PORT: z.coerce.number().default({{backend_port}}),
+  JWT_SECRET_KEY: z.string().default(JWT_SECRET_KEY_DEFAULT),
+  CORS_ORIGINS: z
+    .string()
+    .default('http://localhost:{{frontend_port}}')
+    .transform((s) => s.split(',')),
+{{#if include_database}}
+  DATABASE_URL: z.string(),
+{{/if}}
+});
+
+const parsed = envSchema.safeParse(process.env);
+if (!parsed.success) {
+  console.error('[config] Invalid environment variables:', parsed.error.format());
+  process.exit(1);
+}
+
+if (parsed.data.APP_ENV !== 'development') {
+  if (parsed.data.JWT_SECRET_KEY === JWT_SECRET_KEY_DEFAULT) {
+    throw new Error(
+      `APP_ENV=${parsed.data.APP_ENV} 但 JWT_SECRET_KEY 仍為 development 預設值`,
+    );
+  }
+}
+
+export const config = parsed.data;

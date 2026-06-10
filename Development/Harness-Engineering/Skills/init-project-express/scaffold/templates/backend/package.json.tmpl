@@ -1,0 +1,41 @@
+{
+  "name": "{{project_name}}-backend",
+  "version": "0.1.0",
+  "private": true,
+  "engines": { "node": ">={{node_version}}" },
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "lint": "eslint src tests --ext .ts",
+    "typecheck": "tsc --noEmit",
+    "test": "jest --passWithNoTests"
+  },
+  "dependencies": {
+    "express": "^{{express_version}}",
+    "cors": "^{{cors_version}}",
+    "cookie-parser": "^{{cookie_parser_version}}",
+    "zod": "^{{zod_version}}",
+    "bcryptjs": "^{{bcryptjs_version}}",
+    "jsonwebtoken": "^{{jsonwebtoken_version}}"{{#if include_database}},
+    "@prisma/client": "^{{prisma_client_version}}"{{/if}}
+  },
+  "devDependencies": {
+    "typescript": "^{{typescript_version}}",
+    "@types/node": "^{{types_node_version}}",
+    "@types/express": "^{{types_express_version}}",
+    "@types/cors": "^{{types_cors_version}}",
+    "@types/cookie-parser": "^{{types_cookie_parser_version}}",
+    "@types/bcryptjs": "^{{types_bcryptjs_version}}",
+    "@types/jsonwebtoken": "^{{types_jsonwebtoken_version}}",
+    "ts-node-dev": "^{{ts_node_dev_version}}",
+    "jest": "^{{jest_version}}",
+    "@types/jest": "^{{types_jest_version}}",
+    "ts-jest": "^{{ts_jest_version}}",
+    "supertest": "^{{supertest_version}}",
+    "@types/supertest": "^{{types_supertest_version}}",
+    "eslint": "^{{eslint_version}}",
+    "typescript-eslint": "^{{typescript_eslint_version}}"{{#if include_database}},
+    "prisma": "^{{prisma_version}}"{{/if}}
+  }
+}

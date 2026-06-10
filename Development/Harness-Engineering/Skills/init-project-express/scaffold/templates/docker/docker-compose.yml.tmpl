@@ -1,0 +1,60 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "{{frontend_port}}:{{frontend_port}}"
+    environment:
+      - PORT={{frontend_port}}
+      - NEXT_PUBLIC_API_URL=http://localhost:{{backend_port}}/api/{{api_version}}
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "{{backend_port}}:{{backend_port}}"
+    env_file:
+      - .env
+    environment:
+      - PORT={{backend_port}}
+{{#if include_database}}
+    depends_on:
+      postgres:
+        condition: service_healthy
+{{/if}}
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:{{backend_port}}/api/{{api_version}}/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+{{#if include_database}}
+  postgres:
+    image: {{postgres_image_version}}
+    ports:
+      - "{{postgres_port}}:5432"
+    environment:
+      - POSTGRES_DB={{project_name_underscore}}
+      - POSTGRES_USER={{postgres_user}}
+      - POSTGRES_PASSWORD={{postgres_password}}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{postgres_user}} -d {{project_name_underscore}}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+{{/if}}
+
+{{#if include_database}}
+volumes:
+  postgres_data:
+{{/if}}

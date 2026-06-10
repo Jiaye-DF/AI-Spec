@@ -1,0 +1,9 @@
+import { ApiResponse } from '../types/response';
+
+export function success<T>(data: T, responseCode = 200): ApiResponse<T> {
+  return { success: true, data, detail: null, response_code: responseCode };
+}
+
+export function failure(detail: string, responseCode = 400): ApiResponse<never> {
+  return { success: false, data: null, detail, response_code: responseCode };
+}

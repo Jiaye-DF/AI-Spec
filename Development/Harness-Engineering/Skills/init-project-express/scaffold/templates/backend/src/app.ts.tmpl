@@ -1,0 +1,21 @@
+import express, { Express } from 'express';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import { config } from './config';
+import { apiRouter } from './routes/{{api_version}}';
+import { registerErrorHandlers } from './middleware/errors';
+
+export function createApp(): Express {
+  const app = express();
+
+  app.use(cors({ origin: config.CORS_ORIGINS, credentials: true }));
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+  app.use(cookieParser());
+
+  app.use('/api/{{api_version}}', apiRouter);
+
+  registerErrorHandlers(app);
+
+  return app;
+}

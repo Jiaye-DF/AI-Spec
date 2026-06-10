@@ -1,0 +1,32 @@
+{
+  "name": "{{project_name}}-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "engines": { "node": ">=24.0.0" },
+  "scripts": {
+    "dev": "next dev --port {{frontend_port}}",
+    "build": "next build",
+    "start": "next start --port {{frontend_port}}",
+    "lint": "next lint --max-warnings=0",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "{{next_version}}",
+    "react": "{{react_version}}",
+    "react-dom": "{{react_dom_version}}",
+    "@reduxjs/toolkit": "{{redux_toolkit_version}}",
+    "react-redux": "{{react_redux_version}}"
+  },
+  "devDependencies": {
+    "typescript": "{{typescript_version}}",
+    "@types/node": "{{types_node_version}}",
+    "@types/react": "{{types_react_version}}",
+    "@types/react-dom": "{{types_react_dom_version}}",
+    "tailwindcss": "{{tailwindcss_version}}",
+    "@tailwindcss/postcss": "{{tailwindcss_postcss_version}}",
+    "postcss": "{{postcss_version}}",
+    "eslint": "{{eslint_version}}",
+    "eslint-config-next": "{{eslint_config_next_version}}",
+    "@eslint/eslintrc": "{{eslint_eslintrc_version}}"
+  }
+}

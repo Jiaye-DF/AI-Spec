@@ -1,0 +1,24 @@
+import { Router, Request, Response, NextFunction } from 'express';
+import { success } from '../../utils/response';
+{{#if include_database}}import { prisma } from '../../db';
+{{/if}}
+
+export const healthRouter = Router();
+
+healthRouter.get('/health', async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+{{#if include_database}}
+    let dbStatus = 'ok';
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+    } catch {
+      dbStatus = 'fail';
+    }
+    res.json(success({ db: dbStatus }));
+{{/if}}{{#if !include_database}}
+    res.json(success({ status: 'ok' }));
+{{/if}}
+  } catch (err) {
+    next(err);
+  }
+});

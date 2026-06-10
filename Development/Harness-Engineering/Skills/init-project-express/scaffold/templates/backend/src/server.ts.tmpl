@@ -1,0 +1,21 @@
+import { createApp } from './app';
+import { config } from './config';
+{{#if include_database}}
+import { prisma } from './db';
+{{/if}}
+
+const app = createApp();
+
+const server = app.listen(config.PORT, () => {
+  console.log(`[server] {{project_name}} listening on :${config.PORT} (${config.APP_ENV})`);
+});
+
+const shutdown = async () => {
+  server.close();
+{{#if include_database}}
+  await prisma.$disconnect();
+{{/if}}
+};
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
