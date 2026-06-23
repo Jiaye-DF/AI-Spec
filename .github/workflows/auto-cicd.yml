@@ -292,16 +292,23 @@ jobs:
             -f state="$state" -f context="ai-review" \
             -f description="${{ steps.verdict.outputs.verdict }}"
 
-      # § 五 Audit — stage ai-review
+      # § 五 Audit — stage ai-review(best-effort;平台不在 / 回報失敗不阻斷流程)
       - name: Audit — stage ai-review
         if: vars.CICD_PLATFORM_URL != ''
+        continue-on-error: true
         run: |
           curl --fail -X POST "${{ vars.CICD_PLATFORM_URL }}/events" \
             -H "Authorization: Bearer ${{ secrets.CICD_PLATFORM_KEY }}" \
+            -H "X-DF-Author:       ${{ github.event.pull_request.user.login || github.actor }}" \
+            -H "X-DF-Author-Email: ${{ github.event.pull_request.user.email || github.event.pusher.email }}" \
+            -H "X-DF-Repo:         ${{ github.repository }}" \
+            -H "X-DF-PR:           ${{ github.event.pull_request.number || 'push operation' }}" \
+            -H "X-DF-Commit-SHA:   ${{ github.sha }}" \
             -H "Content-Type: application/json" \
             -d '{"source":"github-actions","stage":"ai-review",
                  "pr_number":${{ github.event.pull_request.number || -1 }},
                  "commit_sha":"${{ github.sha }}",
+                 "branch":"${{ github.head_ref || github.ref_name }}",
                  "verdict":"${{ steps.verdict.outputs.verdict }}",
                  "review_skipped":"${{ steps.health.outputs.skipped }}"}'
 
@@ -408,16 +415,23 @@ jobs:
               gh pr close "$PR" --comment "❌ 不接受此變更(理由見 AI Review 評論)" ;;
           esac
 
-      # § 五 Audit — stage judgement(matched_rule_id 必填)
+      # § 五 Audit — stage judgement(matched_rule_id 必填;best-effort 不阻斷流程)
       - name: Audit — stage judgement
         if: vars.CICD_PLATFORM_URL != ''
+        continue-on-error: true
         run: |
           curl --fail -X POST "${{ vars.CICD_PLATFORM_URL }}/events" \
             -H "Authorization: Bearer ${{ secrets.CICD_PLATFORM_KEY }}" \
+            -H "X-DF-Author:       ${{ github.event.pull_request.user.login || github.actor }}" \
+            -H "X-DF-Author-Email: ${{ github.event.pull_request.user.email || github.event.pusher.email }}" \
+            -H "X-DF-Repo:         ${{ github.repository }}" \
+            -H "X-DF-PR:           ${{ github.event.pull_request.number || 'push operation' }}" \
+            -H "X-DF-Commit-SHA:   ${{ github.sha }}" \
             -H "Content-Type: application/json" \
             -d '{"source":"github-actions","stage":"judgement",
                  "pr_number":${{ github.event.pull_request.number || -1 }},
                  "commit_sha":"${{ github.sha }}",
+                 "branch":"${{ github.head_ref || github.ref_name }}",
                  "verdict":"${{ steps.final.outputs.verdict }}",
                  "matched_rule_id":"${{ steps.final.outputs.matched_rule }}"}'
 
@@ -473,8 +487,14 @@ jobs:
           retention-days: 7
       - name: Audit — stage deploy
         if: vars.CICD_PLATFORM_URL != ''
+        continue-on-error: true
         run: |
           curl --fail -X POST "${{ vars.CICD_PLATFORM_URL }}/events" \
             -H "Authorization: Bearer ${{ secrets.CICD_PLATFORM_KEY }}" \
+            -H "X-DF-Author:       ${{ github.event.pull_request.user.login || github.actor }}" \
+            -H "X-DF-Author-Email: ${{ github.event.pull_request.user.email || github.event.pusher.email }}" \
+            -H "X-DF-Repo:         ${{ github.repository }}" \
+            -H "X-DF-PR:           ${{ github.event.pull_request.number || 'push operation' }}" \
+            -H "X-DF-Commit-SHA:   ${{ github.sha }}" \
             -H "Content-Type: application/json" \
             --data @cd-report.json
