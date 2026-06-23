@@ -93,6 +93,7 @@ jobs:
           R_SECRET: ${{ needs.secret-scan.result }}
           R_SEC: ${{ needs.security-scan.result }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
           overall=pass
           case "$R_FRONT" in failure|cancelled) overall=fail ;; esac
@@ -106,6 +107,7 @@ jobs:
             "stage": "ci",
             "pr_number": ${{ github.event.pull_request.number || -1 }},
             "commit_sha": "${{ github.sha }}",
+            "branch": "$BRANCH",
             "result": "$overall",
             "run_url": "$RUN_URL",
             "jobs": {
@@ -458,6 +460,7 @@ jobs:
             "event": "cd.triggered",
             "stage": "deploy",
             "commit_sha": "${{ github.sha }}",
+            "branch": "${{ github.head_ref || github.ref_name }}",
             "result": "triggered",
             "run_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           }
