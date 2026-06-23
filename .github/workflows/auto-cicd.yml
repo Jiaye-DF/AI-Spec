@@ -92,6 +92,7 @@ jobs:
           R_BACK: ${{ inputs.backend_result }}
           R_SECRET: ${{ needs.secret-scan.result }}
           R_SEC: ${{ needs.security-scan.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           overall=pass
           case "$R_FRONT" in failure|cancelled) overall=fail ;; esac
@@ -106,6 +107,7 @@ jobs:
             "pr_number": ${{ github.event.pull_request.number || -1 }},
             "commit_sha": "${{ github.sha }}",
             "result": "$overall",
+            "run_url": "$RUN_URL",
             "jobs": {
               "frontend": "$R_FRONT",
               "backend": "$R_BACK",
@@ -456,7 +458,8 @@ jobs:
             "event": "cd.triggered",
             "stage": "deploy",
             "commit_sha": "${{ github.sha }}",
-            "result": "triggered"
+            "result": "triggered",
+            "run_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           }
           EOF
           cat cd-report.json
