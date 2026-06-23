@@ -106,7 +106,7 @@ jobs:
             "event": "ci.completed",
             "stage": "ci",
             "pr_number": ${{ github.event.pull_request.number || -1 }},
-            "commit_sha": "${{ github.sha }}",
+            "commit_sha": "${{ github.event.pull_request.head.sha || github.sha }}",
             "branch": "$BRANCH",
             "result": "$overall",
             "run_url": "$RUN_URL",
@@ -162,7 +162,7 @@ jobs:
             -H "X-DF-Author-Email: ${{ github.event.pull_request.user.email || github.event.pusher.email }}" \
             -H "X-DF-Repo:         ${{ github.repository }}" \
             -H "X-DF-PR:           ${{ github.event.pull_request.number || 'push operation' }}" \
-            -H "X-DF-Commit-SHA:   ${{ github.sha }}" \
+            -H "X-DF-Commit-SHA:   ${{ github.event.pull_request.head.sha || github.sha }}" \
             -H "Content-Type: application/json" \
             --data @ci-report.json
 
@@ -223,7 +223,7 @@ jobs:
         run: |
           jq -n \
             --argjson pr_number "${{ github.event.pull_request.number || -1 }}" \
-            --arg commit_sha "${{ github.sha }}" \
+            --arg commit_sha "${{ github.event.pull_request.head.sha || github.sha }}" \
             --arg repo "${{ github.repository }}" \
             --arg diff "$(cat /tmp/pr.diff)" \
             --arg pr_body "$PR_BODY" \
@@ -235,7 +235,7 @@ jobs:
             -H "X-DF-Author-Email: ${{ github.event.pull_request.user.email }}" \
             -H "X-DF-Repo:         ${{ github.repository }}" \
             -H "X-DF-PR:           ${{ github.event.pull_request.number }}" \
-            -H "X-DF-Commit-SHA:   ${{ github.sha }}" \
+            -H "X-DF-Commit-SHA:   ${{ github.event.pull_request.head.sha || github.sha }}" \
             -H "Authorization: Bearer $PLATFORM_KEY" \
             -H "Content-Type: application/json" \
             --max-time 300 \
@@ -268,7 +268,7 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{"source":"github-actions","event":"review.skipped",
                  "pr_number":${{ github.event.pull_request.number || -1 }},
-                 "commit_sha":"${{ github.sha }}","verdict":"manual",
+                 "commit_sha":"${{ github.event.pull_request.head.sha || github.sha }}","verdict":"manual",
                  "reason":"platform_unhealthy"}'
 
       # verdict 統一輸出(健康 → review 結果;不健康 → manual)
@@ -303,11 +303,11 @@ jobs:
             -H "X-DF-Author-Email: ${{ github.event.pull_request.user.email || github.event.pusher.email }}" \
             -H "X-DF-Repo:         ${{ github.repository }}" \
             -H "X-DF-PR:           ${{ github.event.pull_request.number || 'push operation' }}" \
-            -H "X-DF-Commit-SHA:   ${{ github.sha }}" \
+            -H "X-DF-Commit-SHA:   ${{ github.event.pull_request.head.sha || github.sha }}" \
             -H "Content-Type: application/json" \
             -d '{"source":"github-actions","stage":"ai-review",
                  "pr_number":${{ github.event.pull_request.number || -1 }},
-                 "commit_sha":"${{ github.sha }}",
+                 "commit_sha":"${{ github.event.pull_request.head.sha || github.sha }}",
                  "branch":"${{ github.head_ref || github.ref_name }}",
                  "verdict":"${{ steps.verdict.outputs.verdict }}",
                  "review_skipped":"${{ steps.health.outputs.skipped }}"}'
@@ -426,11 +426,11 @@ jobs:
             -H "X-DF-Author-Email: ${{ github.event.pull_request.user.email || github.event.pusher.email }}" \
             -H "X-DF-Repo:         ${{ github.repository }}" \
             -H "X-DF-PR:           ${{ github.event.pull_request.number || 'push operation' }}" \
-            -H "X-DF-Commit-SHA:   ${{ github.sha }}" \
+            -H "X-DF-Commit-SHA:   ${{ github.event.pull_request.head.sha || github.sha }}" \
             -H "Content-Type: application/json" \
             -d '{"source":"github-actions","stage":"judgement",
                  "pr_number":${{ github.event.pull_request.number || -1 }},
-                 "commit_sha":"${{ github.sha }}",
+                 "commit_sha":"${{ github.event.pull_request.head.sha || github.sha }}",
                  "branch":"${{ github.head_ref || github.ref_name }}",
                  "verdict":"${{ steps.final.outputs.verdict }}",
                  "matched_rule_id":"${{ steps.final.outputs.matched_rule }}"}'
@@ -444,7 +444,7 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{"source":"github-actions","event":"merge.done",
                  "pr_number":${{ github.event.pull_request.number || -1 }},
-                 "commit_sha":"${{ github.sha }}",
+                 "commit_sha":"${{ github.event.pull_request.head.sha || github.sha }}",
                  "verdict":"${{ steps.final.outputs.verdict }}"}'
 
   # ───────────────────────────────────────────────
@@ -473,7 +473,7 @@ jobs:
             "source": "github-actions",
             "event": "cd.triggered",
             "stage": "deploy",
-            "commit_sha": "${{ github.sha }}",
+            "commit_sha": "${{ github.event.pull_request.head.sha || github.sha }}",
             "branch": "${{ github.head_ref || github.ref_name }}",
             "result": "triggered",
             "run_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
@@ -495,6 +495,6 @@ jobs:
             -H "X-DF-Author-Email: ${{ github.event.pull_request.user.email || github.event.pusher.email }}" \
             -H "X-DF-Repo:         ${{ github.repository }}" \
             -H "X-DF-PR:           ${{ github.event.pull_request.number || 'push operation' }}" \
-            -H "X-DF-Commit-SHA:   ${{ github.sha }}" \
+            -H "X-DF-Commit-SHA:   ${{ github.event.pull_request.head.sha || github.sha }}" \
             -H "Content-Type: application/json" \
             --data @cd-report.json
