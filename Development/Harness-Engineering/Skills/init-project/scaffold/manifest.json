@@ -29,7 +29,7 @@
       "eslint_config_next": "16.2.7",
       "eslint_eslintrc": "3.2.0",
       "eslint_js": "9.39.4",
-      "typescript_eslint": "9.4.0",
+      "typescript_eslint": "8.62.0",
       "vite": "6.0.7",
       "vite_plugin_react": "4.3.4",
       "vitest": "2.1.9"
@@ -46,8 +46,8 @@
       "passlib_bcrypt": "1.7.4",
       "pyjwt_crypto": "2.10.1",
       "python_multipart": "0.0.20",
-      "ruff": "0.22.0",
-      "mypy": "1.21.0",
+      "ruff": "0.15.20",
+      "mypy": "2.1.0",
       "pytest": "8.4.2",
       "pip_audit": "2.8.0"
     }

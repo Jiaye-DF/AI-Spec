@@ -1,13 +1,13 @@
 # sso-init — Next.js 變體
 
 > **本檔是 `sso-init` skill 的 Next.js 變體**,由 [SKILL.md](./SKILL.md) 在使用者選「Next.js（App Router）」後分流進入;也可單獨閱讀執行。
-> ⚠️ 檔名為 `sso-init-express.md` 但內容是 **Next.js 15 App Router**;沿用舊檔名,內容以本檔為準。
+> ⚠️ 檔名為 `sso-init-express.md` 但內容是 **Next.js 16 App Router**;沿用舊檔名,內容以本檔為準。
 
 在當前 Next.js 專案中自動建立 DF-SSO 登入器所需的所有檔案。
 **執行前會詢問必要資訊，之後全自動完成。**
 
 > 對應 [INTEGRATION.md](INTEGRATION.md) 的契約。
-> 預設 **Next.js 15 App Router / Node runtime**（不使用 `middleware.ts` edge runtime，因為 back-channel 要 Node `crypto`）。
+> 預設 **Next.js 16 App Router / Node runtime**（不使用 `middleware.ts` edge runtime，因為 back-channel 要 Node `crypto`）。
 
 ## 詢問使用者（依序）
 

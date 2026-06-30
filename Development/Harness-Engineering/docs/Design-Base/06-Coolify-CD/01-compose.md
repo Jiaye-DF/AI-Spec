@@ -69,7 +69,7 @@ volumes:
 
 ## 規則
 
-- **鎖版**:image tag 必走 `${SERVICE_VERSION}` env(對齊 `00-overview/01-versions.md`),**禁**直寫 `postgres:17`
+- **鎖版**:image tag 必走 `${SERVICE_VERSION}` env(對齊 `00-overview/01-versions.md`),**禁**直寫 `postgres:18`
 - **healthcheck**:每 service 必有;backend `/api/v1/health` 為 acceptance gate
 - **depends_on**:用 `condition: service_healthy`,**禁** `service_started`(只看啟動不看健康)
 - **TZ**:每 service 必設 `TZ: Asia/Taipei`(對齊 `00-overview/05-timezone.md`)

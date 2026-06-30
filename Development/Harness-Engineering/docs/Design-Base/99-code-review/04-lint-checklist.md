@@ -12,8 +12,8 @@
 | --- | --- | --- | --- |
 | Frontend(JS/TS) | `eslint` 9 | `npm run lint` | `eslint.config.js`(flat config) |
 | Frontend(format) | `prettier` 3 | `npm run format -- --check` | `.prettierrc` |
-| Backend(lint + format) | `ruff` 0.9 | `uv run ruff check . && uv run ruff format --check .` | `pyproject.toml [tool.ruff]` |
-| Backend(typecheck) | `mypy` 1.14 | `uv run mypy app` | `pyproject.toml [tool.mypy]` |
+| Backend(lint + format) | `ruff` 0.15 | `uv run ruff check . && uv run ruff format --check .` | `pyproject.toml [tool.ruff]` |
+| Backend(typecheck) | `mypy` 2.1 | `uv run mypy app` | `pyproject.toml [tool.mypy]` |
 | TypeScript | `tsc --noEmit` | `npm run typecheck` | `tsconfig.json` |
 
 ## 容忍度(永遠遵守)

@@ -18,7 +18,7 @@ backend-test:
       working-directory: ./backend
   services:
     postgres:
-      image: postgres:17.2          # 對齊 00-overview/01-versions.md
+      image: postgres:18             # 對齊 00-overview/01-versions.md
       env:
         POSTGRES_PASSWORD: ci-only
         POSTGRES_DB: ci_test
@@ -40,7 +40,7 @@ backend-test:
         python-version-file: backend/pyproject.toml   # requires-python 為單一來源
     - uses: astral-sh/setup-uv@v4
       with:
-        version: "0.5.18"           # 對齊 00-overview/01-versions.md
+        version: "0.11.25"          # 對齊 00-overview/01-versions.md
     - run: uv sync --frozen
     - run: uv run ruff check .
     - run: uv run ruff format --check .
@@ -62,6 +62,6 @@ backend-test:
 
 ## services 與 env
 
-- 用 GitHub Actions `services:` 拉 `postgres:17.2`(image tag 對齊 `00-overview/01-versions.md`)
+- 用 GitHub Actions `services:` 拉 `postgres:18`(image tag 對齊 `00-overview/01-versions.md`)
 - env 用 `APP_ENV=development` + `JWT_SECRET_KEY=ci-only-not-for-production`(避開 fail-fast,對齊 `00-overview/03-env-layers.md` APP_ENV 三值)
 - 機密 env(若需第三方 sandbox 測)走 GitHub Secrets,見 `08-secrets-and-oidc.md`

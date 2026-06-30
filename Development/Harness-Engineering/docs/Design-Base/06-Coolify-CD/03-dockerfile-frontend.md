@@ -12,7 +12,7 @@
 # syntax=docker/dockerfile:1.7
 
 # ============ Stage 1: builder ============
-FROM node:22.13.0-bookworm-slim AS builder
+FROM node:24-bookworm-slim AS builder
 
 WORKDIR /app
 
@@ -86,7 +86,7 @@ export default nextConfig;
 # syntax=docker/dockerfile:1.7
 
 # ============ Stage 1: builder ============
-FROM node:22.13.0-bookworm-slim AS builder
+FROM node:24-bookworm-slim AS builder
 
 WORKDIR /app
 
@@ -99,7 +99,7 @@ ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
 RUN npm run build
 
 # ============ Stage 2: runtime ============
-FROM node:22.13.0-bookworm-slim
+FROM node:24-bookworm-slim
 
 ENV TZ=Asia/Taipei \
     NODE_ENV=production
@@ -131,7 +131,7 @@ CMD ["node", "server.js"]
 ## 規則(共通)
 
 - **multi-stage**:builder 帶 `node` + 完整 toolchain;runtime image 不帶 build tool
-- **node image tag**:`node:22.13.0-bookworm-slim`(對齊 `00-overview/01-versions.md` Node 鎖定線)
+- **node image tag**:`node:24-bookworm-slim`(對齊 `00-overview/01-versions.md` Node 鎖定線)
 - **`npm ci`**:lock file 必逐字使用(**禁** `npm install`)
 - **`TZ=Asia/Taipei`**:對齊 `00-overview/05-timezone.md`
 - **非 root**:Vite 路線 nginx 自身不需另開 user;Next 路線必 `useradd`

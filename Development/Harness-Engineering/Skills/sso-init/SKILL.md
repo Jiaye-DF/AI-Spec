@@ -15,7 +15,7 @@ description: 在當前專案自動建立 DF-SSO 登入器整合（callback / me 
 | --- | --- |
 | `INTEGRATION.md` | **契約正本**——5 端點行為、4 條硬性契約、模式 A/B、嚴格 vs Portal 模式、silent re-auth。不綁語言。**查契約一律讀這份**,不要連到專案外的相對路徑 |
 | `sso-init-fastapi.md` | 變體:Python FastAPI(`httpx.AsyncClient` + `pydantic-settings` + `Depends(require_auth)`) |
-| `sso-init-express.md` | 變體:Next.js 15 App Router(Node runtime,`withAuth` / `requireAuth` HOF) |
+| `sso-init-express.md` | 變體:Next.js 16 App Router(Node runtime,`withAuth` / `requireAuth` HOF) |
 | `sso-init-spring.md` | 變體:Java Spring Boot 3.x(Controller + Service + `OncePerRequestFilter`) |
 
 > 對應的 Design-Base 宣告式契約見 `docs/Design-Base/90-third-party-service/08-df-sso.md`(套用 Harness-Engineering 的專案才有)。本 skill 與該檔同源——契約被改一處,另一處同步。

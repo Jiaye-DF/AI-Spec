@@ -154,9 +154,9 @@ Recommended = scan-and-fill(典型意圖,寫到新檔不毀既有):
 ```
 | 維度 | 偵測結果 | 來源 |
 | --- | --- | --- |
-| Frontend | Next.js 15 + TypeScript | frontend/package.json |
+| Frontend | Next.js 16 + TypeScript | frontend/package.json |
 | Backend | FastAPI + Pydantic v2 | backend/pyproject.toml |
-| Database | PostgreSQL 17 | docker-compose.yml |
+| Database | PostgreSQL 18 | docker-compose.yml |
 | 外部依賴 | OpenRouter / Microsoft Graph | backend/app/clients/, .env.example |
 | API 前綴 | /api/v1/auth, /api/v1/users, ... | backend/app/api/ |
 | 版本史 | v1.0 → v1.10 | git tag + docs/ |
